@@ -11,6 +11,8 @@
      mikro-lekcje, przykładowy podział środków, Wehikuł Czasu z Chart.js).
    - Issue #9: Ekran 3 (symulacja wyborów z Luną: karty quick_replies, własna
      odpowiedź, feedback, konfetti) i ciche odtworzenie sesji po 404.
+   - Issue #10: Ekran 4 (baner awansu, Gotowość, samoocena „po", wyzwanie,
+     checklista, przykładowy plan, ranking, stopka MiFID II) i modal bankowy.
    ========================================================================== */
 (function () {
   'use strict';
@@ -117,6 +119,7 @@
       renderedValue: 0,      // ostatnio narysowane portfolio_status.simulated_value
       restoring: null,       // Promise trwającego odtwarzania sesji
     },
+    summary: freshSummary(), // Ekran 4 i modal bankowy (stan lokalny, zerowany przy nowej analizie)
   };
 
   const els = {};
@@ -202,6 +205,15 @@
     els.msSend = byId('ms-send');
     els.msCount = byId('ms-count');
     els.ctaFinishDay = byId('cta-finish-day');
+
+    // Ekran 4 i modal bankowy
+    els.cardLevelup = byId('card-levelup');
+    els.cardChallenge = byId('card-challenge');
+    els.cardChecklist = byId('card-checklist');
+    els.cardBank = byId('card-bank');
+    els.cardLeaderboard = byId('card-leaderboard');
+    els.complianceFooter = byId('compliance-footer');
+    els.bankOrderContent = byId('bank-order-content');
   }
 
   // ------------------------------------------------------------------------
@@ -545,6 +557,7 @@
     const title = target.querySelector('[data-screen-title]');
     if (title) title.focus({ preventScroll: true });
     renderHeader();
+    if (id === SCREENS.CHECKLIST) renderSummary({ animate: true });
   }
 
   // ------------------------------------------------------------------------
@@ -758,6 +771,7 @@
     state.turn = turn;
     renderHeader();
     renderMission();
+    if (turn.mission_completed) renderSummary({ animate: false });
   }
 
   function addMicroLessonBonusXp(xp) {
@@ -1198,6 +1212,7 @@
     if (els.msInput) els.msInput.value = '';
     syncMissionCounter();
     setMissionBusy(false);
+    state.summary = freshSummary();
   }
 
   function renderMission(options) {
@@ -1390,7 +1405,530 @@
   }
 
   // ------------------------------------------------------------------------
-  // 11. Toasty, modal, konfetti
+  // 11. Ekran 4 — ukończenie Dnia 1, wyzwanie, checklista, plan, ranking (docs/01 §7 Ekran 4)
+  // ------------------------------------------------------------------------
+
+  const CARD_CLASS = 'rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6';
+  // „Przetestuj inne pokolenie (Demo)": 22 l. -> 56 l. (Golden Path), 56 l. -> 38 l., 38 l. -> 22 l.
+  const NEXT_GENERATION = Object.freeze({ '20+': 'senior_56', '50+': 'mid_38', '30-50': 'young_20' });
+
+  function freshSummary() {
+    return {
+      challengeBusy: false,
+      challengeAccepted: false,
+      challengeReward: 0,
+      leveledViaChallenge: false, // próg 100 XP przekroczony dopiero dzięki wyzwaniu (+50 XP)
+      leaderboard: null,          // ranking z POST /api/challenge/accept (nadpisuje ten z tury)
+      checked: new Set(),
+      celebrated: false,
+      selfAfter: null,
+      bankOption: 'a',
+      bankDone: false,
+    };
+  }
+
+  // Poziomy wg docs/02 §3G (używane po wyzwaniu, które zwraca samo xp).
+  function levelForXp(xp) {
+    return xp >= LEVEL_FLOOR_XP[2]
+      ? { level: 2, level_title: 'Świadomy Start', next_level_xp: 250 }
+      : { level: 1, level_title: 'Obserwator', next_level_xp: 100 };
+  }
+
+  function summaryTurn() {
+    const t = state.turn;
+    return t && t.mission_completed ? t : null;
+  }
+
+  // Awans: z tury finałowej (gamification.leveled_up) albo dzięki +50 XP z wyzwania.
+  function userLeveledUp(t) {
+    return !!(t && t.gamification && t.gamification.leveled_up) || state.summary.leveledViaChallenge;
+  }
+
+  function renderSummary(options) {
+    const t = summaryTurn();
+    if (!t || !els.cardLevelup) return;
+    const animate = !!(options && options.animate);
+    renderLevelBanner(t, { pop: animate });
+    renderChallengeCard(t);
+    renderChecklistCard(t);
+    renderBankCard(t);
+    renderLeaderboardCard(t);
+    els.complianceFooter.innerHTML =
+      '<p class="rounded-2xl border border-slate-200 bg-white/70 p-4 text-xs leading-relaxed text-slate-500">' +
+        '<i data-lucide="scale" class="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true"></i>' +
+        escapeHtml(COMPLIANCE_TEXT) + '</p>';
+    refreshIcons();
+  }
+
+  // Baner (pełna szerokość): awans albo „brakuje X XP", Gotowość start -> wynik, samoocena „po".
+  function renderLevelBanner(t, options) {
+    const pop = !!(options && options.pop);
+    const g = t.gamification;
+    const s = state.session;
+    const leveled = userLeveledUp(t);
+    const dayLabel = 'DZIEŃ ' + (s ? s.current_day : 1) + ' Z ' + (s ? s.total_program_days : 14);
+    const title = leveled
+      ? '🏆 ' + dayLabel + ' UKOŃCZONY! AWANS: ' + g.level_title
+      : dayLabel + ' UKOŃCZONY';
+    const start = clamp(Number(t.confidence_start) || 0, 0, 100);
+    const score = clamp(Number(t.confidence_score) || 0, start, 100);
+    const missing = Math.max(0, LEVEL_FLOOR_XP[2] - g.xp);
+    const bonus = state.microLessonBonusXp;
+    const pill = (text, extra) =>
+      '<span class="inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold sm:text-sm ' +
+        (extra || 'bg-white/10 text-white') + '">' + text + '</span>';
+
+    els.cardLevelup.innerHTML =
+      '<div data-summary-banner class="' + (pop ? 'level-pop ' : '') + 'rounded-3xl bg-brand-dark p-5 text-white shadow-xl shadow-slate-200/60 sm:p-7">' +
+        '<h3 class="text-xl font-extrabold leading-tight tracking-tight text-brand-yellow sm:text-2xl">' + escapeHtml(title) + '</h3>' +
+        '<div class="mt-3 flex flex-wrap items-center gap-2">' +
+          pill('Poziom ' + escapeHtml(g.level), 'bg-brand-yellow text-brand-dark') +
+          pill('<span class="tabular-nums">' + formatNumber(g.xp) + NBSP + 'XP</span>') +
+          (bonus > 0 ? pill('<span class="tabular-nums">+' + bonus + NBSP + 'XP z mikro-lekcji</span>', 'bg-white/5 text-white/70') : '') +
+          pill('🔥 Seria: ' + escapeHtml(g.streak_days) + NBSP + pluralDays(g.streak_days), 'bg-streak-orange/20 text-orange-200') +
+        '</div>' +
+        (leveled
+          ? ''
+          : '<p class="mt-3 font-semibold text-white/85">Do Poziomu 2 brakuje <span class="tabular-nums">' + missing + NBSP + 'XP</span> — wróć jutro i nadrób!</p>') +
+        '<p class="mt-2 text-sm font-bold text-orange-200">🔥 Seria rozpoczęta! Wróć jutro po Dzień 2.</p>' +
+        '<div class="mt-5 grid grid-cols-1 gap-5 border-t border-white/10 pt-5 md:grid-cols-2 md:gap-8">' +
+          '<div>' +
+            '<p class="text-sm font-bold text-white/70">Gotowość</p>' +
+            '<p class="mt-0.5 text-2xl font-extrabold tabular-nums">' + start + '% <span class="text-brand-yellow" aria-hidden="true">→</span>' +
+              '<span class="sr-only">do</span> ' + score + '%</p>' +
+            '<div class="relative mt-2 h-3 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-label="Gotowość" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '">' +
+              '<div data-readiness-fill data-target="' + score + '" class="fq-progress-fill absolute inset-y-0 left-0 rounded-full bg-etf-green" style="width: ' + (pop ? start : score) + '%"></div>' +
+              '<div class="absolute inset-y-0 left-0 rounded-full bg-white/60" style="width: ' + start + '%"></div>' +
+            '</div>' +
+            '<p class="mt-2 text-xs text-white/60">Pełną gotowość da dopiero Dzień 14.</p>' +
+          '</div>' +
+          renderSelfAssessment() +
+        '</div>' +
+      '</div>';
+
+    if (pop) {
+      const fill = els.cardLevelup.querySelector('[data-readiness-fill]');
+      // Dwie klatki: przeglądarka najpierw rysuje szerokość startową, potem animuje do wyniku.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (fill) fill.style.width = fill.dataset.target + '%';
+      }));
+    }
+  }
+
+  // Samoocena „po" (1–5) — tylko frontend; w produkcie metryka dla banku (docs/01 §4).
+  function renderSelfAssessment() {
+    const after = state.summary.selfAfter;
+    const tiles = [1, 2, 3, 4, 5].map((n) =>
+      '<label class="block cursor-pointer"><input type="radio" name="self_confidence_after" value="' + n + '" class="sr-only"' +
+        (after === n ? ' checked' : '') + '><span class="fq-tile fq-tile--center min-h-[48px] text-lg tabular-nums">' + n + '</span></label>'
+    ).join('');
+    return (
+      '<fieldset class="fq-field">' +
+        '<legend class="text-sm font-bold text-white/70">Jak pewnie czujesz się teraz? (1–5)</legend>' +
+        '<div class="mt-2 grid grid-cols-5 gap-2">' + tiles + '</div>' +
+        '<p data-self-compare class="mt-2 text-sm font-bold" aria-live="polite">' + selfCompareHtml() + '</p>' +
+      '</fieldset>'
+    );
+  }
+
+  function selfCompareHtml() {
+    const before = state.lastProfile ? state.lastProfile.self_confidence_start : null;
+    const after = state.summary.selfAfter;
+    if (after == null) {
+      return before != null
+        ? '<span class="text-white/60">Przed: ' + before + '/5 — zaznacz, jak jest teraz.</span>'
+        : '<span class="text-white/60">Zaznacz, jak jest teraz.</span>';
+    }
+    const delta = before != null ? after - before : 0;
+    const deltaPill = before != null && delta > 0
+      ? ' <span class="ml-1 rounded-full bg-etf-green px-2 py-0.5 text-xs text-white">+' + delta + '</span>'
+      : '';
+    return (before != null ? 'Przed: ' + before + '/5 <span class="text-brand-yellow" aria-hidden="true">→</span><span class="sr-only">,</span> ' : '') +
+      'Po: ' + after + '/5' + deltaPill;
+  }
+
+  function setSelfAfter(value) {
+    const n = clamp(Math.round(Number(value) || 0), 1, 5);
+    state.summary.selfAfter = n;
+    const out = els.cardLevelup.querySelector('[data-self-compare]');
+    if (out) out.innerHTML = selfCompareHtml();
+  }
+
+  // Karta 1 — realne mikro-wyzwanie (złota ramka).
+  function renderChallengeCard(t) {
+    const c = t.real_world_challenge;
+    if (!c) {
+      els.cardChallenge.innerHTML = '';
+      return;
+    }
+    const s = state.summary;
+    const action = s.challengeAccepted
+      ? '<p class="mt-4 inline-flex min-h-tap items-center gap-2 rounded-2xl bg-etf-green px-4 py-2 font-extrabold text-white" role="status">' +
+          '✅ Wyzwanie przyjęte!' + (s.challengeReward > 0 ? ' +' + s.challengeReward + NBSP + 'XP' : '') + '</p>'
+      : '<button type="button" data-action="accept-challenge" class="btn-3d mt-4 w-full sm:w-auto"' + (s.challengeBusy ? ' disabled' : '') + '>' +
+          (s.challengeBusy ? '<span class="fq-spinner"></span>' : '<i data-lucide="flame" class="h-5 w-5" aria-hidden="true"></i>') +
+          '<span>Podejmuję wyzwanie (+' + escapeHtml(c.reward_xp) + NBSP + 'XP)</span></button>';
+    els.cardChallenge.innerHTML =
+      '<div class="rounded-3xl border-2 border-brand-yellow bg-gradient-to-br from-brand-yellow/20 via-white to-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">' +
+        '<p class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-brand-yellow-dark">' +
+          '<i data-lucide="target" class="h-4 w-4" aria-hidden="true"></i>Realne mikro-wyzwanie • Zero strachu</p>' +
+        '<h3 class="mt-2 text-lg font-extrabold leading-snug tracking-tight sm:text-xl">' + escapeHtml(c.title) + '</h3>' +
+        '<p class="mt-2 text-sm leading-relaxed text-slate-600">' + escapeHtml(c.description) + '</p>' +
+        '<p class="mt-3 inline-flex flex-wrap items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm font-bold shadow-sm">' +
+          '<span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span>' +
+          '<i data-lucide="arrow-right" class="h-4 w-4 text-slate-400" aria-hidden="true"></i>' + escapeHtml(c.target_account) + '</p>' +
+        '<div>' + action + '</div>' +
+      '</div>';
+  }
+
+  async function acceptChallenge() {
+    const s = state.summary;
+    const t = summaryTurn();
+    if (!t || !t.real_world_challenge || s.challengeAccepted || s.challengeBusy) return;
+    const token = state.mission.token;
+    s.challengeBusy = true;
+    renderChallengeCard(t);
+    refreshIcons();
+    try {
+      const res = await withSessionRecovery((sessionId) => api.acceptChallenge(sessionId));
+      if (token !== state.mission.token) return;
+      const g = t.gamification;
+      const crossed = g.xp < LEVEL_FLOOR_XP[2] && res.xp >= LEVEL_FLOOR_XP[2];
+      state.turn = Object.assign({}, t, {
+        gamification: Object.assign({}, g, levelForXp(res.xp), { xp: res.xp, xp_gained: res.reward_xp }),
+      });
+      s.challengeBusy = false;
+      s.challengeAccepted = true;
+      s.challengeReward = res.reward_xp;
+      s.leaderboard = Array.isArray(res.leaderboard) ? res.leaderboard : s.leaderboard;
+      if (crossed) s.leveledViaChallenge = true;
+
+      const turn = state.turn;
+      renderHeader();
+      renderLevelBanner(turn, { pop: crossed });
+      renderChallengeCard(turn);
+      renderLeaderboardCard(turn, { highlight: true });
+      refreshIcons();
+      fireConfetti('micro');
+    } catch (err) {
+      if (token !== state.mission.token) return;
+      s.challengeBusy = false;
+      renderChallengeCard(summaryTurn() || t);
+      refreshIcons();
+      showToast(describeMissionError(err), 'warn');
+    }
+  }
+
+  // Karta 2 — checklista Dnia 1 (4 pozycje); komplet -> pełne konfetti i .glow-pulse na przycisku bankowym.
+  function renderChecklistCard(t) {
+    const items = t.final_checklist || [];
+    const s = state.summary;
+    const done = items.filter((item) => s.checked.has(item.id)).length;
+    const list = items.map((item) => {
+      const checked = s.checked.has(item.id);
+      return (
+        '<li><button type="button" role="checkbox" aria-checked="' + checked + '" data-action="toggle-check" data-check-id="' + escapeHtml(item.id) + '" class="fq-check">' +
+          '<span class="fq-check-box" aria-hidden="true"><i data-lucide="check" class="h-4 w-4"></i></span>' +
+          '<span class="min-w-0"><span class="block font-bold leading-snug">' + escapeHtml(item.text) + '</span>' +
+          '<span class="mt-1 block text-sm leading-snug text-slate-600">' + escapeHtml(item.detail) + '</span></span>' +
+        '</button></li>'
+      );
+    }).join('');
+    els.cardChecklist.innerHTML =
+      '<div class="' + CARD_CLASS + '">' +
+        '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
+          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Checklista Dnia 1</h3>' +
+          '<span class="text-sm font-extrabold tabular-nums text-slate-500"><span data-check-count>' + done + '</span>/' + items.length + '</span>' +
+        '</div>' +
+        '<div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">' +
+          '<div data-check-bar class="fq-progress-fill h-full rounded-full bg-etf-green" style="width: ' + (items.length ? (done / items.length) * 100 : 0) + '%"></div>' +
+        '</div>' +
+        '<ul class="mt-4 space-y-3">' + list + '</ul>' +
+        '<p data-check-done class="mt-4 text-sm font-extrabold text-emerald-700" role="status"' + (items.length && done === items.length ? '' : ' hidden') + '>' +
+          '🎉 Komplet! Teraz zrób pierwszy krok w banku.</p>' +
+      '</div>';
+  }
+
+  function toggleChecklistItem(id, button) {
+    const t = summaryTurn();
+    if (!t) return;
+    const items = t.final_checklist || [];
+    if (!items.some((item) => item.id === id)) return;
+    const s = state.summary;
+    if (s.checked.has(id)) s.checked.delete(id);
+    else s.checked.add(id);
+    const checked = s.checked.has(id);
+    if (button) {
+      button.setAttribute('aria-checked', String(checked));
+      replayClass(button, 'fq-bounce');
+    }
+    const done = items.filter((item) => s.checked.has(item.id)).length;
+    const all = done === items.length && items.length > 0;
+    const count = els.cardChecklist.querySelector('[data-check-count]');
+    const bar = els.cardChecklist.querySelector('[data-check-bar]');
+    const doneMsg = els.cardChecklist.querySelector('[data-check-done]');
+    if (count) count.textContent = String(done);
+    if (bar) bar.style.width = (done / items.length) * 100 + '%';
+    if (doneMsg) doneMsg.hidden = !all;
+    syncBankGlow();
+    if (all && !s.celebrated) {
+      s.celebrated = true;
+      fireConfetti('full');
+    }
+  }
+
+  function checklistComplete() {
+    const t = summaryTurn();
+    const items = (t && t.final_checklist) || [];
+    return items.length > 0 && items.every((item) => state.summary.checked.has(item.id));
+  }
+
+  function syncBankGlow() {
+    const btn = els.cardBank && els.cardBank.querySelector('[data-action="open-bank-modal"]');
+    if (btn) btn.classList.toggle('glow-pulse', checklistComplete());
+  }
+
+  // Karta 3 — przykładowy plan w Commerzbanku (bank_draft); savings_first: plan poduszki, ETF „na później".
+  function renderBankCard(t) {
+    const d = t.bank_draft;
+    if (!d) {
+      els.cardBank.innerHTML = '';
+      return;
+    }
+    const c = t.real_world_challenge;
+    const advice = (state.session && state.session.safe_investment) || {};
+    const savingsFirst = advice.plan_type === 'savings_first';
+    const cushion = Number(advice.emergency_savings_monthly) || 0;
+    const step = (num, label, body) =>
+      '<li class="flex gap-3">' +
+        '<span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-dark text-sm font-extrabold text-brand-yellow">' + num + '</span>' +
+        '<div class="min-w-0"><p class="text-xs font-extrabold uppercase tracking-wider text-slate-500">' + label + '</p>' + body + '</div>' +
+      '</li>';
+
+    const today = c
+      ? '<p class="mt-0.5 font-extrabold">Mikro-ruch: <span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span> na ' + escapeHtml(c.target_account) + '</p>'
+      : '';
+    const target = savingsFirst
+      ? '<p class="mt-0.5 font-extrabold">Poduszka: <span class="tabular-nums">' + formatPLN(cushion) + '/mies.</span> na konto oszczędnościowe</p>' +
+        '<span class="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">' +
+          '<i data-lucide="clock" class="h-3.5 w-3.5" aria-hidden="true"></i>ETF na później — przykład ' + formatPLN(d.monthly_amount) + '/mies.</span>'
+      : '<p class="mt-0.5 font-extrabold"><span class="tabular-nums">' + formatPLN(d.monthly_amount) + '/mies.</span> • horyzont ' + yearsLabel(d.horizon_years) + '</p>' +
+        '<p class="mt-0.5 text-sm text-slate-600">' + escapeHtml(d.instrument_category) + '</p>' +
+        (cushion > 0 ? '<p class="mt-1 text-sm text-slate-600">Równolegle poduszka: <span class="font-bold tabular-nums">' + formatPLN(cushion) + '/mies.</span> na konto oszczędnościowe.</p>' : '');
+
+    els.cardBank.innerHTML =
+      '<div class="' + CARD_CLASS + '">' +
+        '<div class="flex flex-wrap items-center justify-between gap-2">' +
+          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Przykładowy plan w Commerzbanku</h3>' +
+          '<span class="rounded-full bg-brand-dark px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-yellow">Demo</span>' +
+        '</div>' +
+        '<ol class="mt-4 space-y-4">' +
+          step(1, 'Dziś', today) +
+          step(2, 'Dzień 14 — plan docelowy', target) +
+        '</ol>' +
+        '<div class="mt-5 rounded-2xl bg-slate-50 p-4">' +
+          '<p class="text-xs font-bold text-slate-500">' + (savingsFirst ? 'Przykład na później — ' : '') +
+            'szacunek edukacyjny w dzisiejszych złotych • ' + yearsLabel(d.horizon_years) + '</p>' +
+          '<div class="mt-2 grid grid-cols-2 gap-3">' +
+            '<div><p class="text-xs font-bold text-emerald-700">Szeroki ETF (realnie)</p>' +
+              '<p class="text-xl font-extrabold tabular-nums sm:text-2xl">' + formatPLN(d.projected_etf_real_value) + '</p></div>' +
+            '<div><p class="text-xs font-bold text-rose-600">Wpłaty na koncie 0% (realnie)</p>' +
+              '<p class="text-xl font-extrabold tabular-nums sm:text-2xl">' + formatPLN(d.projected_cash_real_value) + '</p></div>' +
+          '</div>' +
+          '<p class="mt-1.5 text-xs text-slate-500">nominalnie ETF: ok. <span class="tabular-nums">' + formatPLN(d.projected_etf_nominal_value) + '</span></p>' +
+        '</div>' +
+        '<p class="mt-3 text-[11px] leading-relaxed text-slate-500">' + escapeHtml(d.assumptions_text) + ' ' + escapeHtml(d.costs_note) + '</p>' +
+        '<button type="button" data-action="open-bank-modal" class="btn-3d mt-5 w-full text-base">' +
+          '<span>Wykonaj krok Dnia 1 lub zobacz przykładowy plan w Commerzbanku</span>' +
+          '<i data-lucide="arrow-right" class="h-5 w-5 shrink-0" aria-hidden="true"></i></button>' +
+      '</div>';
+    syncBankGlow();
+  }
+
+  // Karta 4 — ranking (przykładowi znajomi, demo); „⬆️ Awans!" tylko przy awansie.
+  function renderLeaderboardCard(t, options) {
+    const rows = state.summary.leaderboard || t.leaderboard || [];
+    const leveled = userLeveledUp(t);
+    const me = rows.find((r) => r.is_current_user) || null;
+    const leader = rows[0] || null;
+    const list = rows.map((r) => {
+      const isMe = r.is_current_user === true;
+      // Backend dopisuje „(Awans!)" do nazwy — w UI pokazujemy osobny badge.
+      const name = isMe ? String(r.name).replace(/\s*\(Awans!\)\s*$/, '') : r.name;
+      return (
+        '<li' + (isMe ? ' data-me' : '') + ' class="flex items-center gap-3 rounded-2xl px-3 py-2.5 ' +
+          (isMe ? 'bg-brand-yellow/15 ring-2 ring-brand-yellow' : 'odd:bg-slate-50') + '">' +
+          '<span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-extrabold tabular-nums ' +
+            (r.rank === 1 ? 'bg-brand-yellow text-brand-dark' : 'bg-white text-slate-600 ring-1 ring-slate-200') + '">' + escapeHtml(r.rank) + '</span>' +
+          '<div class="min-w-0 flex-1">' +
+            '<p class="flex flex-wrap items-center gap-1.5 font-extrabold leading-tight">' + escapeHtml(name) +
+              (isMe && leveled ? '<span class="rounded-full bg-etf-green px-2 py-0.5 text-[11px] font-extrabold text-white">⬆️ Awans!</span>' : '') + '</p>' +
+            '<p class="text-xs text-slate-500">' + escapeHtml(r.level_title) + '</p>' +
+          '</div>' +
+          '<span class="shrink-0 text-xs font-bold text-streak-orange" title="Seria dni">🔥' + NBSP + escapeHtml(r.streak_days) + '</span>' +
+          '<span class="w-20 shrink-0 text-right font-extrabold tabular-nums">' + formatNumber(r.xp) + NBSP + 'XP</span>' +
+        '</li>'
+      );
+    }).join('');
+
+    let hint = '';
+    if (me && leader && !leader.is_current_user) {
+      hint = 'Do 1. miejsca brakuje Ci <span class="tabular-nums">' + formatNumber(leader.xp - me.xp) + NBSP + 'XP</span> — wróć jutro po Dzień 2!';
+    } else if (me) {
+      hint = 'Prowadzisz w rankingu — utrzymaj serię jutro!';
+    }
+
+    els.cardLeaderboard.innerHTML =
+      '<div class="' + CARD_CLASS + '">' +
+        '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
+          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Ranking znajomych</h3>' +
+          '<span class="text-xs font-semibold text-slate-500">Przykładowi znajomi (demo)</span>' +
+        '</div>' +
+        '<ol class="mt-4 space-y-1.5">' + list + '</ol>' +
+        (hint ? '<p class="mt-3 text-sm font-semibold text-slate-600" aria-live="polite">' + hint + '</p>' : '') +
+        '<button type="button" data-action="challenge-friend" class="mt-4 inline-flex min-h-tap w-full items-center justify-center gap-2 rounded-2xl border-2 border-brand-dark/10 bg-white px-4 font-extrabold transition hover:border-brand-yellow hover:bg-brand-yellow/10 sm:w-auto">' +
+          '⚔️ Wyzwij znajomego</button>' +
+      '</div>';
+
+    if (options && options.highlight) {
+      const row = els.cardLeaderboard.querySelector('[data-me]');
+      if (row) replayClass(row, 'fq-bounce');
+    }
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (err) {
+      // przejście do metody zapasowej poniżej
+    }
+    try {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      area.remove();
+      return ok;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  async function challengeFriend() {
+    const text = 'Rzucam Ci wyzwanie w Finance Quest! Mam za sobą Dzień 1 z 14 planu i ' + displayedXp() +
+      ' XP. Dołączysz i spróbujesz mnie dogonić? 🔥';
+    const ok = await copyToClipboard(text);
+    if (ok) showToast('⚔️ Zaproszenie skopiowane do schowka — wyślij je znajomemu!', 'success');
+    else showToast('Nie udało się skopiować. Treść zaproszenia: ' + text, 'warn', 6000);
+  }
+
+  // ------------------------------------------------------------------------
+  // 12. Modal bankowy — Zero-Friction Handoff (DEMO, docs/01 §7)
+  // ------------------------------------------------------------------------
+
+  function bankOptionSummary(t, option) {
+    const c = t.real_world_challenge;
+    const d = t.bank_draft;
+    const advice = (state.session && state.session.safe_investment) || {};
+    if (option === 'b') {
+      return advice.plan_type === 'savings_first'
+        ? 'Przykładowy plan na Dzień 14: poduszka ' + formatPLN(advice.emergency_savings_monthly || 0) + '/mies.'
+        : 'Przykładowy plan na Dzień 14: ' + formatPLN(d ? d.monthly_amount : 0) + ' / mies.';
+    }
+    return c ? 'Przelew ' + formatPLN(c.amount_pln) + ' na ' + c.target_account : 'Krok na dziś';
+  }
+
+  function renderBankModal() {
+    const t = summaryTurn();
+    if (!t || !els.bankOrderContent) return;
+    const s = state.summary;
+    const c = t.real_world_challenge;
+    const d = t.bank_draft;
+    const advice = (state.session && state.session.safe_investment) || {};
+
+    if (s.bankDone) {
+      els.bankOrderContent.innerHTML =
+        '<div class="text-center" role="status">' +
+          '<div class="level-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-etf-green text-white">' +
+            '<i data-lucide="check" class="h-8 w-8" aria-hidden="true"></i></div>' +
+          '<p class="mt-4 text-lg font-extrabold leading-snug">Brawo! Krok Dnia 1 zaliczony — Twoja seria trwa, widzimy się jutro na Dniu 2!</p>' +
+          '<p class="mt-2 text-sm text-slate-600">Symulacja: ' + escapeHtml(bankOptionSummary(t, s.bankOption)) + ' • W wersji demo nic nie zostało wykonane.</p>' +
+          '<button type="button" data-action="next-generation" class="btn-3d mt-6 w-full">' +
+            '<i data-lucide="users" class="h-5 w-5" aria-hidden="true"></i><span>Przetestuj inne pokolenie (Demo)</span></button>' +
+          '<button type="button" data-action="close-modal" class="mt-2 inline-flex min-h-tap w-full items-center justify-center rounded-2xl font-bold text-slate-600 transition hover:bg-slate-100">Zamknij</button>' +
+        '</div>';
+      refreshIcons();
+      return;
+    }
+
+    const optionB = advice.plan_type === 'savings_first'
+      ? '<span class="mt-1 block text-sm font-semibold text-slate-600">Poduszka: <span class="tabular-nums">' + formatPLN(advice.emergency_savings_monthly || 0) + '/mies.</span> na konto oszczędnościowe; ETF później (przykład ' + formatPLN(d ? d.monthly_amount : 0) + '/mies.)</span>'
+      : '<span class="mt-1 block text-sm font-semibold text-slate-600"><span class="tabular-nums">' + formatPLN(d ? d.monthly_amount : 0) + ' / mies.</span> • ' +
+          (d ? yearsLabel(d.horizon_years) : '') + '</span>' +
+        '<span class="mt-0.5 block text-xs font-medium text-slate-500">' + escapeHtml(d ? d.instrument_category : '') + '</span>';
+    const option = (value, title, badge, body) =>
+      '<label class="block cursor-pointer"><input type="radio" name="bank_option" value="' + value + '" class="sr-only"' + (s.bankOption === value ? ' checked' : '') + '>' +
+        '<span class="fq-tile fq-tile--top"><span class="fq-radio-dot" aria-hidden="true"></span><span class="min-w-0">' +
+          '<span class="flex flex-wrap items-center gap-2">' + title + badge + '</span>' + body +
+        '</span></span></label>';
+
+    els.bankOrderContent.innerHTML =
+      '<div class="rounded-2xl bg-brand-dark p-4 text-white">' +
+        '<div class="flex items-center justify-between gap-3">' +
+          '<span class="inline-flex items-center gap-2 font-extrabold"><span class="grid h-7 w-7 place-items-center rounded-lg bg-brand-yellow text-brand-dark">' +
+            '<i data-lucide="landmark" class="h-4 w-4" aria-hidden="true"></i></span>Commerzbank</span>' +
+          '<span class="rounded-full bg-brand-yellow px-2 py-0.5 text-[11px] font-extrabold text-brand-dark">DEMO</span>' +
+        '</div>' +
+        '<p class="mt-2 text-xs text-white/70">Podgląd ekranu aplikacji bankowej — w wersji demo nic nie zostanie wykonane.</p>' +
+      '</div>' +
+      '<fieldset class="fq-field mt-4"><legend class="text-sm font-bold text-slate-600">Wybierz krok</legend>' +
+        '<div class="mt-2 grid gap-3">' +
+          option('a', 'Opcja A — Krok na dziś',
+            '<span class="rounded-full bg-etf-green px-2 py-0.5 text-[11px] font-extrabold text-white">Polecana</span>',
+            '<span class="mt-1 block text-sm font-semibold text-slate-600">' +
+              (c ? 'Przelew <span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span> na ' + escapeHtml(c.target_account) : '') + '</span>') +
+          option('b', 'Opcja B — Przykładowy plan na Dzień 14', '', optionB) +
+        '</div>' +
+      '</fieldset>' +
+      '<p class="mt-4 flex items-start gap-2 rounded-2xl border border-stress-amber/50 bg-amber-50 p-3 text-xs font-semibold leading-relaxed text-slate-700">' +
+        '<i data-lucide="shield-alert" class="mt-0.5 h-4 w-4 shrink-0 text-stress-amber" aria-hidden="true"></i>' +
+        'W wersji produkcyjnej: test odpowiedniości, weryfikacja tożsamości (KYC), informacja o kosztach i ryzyku.</p>' +
+      '<button type="button" data-action="simulate-bank" class="btn-3d mt-5 w-full">' +
+        '<span>Symuluj wykonanie kroku w banku (Demo)</span></button>';
+    refreshIcons();
+  }
+
+  function openBankModal() {
+    if (!summaryTurn()) return;
+    state.summary.bankDone = false;
+    renderBankModal();
+    openModal('modal_bank_order');
+  }
+
+  function simulateBankStep() {
+    state.summary.bankDone = true;
+    renderBankModal();
+    fireConfetti('full');
+    const next = els.bankOrderContent.querySelector('[data-action="next-generation"]');
+    if (next) next.focus();
+  }
+
+  function testNextGeneration() {
+    const group = state.session && state.session.age_group;
+    const personaId = NEXT_GENERATION[group] || 'young_20';
+    closeModal('modal_bank_order');
+    selectPersona(personaId);
+  }
+
+  // ------------------------------------------------------------------------
+  // 13. Toasty, modal, konfetti
   // ------------------------------------------------------------------------
 
   const TOAST_TONES = {
@@ -1450,7 +1988,7 @@
   }
 
   // ------------------------------------------------------------------------
-  // 12. Zdarzenia i start
+  // 14. Zdarzenia i start
   // ------------------------------------------------------------------------
 
   function bindEvents() {
@@ -1467,6 +2005,18 @@
         completeLesson(target.dataset.lessonId);
       } else if (target.dataset.action === 'quick-reply') {
         answerWithQuickReply(target.dataset.replyId);
+      } else if (target.dataset.action === 'accept-challenge') {
+        acceptChallenge();
+      } else if (target.dataset.action === 'toggle-check') {
+        toggleChecklistItem(target.dataset.checkId, target);
+      } else if (target.dataset.action === 'challenge-friend') {
+        challengeFriend();
+      } else if (target.dataset.action === 'open-bank-modal') {
+        openBankModal();
+      } else if (target.dataset.action === 'simulate-bank') {
+        simulateBankStep();
+      } else if (target.dataset.action === 'next-generation') {
+        testNextGeneration();
       } else if (target.dataset.action === 'open-modal') {
         openModal(target.dataset.target);
       } else if (target.dataset.action === 'close-modal') {
@@ -1475,6 +2025,13 @@
     });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeModal();
+    });
+    // Radia poza ankietą: samoocena „po" (Ekran 4) i wybór opcji w modalu bankowym.
+    document.addEventListener('change', (event) => {
+      const input = event.target;
+      if (!input || input.type !== 'radio') return;
+      if (input.name === 'self_confidence_after') setSelfAfter(input.value);
+      else if (input.name === 'bank_option') state.summary.bankOption = input.value === 'b' ? 'b' : 'a';
     });
     if (els.form) {
       els.form.addEventListener('input', onFormInput);
@@ -1547,6 +2104,9 @@
     renderMission,
     sendMissionAnswer,
     withSessionRecovery,
+    renderSummary,
+    acceptChallenge,
+    openBankModal,
     addMicroLessonBonusXp,
     analyzeProfile,
     selectPersona,
