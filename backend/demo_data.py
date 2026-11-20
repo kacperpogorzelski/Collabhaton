@@ -9,6 +9,7 @@ szablony zawierają placeholdery uzupełniane przez ``.format(**session_facts)``
 from __future__ import annotations
 
 import random
+from typing import Literal
 
 from backend.schemas import (
     AgeGroup,
@@ -27,6 +28,22 @@ from backend.schemas import (
     SpeaklyFilter,
 )
 
+# ``Language`` jest zdefiniowany lokalnie (zgodnie z docs/02 §9 Osoba 1 dodaje go
+# w ``schemas.py``); do tego czasu nie importujemy go z ``backend.schemas``.
+Language = Literal["pl", "en"]
+
+
+def _normalize_lang(lang: str | None) -> Language:
+    """Zwraca ``"en"`` wyłącznie dla ``"en"``; każda inna wartość to ``"pl"``."""
+    return "en" if str(lang or "").strip().lower() == "en" else "pl"
+
+
+def _lang_of(session_facts: dict | None, lang: str | None = None) -> Language:
+    """Jawny ``lang`` ma pierwszeństwo; inaczej ``session_facts["lang"]``, potem ``"pl"``."""
+    if lang is not None:
+        return _normalize_lang(lang)
+    return _normalize_lang((session_facts or {}).get("lang"))
+
 __all__ = [
     "DEMO_PERSONAS",
     "SEED_LEADERBOARD",
@@ -44,6 +61,10 @@ __all__ = [
     "COSTS_NOTE",
     "INSTRUMENT_CATEGORY",
     "get_age_group_content",
+    "get_demo_personas",
+    "get_assumptions_text",
+    "get_costs_note",
+    "get_instrument_category",
     "get_step_block",
     "get_initial_mission_turn",
     "shuffle_options",
@@ -710,6 +731,619 @@ STEP3: dict = {
 }
 
 # --------------------------------------------------------------------------- #
+# Wersja angielska (docs/03 §10) — te same id i wartości liczbowe, kwoty w PLN
+# --------------------------------------------------------------------------- #
+
+# Etykiety person (docs/03 §10 pkt 1).
+PERSONA_LABELS_EN: dict[str, tuple[str, str]] = {
+    "young_20": ("22y Student", "22y • Student (Fresh Start)"),
+    "mid_38": ("38y Family", "38y • Career & Family"),
+    "senior_56": ("56y 50+", "56y • Capital Protection 50+"),
+}
+
+SPEAKLY_FILTER_BY_GROUP_EN: dict[AgeGroup, SpeaklyFilter] = {
+    "20+": SpeaklyFilter(
+        kept_topics=[
+            "Inflation eats your cash",
+            "Emergency buffer for surprises, ETF for the long term",
+            "The power of scale from small amounts",
+        ],
+        removed_topics=[
+            "Timing the market top and bottom",
+            "Picking individual stocks",
+            "Trendy cryptocurrencies (FOMO)",
+            "Checking quotes every day",
+            "Reading company reports",
+            "Comparing dozens of funds",
+        ],
+    ),
+    "30-50": SpeaklyFilter(
+        kept_topics=[
+            "Inflation eats your savings",
+            "Background automation without charts",
+            "Buffer separately, surplus separately",
+        ],
+        removed_topics=[
+            "Timing the market top and bottom",
+            "Picking individual stocks",
+            "Actively managing a portfolio during work hours",
+            "Checking quotes every day",
+            "Reading company reports",
+            "Comparing dozens of funds",
+        ],
+    ),
+    "50+": SpeaklyFilter(
+        kept_topics=[
+            "You can invest at any age",
+            "An anti-inflation shield for your capital",
+            "Simplicity and diversification",
+        ],
+        removed_topics=[
+            "Chasing losses with risky bets",
+            "Picking individual stocks",
+            "Timing the market top and bottom",
+            "Checking quotes every day",
+            "Reading company reports",
+            "Comparing dozens of funds",
+        ],
+    ),
+}
+
+ROADMAP_BY_GROUP_EN: dict[AgeGroup, list[RoadmapMilestone]] = {
+    "20+": [
+        RoadmapMilestone(
+            day=1,
+            title="Inflation, liquidity and getting started",
+            focus="Today: 5 min • Breaking the frozen-cash myth",
+            status="active",
+        ),
+        RoadmapMilestone(
+            day=4,
+            title="Simulator of your first -15% drop",
+            focus="Practising a steady hand on real charts",
+        ),
+        RoadmapMilestone(
+            day=9,
+            title="How to choose a low-cost, broad ETF?",
+            focus="Fees (TER) and simple diversification rules",
+        ),
+        RoadmapMilestone(
+            day=14,
+            title="Your first investment",
+            focus="100% readiness • Launching the plan at Commerzbank",
+        ),
+    ],
+    "30-50": [
+        RoadmapMilestone(
+            day=1,
+            title="Inflation and investing in the background",
+            focus="Today: 5 min • Buffer separately, surplus separately",
+            status="active",
+        ),
+        RoadmapMilestone(
+            day=4,
+            title="Automation without watching charts",
+            focus="Standing orders and saved time",
+        ),
+        RoadmapMilestone(
+            day=9,
+            title="Sensible proportions for a family",
+            focus="Combining a broad ETF with a cash cushion",
+        ),
+        RoadmapMilestone(
+            day=14,
+            title="Start of the automatic ETF plan",
+            focus="100% readiness • Setup at Commerzbank",
+        ),
+    ],
+    "50+": [
+        RoadmapMilestone(
+            day=1,
+            title="An anti-inflation shield at any age",
+            focus="Today: 5 min • Why cash in an account loses value",
+            status="active",
+        ),
+        RoadmapMilestone(
+            day=4,
+            title="Reacting calmly to volatility",
+            focus="How a 7-year horizon smooths market drops",
+        ),
+        RoadmapMilestone(
+            day=9,
+            title="A simple capital-protection portfolio",
+            focus="Low costs, transparency and peace of mind",
+        ),
+        RoadmapMilestone(
+            day=14,
+            title="A confident start at Commerzbank",
+            focus="100% readiness • Stress-free plan launch",
+        ),
+    ],
+}
+
+MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
+    "20+": [
+        MicroLessonCard(
+            id="ml_20_1",
+            title="Inflation eats your cash",
+            duration_sec=20,
+            summary="Money sitting in a regular 0% account buys less every year because of inflation.",
+            key_takeaway="Not deciding is a certain loss of purchasing power.",
+            xp_reward=15,
+        ),
+        MicroLessonCard(
+            id="ml_20_2",
+            title="Emergency buffer for surprises, ETF for the long term",
+            duration_sec=20,
+            summary=(
+                "The buffer covers unexpected expenses. An ETF is money for the long horizon — but it "
+                "is not frozen: as a last resort you can sell units, and the payout usually takes a "
+                "few business days."
+            ),
+            key_takeaway="You know which money is for what.",
+            xp_reward=15,
+        ),
+        MicroLessonCard(
+            id="ml_20_3",
+            title="The power of scale from small amounts",
+            duration_sec=20,
+            summary=(
+                "Starting young, even small amounts (e.g. 100–300 PLN) can work for decades thanks to "
+                "compound interest."
+            ),
+            key_takeaway="Time matters more than a large starting capital.",
+            xp_reward=15,
+        ),
+    ],
+    "30-50": [
+        MicroLessonCard(
+            id="ml_30_1",
+            title="Inflation eats your savings",
+            duration_sec=20,
+            summary=(
+                "Keeping surplus in a non-interest-bearing account steadily lowers its real value."
+            ),
+            key_takeaway="Surplus should work faster than inflation.",
+            xp_reward=15,
+        ),
+        MicroLessonCard(
+            id="ml_30_2",
+            title="Background automation without charts",
+            duration_sec=20,
+            summary=(
+                "A broad ETF invests in hundreds of companies at once and does not require tracking "
+                "the market daily."
+            ),
+            key_takeaway="You save time — a steady plan runs in the background.",
+            xp_reward=15,
+        ),
+        MicroLessonCard(
+            id="ml_30_3",
+            title="Buffer separately, surplus separately",
+            duration_sec=20,
+            summary=(
+                "The buffer protects your family's security; you only send free surplus to the market."
+            ),
+            key_takeaway="You handle temporary drops more calmly.",
+            xp_reward=15,
+        ),
+    ],
+    "50+": [
+        MicroLessonCard(
+            id="ml_50_1",
+            title="You can invest at any age",
+            duration_sec=20,
+            summary=(
+                "A 5–10 year horizon is still time for capital to work wisely without unnecessary risk."
+            ),
+            key_takeaway="It is never too late for a conscious start.",
+            xp_reward=15,
+        ),
+        MicroLessonCard(
+            id="ml_50_2",
+            title="An anti-inflation shield for your capital",
+            duration_sec=20,
+            summary=(
+                "Cash in a regular account loses purchasing power every year, which hurts most with "
+                "larger savings."
+            ),
+            key_takeaway="A broad ETF has historically helped protect the value of money (no guarantee).",
+            xp_reward=15,
+        ),
+        MicroLessonCard(
+            id="ml_50_3",
+            title="Simplicity and diversification",
+            duration_sec=20,
+            summary=(
+                "Instead of betting on one company, a broad ETF spreads capital across the entire "
+                "global market."
+            ),
+            key_takeaway="Lower concentration risk, low costs, transparency.",
+            xp_reward=15,
+        ),
+    ],
+}
+
+PLAN_SENTENCE_EN: dict[str, str] = {
+    "split": (
+        "Of your {free_cash} PLN of free cash, {emergency_savings_monthly} PLN goes to the buffer, "
+        "and {recommended_monthly} PLN/mo to training in a broad ETF."
+    ),
+    "invest": (
+        "You already have a buffer, so an illustrative {recommended_monthly} PLN per month can work "
+        "in a broad ETF."
+    ),
+    "savings_first": (
+        "Buffer first: {emergency_savings_monthly} PLN/mo into a savings account. We will show the "
+        "ETF using an illustrative {recommended_monthly} PLN/mo."
+    ),
+}
+
+FINAL_MESSAGE_EN: str = (
+    "Day 1 of 14 complete! Fast-forwarding {horizon_years} years: contributions in a 0% account "
+    "would be worth about {cash_real_value} PLN in real terms, and about {etf_real_value} PLN "
+    "historically for a broad ETF (educational assumptions). Do today's small challenge and come "
+    "back tomorrow for Day 2."
+)
+
+FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX_EN: str = (
+    "Remember: buffer first — the ETF is an illustrative example for later."
+)
+
+FINAL_BADGE_EN: str = "Day 1 complete • Goal: {horizon_years} years"
+
+ASSUMPTIONS_TEXT_EN: str = (
+    "Educational assumptions: 5.7% per year after costs (before 19% tax), 3.5% inflation per year, "
+    "values in today's PLN. This is not a forecast or a guarantee."
+)
+
+COSTS_NOTE_EN: str = (
+    "Capital gains tax, brokerage fees and currency risk are not included. "
+    "Past results do not guarantee future ones."
+)
+
+INSTRUMENT_CATEGORY_EN: str = "Broad global ETF (educational example for Day 14)"
+
+STEP1_BADGE_EN: str = "Day 1 • Start ({recommended_monthly} PLN/mo)"
+
+STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
+    "20+": {
+        "badge": STEP1_BADGE_EN,
+        "step_question": "What gives you more peace of mind at the start?",
+        "luna_message": (
+            "Hi! I'm Luna, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} You "
+            "don't have to guess individual companies: a broad ETF spreads your money across "
+            "hundreds of companies at once. What gives you more peace of mind at the start?"
+        ),
+        "optimal_criterion": (
+            "spreading money across many companies (diversification) instead of one company; "
+            "it does not remove market risk"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "A broad ETF covering the whole market (diversification)",
+                "is_optimal": True,
+                "feedback": (
+                    "Yes! Spreading money across hundreds of companies limits the impact of one "
+                    "company stumbling — it does not remove market risk, but it softens it."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Buying shares of one well-known, stable company",
+                "is_optimal": False,
+                "feedback": (
+                    "Even a well-known company can stumble, and then the whole amount goes with it. "
+                    "A broad ETF spreads that risk across hundreds of companies."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Leaving everything in a regular account",
+                "is_optimal": False,
+                "feedback": (
+                    "An account is great for everyday spending, but with inflation around 3.5% a "
+                    "year, cash buys less year after year."
+                ),
+            },
+        ],
+    },
+    "30-50": {
+        "badge": STEP1_BADGE_EN,
+        "step_question": "What is the biggest advantage of this approach when you are short on time?",
+        "luna_message": (
+            "Hi! I'm Luna, your daily AI Coach — welcome to Day 1 of 14. {plan_sentence} A passive "
+            "broad ETF runs in the background, without tracking the market daily. What is its "
+            "biggest advantage when you are short on time?"
+        ),
+        "optimal_criterion": (
+            "automation and diversification without daily tracking; no guarantee of avoiding losses"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "It runs in the background: diversification without watching charts",
+                "is_optimal": True,
+                "feedback": (
+                    "Spot on! A steady plan in a broad ETF saves time and does not require being a "
+                    "market expert."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "It removes the risk of losing money within a year",
+                "is_optimal": False,
+                "feedback": (
+                    "There is no guarantee — an ETF can fall. Its strength is spreading risk over a "
+                    "long horizon."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "It lets you hunt for market opportunities every day",
+                "is_optimal": False,
+                "feedback": (
+                    "That is exactly what you want to avoid — a passive ETF is meant to save you "
+                    "time, not take it."
+                ),
+            },
+        ],
+    },
+    "50+": {
+        "badge": STEP1_BADGE_EN,
+        "step_question": "Why not keep all your capital in a regular account only?",
+        "luna_message": (
+            "Good day! I'm Luna, your daily AI Coach — we're starting a calm 14-day plan. You can "
+            "invest at any age; you just need a matching horizon. {plan_sentence} Why is it better "
+            "not to keep all your capital in a regular account only?"
+        ),
+        "optimal_criterion": "inflation reduces the real value of cash every year",
+        "options": [
+            {
+                "id": "a",
+                "text": "Because inflation reduces the real value of cash every year",
+                "is_optimal": True,
+                "feedback": (
+                    "Exactly. Not deciding is also a decision: cash in a 0% account buys less year "
+                    "after year."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Because money in funds always earns more than in an account",
+                "is_optimal": False,
+                "feedback": (
+                    "Not always — funds can fall too. The point is that cash alone loses to "
+                    "inflation, while funds have a chance to limit that."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Because it is better to put everything quickly into one company",
+                "is_optimal": False,
+                "feedback": (
+                    "Concentrating everything in one company is a big risk. A broad ETF spreads it "
+                    "across hundreds of companies."
+                ),
+            },
+        ],
+    },
+}
+
+STEP2_BY_CONCERN_EN: dict[MainConcern, dict] = {
+    "freeze_money": {
+        "badge": "Sudden expense • Liquidity test",
+        "step_question": "Your laptop breaks. What do you do?",
+        "luna_message": (
+            "Fast-forward 6 months — you already have about {half_year_value} PLN in the ETF, and "
+            "the buffer is growing next to it. Suddenly your laptop breaks and you need a few "
+            "thousand. What do you do?"
+        ),
+        "optimal_criterion": (
+            "pays from the buffer; understands the ETF is not frozen and, as a last resort, units "
+            "can be sold (usually a few business days)"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "I pay from the buffer — the ETF stays and keeps working",
+                "is_optimal": True,
+                "feedback": (
+                    "Exactly! The buffer is for surprises. And if it were not enough, the ETF is not "
+                    "frozen either — selling and payout usually take a few business days."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "I sell part of the ETF and withdraw within a few business days",
+                "is_optimal": False,
+                "feedback": (
+                    "That is possible, because ETF money is not frozen. But for current surprises it "
+                    "is better to use the buffer — the sale might land at a worse market moment."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "I do nothing — money in the ETF is locked for years",
+                "is_optimal": False,
+                "feedback": (
+                    "That is a common myth: an ETF can be sold on any trading day, and the money "
+                    "usually arrives after a few business days."
+                ),
+            },
+        ],
+    },
+    "no_time": {
+        "badge": "No time • Autopilot test",
+        "step_question": "Work is chaotic. How do you run your investment?",
+        "luna_message": (
+            "Fast-forward 6 months — you have about {half_year_value} PLN in the ETF. Work is in a "
+            "hot period and you have zero time for the market. How do you run your investment?"
+        ),
+        "optimal_criterion": (
+            "a steady, automatic plan running in the background; no daily checking and no "
+            "postponing the start"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "I keep the standing order — the plan runs in the background",
+                "is_optimal": True,
+                "feedback": (
+                    "Spot on! A steady plan does not need your time, and consistency does the work."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "I check quotes every day during my break",
+                "is_optimal": False,
+                "feedback": (
+                    "Daily checking usually increases stress and the temptation to make hasty "
+                    "decisions, not results."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "I will wait until I have time to learn about the market",
+                "is_optimal": False,
+                "feedback": (
+                    "Waiting for the perfect moment costs time, and time is your main ally here. A "
+                    "simple, steady plan is enough."
+                ),
+            },
+        ],
+    },
+    "lose_money": {
+        "badge": "Hot tip • Diversification test",
+        "step_question": "A friend advises buying one popular stock. What do you do?",
+        "luna_message": (
+            "Fast-forward 6 months — you have about {half_year_value} PLN in the ETF. A friend "
+            "insists: “buy shares of one popular company, you will earn faster”. What do you do?"
+        ),
+        "optimal_criterion": (
+            "stays with a broad, diversified fund; understands that concentration in one company "
+            "increases risk"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "I stay with the broad ETF — one company means bigger risk",
+                "is_optimal": True,
+                "feedback": (
+                    "Good! A broad ETF spreads risk across hundreds of companies; one company can "
+                    "rise, but it can also fall hard."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "I move everything into that company",
+                "is_optimal": False,
+                "feedback": (
+                    "The whole amount in one company is a big risk — its stumble hits your entire "
+                    "portfolio."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "I move half — that spreads the risk",
+                "is_optimal": False,
+                "feedback": (
+                    "Half in one company is still high concentration. A broad ETF spreads risk far "
+                    "more effectively."
+                ),
+            },
+        ],
+    },
+    "too_late": {
+        "badge": "Age does not exclude • Horizon test",
+        "step_question": "Someone says it is too late. What do you answer?",
+        "luna_message": (
+            "After 6 months you have about {half_year_value} PLN in a broad ETF. Someone says: “at "
+            "your age it is too late”. Your horizon is {horizon_years} years, and the buffer sits "
+            "safely next to it. What do you answer?"
+        ),
+        "optimal_criterion": (
+            "you can invest at any age; the key is matching the horizon and proportions, plus a "
+            "separate buffer"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "Age does not exclude me — I match the horizon and proportions, and keep the buffer separate",
+                "is_optimal": True,
+                "feedback": (
+                    "A great, mature decision! A matched horizon and a separate buffer are the best "
+                    "protection against volatility."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "You are right — I will leave everything in the account",
+                "is_optimal": False,
+                "feedback": (
+                    "I understand the concern, but cash loses too — to inflation. You can start with "
+                    "a small amount and match the horizon."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "I will put more into a risky company to catch up quickly",
+                "is_optimal": False,
+                "feedback": (
+                    "Trying to catch up with risk increases the chance of a big loss, and with a "
+                    "shorter horizon there is less time to recover."
+                ),
+            },
+        ],
+    },
+}
+
+STEP3_EN: dict = {
+    "badge": "Drop -20% • Calm test",
+    "step_question": "After 3 years your portfolio is -20% on paper. What do you do?",
+    "luna_message": (
+        "Fast-forward 3 years. You contributed {year3_paid} PLN, the market dropped temporarily and "
+        "on paper the portfolio is worth about {year3_stress_value} PLN (-20% — this is an "
+        "educational scenario). What do you do?"
+    ),
+    "optimal_criterion": (
+        "keeps the plan and stays calm; understands that an on-paper drop is volatility until they "
+        "sell; has a separate buffer and does not have to sell; does not panic"
+    ),
+    "options": [
+        {
+            "id": "a",
+            "text": "I keep the plan and keep contributing — it is volatility, and my horizon is {horizon_years} years",
+            "is_optimal": True,
+            "feedback": (
+                "Exactly. An on-paper drop is volatility, not a loss, as long as you do not sell — "
+                "and that is exactly why the buffer sits separately. History does not guarantee the "
+                "future."
+            ),
+        },
+        {
+            "id": "b",
+            "text": "I sell everything so I do not lose more",
+            "is_optimal": False,
+            "feedback": (
+                "That is the most common mistake: selling after a drop turns an on-paper loss into a "
+                "real one."
+            ),
+        },
+        {
+            "id": "c",
+            "text": "I stop contributing and wait for the market to bounce",
+            "is_optimal": False,
+            "feedback": (
+                "Understandable, but contributions after a drop buy more units at a lower price; "
+                "pausing usually takes that advantage away."
+            ),
+        },
+    ],
+}
+
+# --------------------------------------------------------------------------- #
 # Wartości domyślne placeholderów (zabezpieczenie przed brakiem klucza w faktach)
 # --------------------------------------------------------------------------- #
 
@@ -734,44 +1368,51 @@ _DEFAULT_FACTS: dict[str, object] = {
 }
 
 
-def _format_value(value: object) -> object:
-    """Grupuje tysiące spacją (np. ``33 844``) — zgodnie z przykładem docs/02 §6."""
+def _format_value(value: object, lang: Language = "pl") -> object:
+    """PL: ``33 844`` (spacja), EN: ``33,844`` (przecinek) — zgodnie z docs/01 §9."""
     if isinstance(value, bool):
         return value
     if isinstance(value, int):
-        return f"{value:,}".replace(",", " ")
+        grouped = f"{value:,}"
+        return grouped if lang == "en" else grouped.replace(",", " ")
     return value
 
 
-def _format_values(session_facts: dict | None) -> dict:
+def _format_values(session_facts: dict | None, lang: str | None = None) -> dict:
     """Buduje mapę wartości do ``.format()``: fakty sesji + domyślne + ``plan_sentence``."""
+    facts = session_facts or {}
+    active = _lang_of(facts, lang)
+
     raw = dict(_DEFAULT_FACTS)
-    for key, value in (session_facts or {}).items():
+    for key, value in facts.items():
         if value is not None:
             raw[key] = value
 
-    if not session_facts or session_facts.get("training_etf_monthly") is None:
+    if not facts or facts.get("training_etf_monthly") is None:
         raw["training_etf_monthly"] = (
             0 if str(raw.get("plan_type", "split")) == "savings_first" else raw["recommended_monthly"]
         )
 
-    values = {key: _format_value(value) for key, value in raw.items()}
+    values = {key: _format_value(value, active) for key, value in raw.items()}
     plan_type = str(raw.get("plan_type", "split"))
-    template = PLAN_SENTENCE.get(plan_type, PLAN_SENTENCE["split"])
+    templates = PLAN_SENTENCE_EN if active == "en" else PLAN_SENTENCE
+    template = templates.get(plan_type, templates["split"])
     values["plan_sentence"] = template.format(**values)
     return values
 
 
-def _select_step_block(step: int, session_facts: dict | None) -> dict:
+def _select_step_block(step: int, session_facts: dict | None, lang: Language = "pl") -> dict:
     facts = session_facts or {}
     if step == 1:
+        table = STEP1_BY_AGE_GROUP_EN if lang == "en" else STEP1_BY_AGE_GROUP
         age_group = str(facts.get("age_group", "20+"))
-        return STEP1_BY_AGE_GROUP.get(age_group, STEP1_BY_AGE_GROUP["20+"])
+        return table.get(age_group, table["20+"])
     if step == 2:
+        table = STEP2_BY_CONCERN_EN if lang == "en" else STEP2_BY_CONCERN
         concern = str(facts.get("main_concern", "freeze_money"))
-        return STEP2_BY_CONCERN.get(concern, STEP2_BY_CONCERN["freeze_money"])
+        return table.get(concern, table["freeze_money"])
     if step == 3:
-        return STEP3
+        return STEP3_EN if lang == "en" else STEP3
     raise ValueError("Krok misji musi być liczbą 1, 2 lub 3")
 
 
@@ -787,20 +1428,68 @@ def _as_int(value: object, default: int) -> int:
 # --------------------------------------------------------------------------- #
 
 
-def get_age_group_content(age_group: str) -> dict:
+def get_demo_personas(lang: Language = "pl") -> list[DemoPersona]:
+    """Persony demo z etykietami w danym języku (kwoty w PLN bez zmian)."""
+    if _normalize_lang(lang) != "en":
+        return list(DEMO_PERSONAS)
+    return [
+        DemoPersona(
+            id=persona.id,
+            short_label=PERSONA_LABELS_EN[persona.id][0],
+            full_label=PERSONA_LABELS_EN[persona.id][1],
+            age=persona.age,
+            net_income=persona.net_income,
+            free_cash=persona.free_cash,
+            has_emergency_fund=persona.has_emergency_fund,
+            main_concern=persona.main_concern,
+            self_confidence_start=persona.self_confidence_start,
+        )
+        for persona in DEMO_PERSONAS
+    ]
+
+
+def get_age_group_content(age_group: str, lang: Language = "pl") -> dict:
     """Zwraca filtr Speakly, mapę 14 dni i mikro-lekcje dla grupy wiekowej."""
-    key = age_group if age_group in SPEAKLY_FILTER_BY_GROUP else "20+"
+    if _normalize_lang(lang) == "en":
+        filters, roadmaps, lessons = (
+            SPEAKLY_FILTER_BY_GROUP_EN,
+            ROADMAP_BY_GROUP_EN,
+            MICRO_LESSONS_BY_GROUP_EN,
+        )
+    else:
+        filters, roadmaps, lessons = (
+            SPEAKLY_FILTER_BY_GROUP,
+            ROADMAP_BY_GROUP,
+            MICRO_LESSONS_BY_GROUP,
+        )
+    key = age_group if age_group in filters else "20+"
     return {
-        "speakly_filter": SPEAKLY_FILTER_BY_GROUP[key],
-        "roadmap": ROADMAP_BY_GROUP[key],
-        "micro_lessons": MICRO_LESSONS_BY_GROUP[key],
+        "speakly_filter": filters[key],
+        "roadmap": roadmaps[key],
+        "micro_lessons": lessons[key],
     }
 
 
-def get_step_block(step: int, session_facts: dict) -> dict:
+def get_assumptions_text(lang: Language = "pl") -> str:
+    """Tekst jawnych założeń edukacyjnych pod wykresem."""
+    return ASSUMPTIONS_TEXT_EN if _normalize_lang(lang) == "en" else ASSUMPTIONS_TEXT
+
+
+def get_costs_note(lang: Language = "pl") -> str:
+    """Nota o kosztach, podatku i braku gwarancji."""
+    return COSTS_NOTE_EN if _normalize_lang(lang) == "en" else COSTS_NOTE
+
+
+def get_instrument_category(lang: Language = "pl") -> str:
+    """Kategoria instrumentu w przykładowym planie."""
+    return INSTRUMENT_CATEGORY_EN if _normalize_lang(lang) == "en" else INSTRUMENT_CATEGORY
+
+
+def get_step_block(step: int, session_facts: dict, lang: Language | None = None) -> dict:
     """Zwraca blok kroku z podstawionymi faktami sesji (stałe nie są mutowane)."""
-    values = _format_values(session_facts)
-    block = _select_step_block(step, session_facts)
+    active = _lang_of(session_facts, lang)
+    values = _format_values(session_facts, active)
+    block = _select_step_block(step, session_facts, active)
 
     options = [
         {
@@ -828,24 +1517,28 @@ def shuffle_options(options: list[dict], session_id: str, step: int) -> list[dic
     return shuffled
 
 
-def get_level_state(xp: int) -> tuple[int, str, int]:
+def get_level_state(xp: int, lang: Language = "pl") -> tuple[int, str, int]:
     """Zwraca ``(level, level_title, next_level_xp)`` dla danej liczby XP."""
+    english = _normalize_lang(lang) == "en"
     if xp >= 100:
-        return 2, "Świadomy Start", 250
-    return 1, "Obserwator", 100
+        return 2, ("Confident Start" if english else "Świadomy Start"), 250
+    return 1, ("Observer" if english else "Obserwator"), 100
 
 
-def get_initial_mission_turn(session_facts: dict) -> tuple[MissionTurnResponse, list[dict]]:
+def get_initial_mission_turn(
+    session_facts: dict, lang: Language | None = None
+) -> tuple[MissionTurnResponse, list[dict]]:
     """Buduje turę startową Kroku 1 oraz opcje do zapisania w ``current_options``."""
     facts = session_facts or {}
-    block = get_step_block(1, facts)
+    active = _lang_of(facts, lang)
+    block = get_step_block(1, facts, active)
 
     session_id = facts.get("session_id") or facts.get("id") or "demo-session"
     options = shuffle_options(block["options"], session_id, 1)
 
     confidence_start = _as_int(facts.get("confidence_start"), 10)
     xp = _as_int(facts.get("xp"), 20)
-    level, level_title, next_level_xp = get_level_state(xp)
+    level, level_title, next_level_xp = get_level_state(xp, active)
 
     response = MissionTurnResponse(
         step_number=1,
@@ -873,74 +1566,111 @@ def get_initial_mission_turn(session_facts: dict) -> tuple[MissionTurnResponse, 
     return response, options
 
 
-def get_real_world_challenge(has_emergency_fund: bool, age_group: str) -> RealWorldChallenge:
-    """Mikro-wyzwanie Dnia 1: 5 zł (bez poduszki lub 20+) albo 50 zł (z poduszką, 30-50/50+)."""
+def get_real_world_challenge(
+    has_emergency_fund: bool, age_group: str, lang: Language = "pl"
+) -> RealWorldChallenge:
+    """Mikro-wyzwanie Dnia 1: 5 PLN (bez poduszki lub 20+) albo 50 PLN (z poduszką, 30-50/50+)."""
+    english = _normalize_lang(lang) == "en"
     if not has_emergency_fund or age_group == "20+":
         return RealWorldChallenge(
-            title="Realne wyzwanie Dnia 1: Wpłać 5 zł na konto oszczędnościowe",
+            title=(
+                "Day 1 real-world challenge: Transfer 5 PLN to your savings account"
+                if english
+                else "Realne wyzwanie Dnia 1: Wpłać 5 zł na konto oszczędnościowe"
+            ),
             description=(
-                "Zanim za 2 tygodnie ruszysz z pełnym planem, przełam dziś barierę pierwszego "
-                "przelewu symboliczną kwotą 5 zł i zacznij swoją serię!"
+                "Before you start the full plan in two weeks, break the barrier of your first "
+                "transfer today with a symbolic 5 PLN and start your streak!"
+                if english
+                else (
+                    "Zanim za 2 tygodnie ruszysz z pełnym planem, przełam dziś barierę pierwszego "
+                    "przelewu symboliczną kwotą 5 zł i zacznij swoją serię!"
+                )
             ),
             amount_pln=5,
-            target_account="Konto Oszczędnościowe Commerzbank",
+            target_account=(
+                "Commerzbank Savings Account"
+                if english
+                else "Konto Oszczędnościowe Commerzbank"
+            ),
             reward_xp=50,
         )
     return RealWorldChallenge(
-        title="Realne wyzwanie Dnia 1: Przelej próbne 50 zł na subkonto startowe",
+        title=(
+            "Day 1 real-world challenge: Send a test 50 PLN to your starter subaccount"
+            if english
+            else "Realne wyzwanie Dnia 1: Przelej próbne 50 zł na subkonto startowe"
+        ),
         description=(
-            "Masz już poduszkę! Wykonaj dziś symboliczny, bezstresowy przelew testowy 50 zł, "
-            "aby oswoić pierwszy krok przed docelowym planem w Dniu 14."
+            "You already have a buffer! Make a symbolic, stress-free test transfer of 50 PLN today "
+            "to get comfortable with the first step before the target plan on Day 14."
+            if english
+            else (
+                "Masz już poduszkę! Wykonaj dziś symboliczny, bezstresowy przelew testowy 50 zł, "
+                "aby oswoić pierwszy krok przed docelowym planem w Dniu 14."
+            )
         ),
         amount_pln=50,
-        target_account="Subkonto Inwestycyjne Commerzbank",
+        target_account=(
+            "Commerzbank Starter Investment Subaccount"
+            if english
+            else "Subkonto Inwestycyjne Commerzbank"
+        ),
         reward_xp=50,
     )
 
 
-def get_final_checklist(session_facts: dict) -> list[ChecklistItem]:
-    """4-punktowa checklista Dnia 1 (``chk_1`` wg planu, ``chk_3`` wg obawy)."""
-    facts = session_facts or {}
-    values = _format_values(facts)
+_CHECKLIST_CHK1: dict[str, dict[str, tuple[str, str]]] = {
+    "pl": {
+        "invest": (
+            "Mam przykładową kwotę docelową: {recommended_monthly} zł/mies.",
+            "Kwota dopasowana do wolnych środków, przy zachowanej poduszce.",
+        ),
+        "savings_first": (
+            "Wiem, że najpierw buduję poduszkę: {emergency_savings_monthly} zł/mies. "
+            "na konto oszczędnościowe.",
+            "Do ETF wrócimy, gdy poduszka będzie gotowa — to rozsądny pierwszy krok.",
+        ),
+        "split": (
+            "Mam przykładowy plan startowy: {emergency_savings_monthly} zł/mies. na poduszkę "
+            "i {training_etf_monthly} zł/mies. na trening w szeroki ETF.",
+            "Najpierw bezpieczeństwo, potem inwestowanie — bez naruszania codziennego budżetu.",
+        ),
+    },
+    "en": {
+        "invest": (
+            "I have an illustrative target amount: {recommended_monthly} PLN/mo.",
+            "The amount is matched to your free cash, with the buffer kept intact.",
+        ),
+        "savings_first": (
+            "I know I build the buffer first: {emergency_savings_monthly} PLN/mo into a savings "
+            "account.",
+            "We will come back to the ETF once the buffer is ready — a sensible first step.",
+        ),
+        "split": (
+            "I have a sample starting plan: {emergency_savings_monthly} PLN/mo for the buffer and "
+            "{training_etf_monthly} PLN/mo for training in a broad ETF.",
+            "Buffer first, then investing — without disturbing your everyday budget.",
+        ),
+    },
+}
 
-    plan_type = str(facts.get("plan_type", "split"))
-    concern = str(facts.get("main_concern", "freeze_money"))
+_CHECKLIST_CHK2: dict[str, tuple[str, str]] = {
+    "pl": (
+        "Rozumiem, że gotówka na zwykłym koncie traci realną wartość przez inflację.",
+        "W horyzoncie {horizon_years} lat wpłaty na koncie 0% mają realnie ok. {cash_real_value} zł, "
+        "a w szerokim ETF historycznie ok. {etf_real_value} zł (założenia edukacyjne).",
+    ),
+    "en": (
+        "I understand that cash in a regular account loses real value to inflation.",
+        "Over {horizon_years} years, contributions in a 0% account are worth about "
+        "{cash_real_value} PLN in real terms, and about {etf_real_value} PLN historically for a "
+        "broad ETF (educational assumptions).",
+    ),
+}
 
-    if plan_type == "invest":
-        chk_1 = ChecklistItem(
-            id="chk_1",
-            text="Mam przykładową kwotę docelową: {recommended_monthly} zł/mies.".format(**values),
-            detail="Kwota dopasowana do wolnych środków, przy zachowanej poduszce.",
-        )
-    elif plan_type == "savings_first":
-        chk_1 = ChecklistItem(
-            id="chk_1",
-            text=(
-                "Wiem, że najpierw buduję poduszkę: {emergency_savings_monthly} zł/mies. "
-                "na konto oszczędnościowe."
-            ).format(**values),
-            detail="Do ETF wrócimy, gdy poduszka będzie gotowa — to rozsądny pierwszy krok.",
-        )
-    else:
-        chk_1 = ChecklistItem(
-            id="chk_1",
-            text=(
-                "Mam przykładowy plan startowy: {emergency_savings_monthly} zł/mies. na poduszkę "
-                "i {training_etf_monthly} zł/mies. na trening w szeroki ETF."
-            ).format(**values),
-            detail="Najpierw bezpieczeństwo, potem inwestowanie — bez naruszania codziennego budżetu.",
-        )
-
-    chk_2 = ChecklistItem(
-        id="chk_2",
-        text="Rozumiem, że gotówka na zwykłym koncie traci realną wartość przez inflację.",
-        detail=(
-            "W horyzoncie {horizon_years} lat wpłaty na koncie 0% mają realnie ok. {cash_real_value} zł, "
-            "a w szerokim ETF historycznie ok. {etf_real_value} zł (założenia edukacyjne)."
-        ).format(**values),
-    )
-
-    concern_facts = {
+_CHECKLIST_CHK3: dict[str, dict[str, tuple[str, str]]] = {
+    "pl": {
         "freeze_money": (
             "Wiem, że poduszka służy na awarie, a środki w ETF nie są zamrożone.",
             "W ostateczności sprzedaż jednostek i wypłata zajmują zwykle kilka dni roboczych.",
@@ -957,51 +1687,129 @@ def get_final_checklist(session_facts: dict) -> list[ChecklistItem]:
             "Wiem, że inwestować można w każdym wieku, dopasowując horyzont i proporcje.",
             "Poduszka i część bezpieczna zostają osobno.",
         ),
-    }
-    chk_3_text, chk_3_detail = concern_facts.get(concern, concern_facts["freeze_money"])
-    chk_3 = ChecklistItem(id="chk_3", text=chk_3_text, detail=chk_3_detail)
-
-    chk_4 = ChecklistItem(
-        id="chk_4",
-        text=(
-            "Wiem, że wahania (nawet -20%) są normalne — jutro na Dniu 2 ćwiczymy spokojne reagowanie."
+    },
+    "en": {
+        "freeze_money": (
+            "I know the buffer is for surprises and that money in an ETF is not frozen.",
+            "As a last resort, selling units and withdrawing usually takes a few business days.",
         ),
-        detail="Regularność w 14 dni buduje prawdziwą pewność siebie.",
+        "no_time": (
+            "I know a steady plan in a broad ETF runs in the background — without tracking the "
+            "market daily.",
+            "Consistency matters more than timing.",
+        ),
+        "lose_money": (
+            "I know a broad ETF spreads risk, while one company means higher concentration.",
+            "Diversification does not remove risk, but it softens it.",
+        ),
+        "too_late": (
+            "I know you can invest at any age by matching the horizon and proportions.",
+            "The buffer and the cash cushion stay separate.",
+        ),
+    },
+}
+
+_CHECKLIST_CHK4: dict[str, tuple[str, str]] = {
+    "pl": (
+        "Wiem, że wahania (nawet -20%) są normalne — jutro na Dniu 2 ćwiczymy spokojne reagowanie.",
+        "Regularność w 14 dni buduje prawdziwą pewność siebie.",
+    ),
+    "en": (
+        "I know that volatility (even -20%) is normal — tomorrow on Day 2 we practise reacting calmly.",
+        "Consistency over 14 days builds real confidence.",
+    ),
+}
+
+
+def get_final_checklist(session_facts: dict, lang: Language | None = None) -> list[ChecklistItem]:
+    """4-punktowa checklista Dnia 1 (``chk_1`` wg planu, ``chk_3`` wg obawy)."""
+    facts = session_facts or {}
+    active = _lang_of(facts, lang)
+    values = _format_values(facts, active)
+
+    plan_type = str(facts.get("plan_type", "split"))
+    concern = str(facts.get("main_concern", "freeze_money"))
+
+    chk1_table = _CHECKLIST_CHK1[active]
+    chk1_text, chk1_detail = chk1_table.get(plan_type, chk1_table["split"])
+    chk_1 = ChecklistItem(
+        id="chk_1", text=chk1_text.format(**values), detail=chk1_detail.format(**values)
+    )
+
+    chk2_text, chk2_detail = _CHECKLIST_CHK2[active]
+    chk_2 = ChecklistItem(
+        id="chk_2", text=chk2_text.format(**values), detail=chk2_detail.format(**values)
+    )
+
+    chk3_table = _CHECKLIST_CHK3[active]
+    chk3_text, chk3_detail = chk3_table.get(concern, chk3_table["freeze_money"])
+    chk_3 = ChecklistItem(
+        id="chk_3", text=chk3_text.format(**values), detail=chk3_detail.format(**values)
+    )
+
+    chk4_text, chk4_detail = _CHECKLIST_CHK4[active]
+    chk_4 = ChecklistItem(
+        id="chk_4", text=chk4_text.format(**values), detail=chk4_detail.format(**values)
     )
 
     return [chk_1, chk_2, chk_3, chk_4]
 
 
-def get_bank_draft(session_facts: dict) -> BankDraft:
+def get_bank_draft(session_facts: dict, lang: Language | None = None) -> BankDraft:
     """Szkic przykładowego planu bankowego (wartości realne + nominalne)."""
     facts = session_facts or {}
+    active = _lang_of(facts, lang)
 
     return BankDraft(
         monthly_amount=_as_int(facts.get("recommended_monthly"), 200),
         horizon_years=_as_int(facts.get("horizon_years"), 15),
-        instrument_category=INSTRUMENT_CATEGORY,
+        instrument_category=get_instrument_category(active),
         projected_etf_real_value=_as_int(facts.get("etf_real_value"), 0),
         projected_etf_nominal_value=_as_int(facts.get("etf_nominal_value"), 0),
         projected_cash_real_value=_as_int(facts.get("cash_real_value"), 0),
         historical_win_rate=min(97, _as_int(facts.get("win_rate"), 90)),
-        assumptions_text=ASSUMPTIONS_TEXT,
-        costs_note=COSTS_NOTE,
+        assumptions_text=get_assumptions_text(active),
+        costs_note=get_costs_note(active),
     )
 
 
-def get_final_message(session_facts: dict) -> str:
+def get_final_message(session_facts: dict, lang: Language | None = None) -> str:
     """Finałowy komunikat Luny (dla ``savings_first`` z dopiskiem o poduszce)."""
     facts = session_facts or {}
-    values = _format_values(facts)
+    active = _lang_of(facts, lang)
+    values = _format_values(facts, active)
+
+    if active == "en":
+        message = FINAL_MESSAGE_EN.format(**values)
+        if str(facts.get("plan_type", "")) == "savings_first":
+            message = f"{message} {FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX_EN}"
+        return message
+
     message = FINAL_MESSAGE.format(**values)
     if str(facts.get("plan_type", "")) == "savings_first":
         message = f"{message} {FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX}"
     return message
 
 
-def get_final_badge(session_facts: dict) -> str:
-    """Badge zdarzenia w turze finałowej (``Dzień 1 ukończony • Cel: X lat``)."""
-    return FINAL_BADGE.format(**_format_values(session_facts or {}))
+def get_final_badge(session_facts: dict, lang: Language | None = None) -> str:
+    """Badge zdarzenia w turze finale (``Dzień 1 ukończony • Cel: X lat``)."""
+    facts = session_facts or {}
+    active = _lang_of(facts, lang)
+    template = FINAL_BADGE_EN if active == "en" else FINAL_BADGE
+    return template.format(**_format_values(facts, active))
+
+
+_LEVEL_TITLES_EN: dict[str, str] = {
+    "Świadomy Start": "Confident Start",
+    "Obserwator": "Observer",
+}
+
+
+def _translate_level_title(title: str, lang: Language) -> str:
+    """Tłumaczy tytuł poziomu w locie (bez modyfikowania wierszy bazy)."""
+    if lang != "en":
+        return title
+    return _LEVEL_TITLES_EN.get(title, title)
 
 
 def build_leaderboard(
@@ -1009,12 +1817,14 @@ def build_leaderboard(
     user_xp: int,
     user_level_title: str,
     leveled_up: bool,
+    lang: Language = "pl",
 ) -> list[LeaderboardEntry]:
     """Łączy seed rankingu z wierszem użytkownika i nadaje pozycje (malejąco po XP)."""
+    active = _normalize_lang(lang)
     entries = [
         {
             "name": str(row.get("name", "")),
-            "level_title": str(row.get("level_title", "")),
+            "level_title": _translate_level_title(str(row.get("level_title", "")), active),
             "xp": _as_int(row.get("xp"), 0),
             "streak_days": _as_int(row.get("streak_days"), 1),
             "is_current_user": False,
@@ -1022,10 +1832,15 @@ def build_leaderboard(
         for row in (db_rows or [])
     ]
 
+    if active == "en":
+        user_name = "You (Level Up!)" if leveled_up else "You"
+    else:
+        user_name = "Ty (Awans!)" if leveled_up else "Ty"
+
     entries.append(
         {
-            "name": "Ty (Awans!)" if leveled_up else "Ty",
-            "level_title": user_level_title,
+            "name": user_name,
+            "level_title": _translate_level_title(user_level_title, active),
             "xp": _as_int(user_xp, 0),
             "streak_days": 1,
             "is_current_user": True,
