@@ -813,6 +813,9 @@
 
   async function selectPersona(personaId) {
     if (state.busy) return;
+    // Pigułki są pod nakładką modala, ale osiągalne klawiaturą — modal zamykamy od razu.
+    const modal = document.getElementById('modal_bank_order');
+    if (modal && !modal.hidden) closeModal('modal_bank_order');
     let persona = findPersona(personaId);
     if (!persona) {
       await loadPersonas();
@@ -1213,6 +1216,15 @@
     syncMissionCounter();
     setMissionBusy(false);
     state.summary = freshSummary();
+    clearSummary();
+  }
+
+  // Nowa sesja: zamknięty modal i pusty Ekran 4 (bez resztek poprzedniej persony w DOM).
+  function clearSummary() {
+    const modal = document.getElementById('modal_bank_order');
+    if (modal && !modal.hidden) closeModal('modal_bank_order');
+    [els.cardLevelup, els.cardChallenge, els.cardChecklist, els.cardBank, els.cardLeaderboard, els.complianceFooter, els.bankOrderContent]
+      .forEach((el) => { if (el) el.innerHTML = ''; });
   }
 
   function renderMission(options) {

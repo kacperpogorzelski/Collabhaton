@@ -118,6 +118,10 @@ html {
 @media (min-width: 1600px) {
   html { font-size: 112.5%; }
 }
+/* Pełne HD na rzutniku: treść (max-w-4xl) zajmuje ~60% szerokości zamiast ~50%. */
+@media (min-width: 1880px) {
+  html { font-size: 125%; }
+}
 
 body {
   font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
