@@ -110,44 +110,187 @@
   <!-- ===================== EKRANY (docs/01 §7) ===================== -->
   <main id="app-main" class="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
 
-    <!-- Ekran 1: Ankieta -->
+    <!-- Ekran 1: Ankieta (docs/01 §7 Ekran 1) -->
     <section id="screen_onboarding" class="screen screen-enter" aria-labelledby="screen_onboarding_title">
       <div class="mb-6 max-w-2xl sm:mb-8">
         <h1 id="screen_onboarding_title" data-screen-title tabindex="-1" class="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">Zbuduj pewność inwestycyjną w 14 dni. Po 5 minut dziennie.</h1>
         <p class="mt-3 text-base text-slate-600 sm:text-lg">6 szybkich pytań wytnie zbędną teorię w stylu Speakly i ułoży Twój plan.</p>
-      </div>
-
-      <!-- Issue #8: formularz 6 pytań (wiek, zarobki, wolne środki, poduszka, obawa, samoocena 1–5) -->
-      <div id="onboarding-form" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-8">
-        <p class="flex items-start gap-3 text-slate-600">
-          <i data-lucide="mouse-pointer-click" class="mt-0.5 h-5 w-5 shrink-0 text-brand-yellow-dark" aria-hidden="true"></i>
+        <p class="mt-2 flex items-center gap-2 text-sm text-slate-500">
+          <i data-lucide="mouse-pointer-click" class="h-4 w-4 shrink-0 text-brand-yellow-dark" aria-hidden="true"></i>
           <span>Szybki start: wybierz profil w <strong class="font-bold text-brand-dark">Demo Mode</strong> u góry ekranu.</span>
         </p>
       </div>
 
+      <form id="onboarding-form" novalidate class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-8">
+        <div class="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
+
+          <!-- 1. Wiek -->
+          <div class="fq-field" data-field="age">
+            <div class="flex items-baseline justify-between gap-3">
+              <label for="f-age" class="fq-q"><span class="fq-q-num">1</span>Wiek</label>
+              <output id="f-age-out" for="f-age" class="text-2xl font-extrabold tabular-nums">35 lat</output>
+            </div>
+            <input id="f-age" name="age" type="range" min="18" max="70" step="1" value="35" class="fq-range mt-1 w-full" aria-describedby="f-age-group">
+            <span id="f-age-group" class="inline-flex self-start rounded-full bg-brand-dark/5 px-2.5 py-1 text-xs font-bold text-brand-dark">Kariera i Rodzina (30–50)</span>
+            <p class="fq-error" data-error-for="age" role="alert" hidden></p>
+          </div>
+
+          <!-- 2. Zarobki netto -->
+          <div class="fq-field" data-field="net_income">
+            <div class="flex items-baseline justify-between gap-3">
+              <label for="f-net" class="fq-q"><span class="fq-q-num">2</span>Zarobki netto</label>
+              <output id="f-net-out" for="f-net" class="text-2xl font-extrabold tabular-nums">6 000 zł</output>
+            </div>
+            <input id="f-net" name="net_income" type="range" min="2500" max="25000" step="500" value="6000" class="fq-range mt-1 w-full">
+            <p class="text-xs text-slate-500">miesięcznie, „na rękę”</p>
+            <p class="fq-error" data-error-for="net_income" role="alert" hidden></p>
+          </div>
+
+          <!-- 3. Wolne środki -->
+          <div class="fq-field" data-field="free_cash">
+            <div class="flex items-baseline justify-between gap-3">
+              <label for="f-free" class="fq-q"><span class="fq-q-num">3</span>Wolne środki miesięcznie</label>
+              <output id="f-free-out" for="f-free" class="text-2xl font-extrabold tabular-nums">1 000 zł</output>
+            </div>
+            <input id="f-free" name="free_cash" type="range" min="200" max="6000" step="100" value="1000" class="fq-range mt-1 w-full" aria-describedby="f-free-hint">
+            <p id="f-free-hint" class="text-xs text-slate-500">maks. <span id="f-free-max" class="tabular-nums">6 000 zł</span> — nie więcej niż zarobki netto</p>
+            <p class="fq-error" data-error-for="free_cash" role="alert" hidden></p>
+          </div>
+
+          <!-- 4. Poduszka -->
+          <fieldset class="fq-field" data-field="has_emergency_fund">
+            <legend class="fq-q"><span class="fq-q-num">4</span>Poduszka (min. 3 mies. wydatków)</legend>
+            <div class="mt-3 grid grid-cols-2 gap-3">
+              <label class="block cursor-pointer">
+                <input type="radio" name="has_emergency_fund" value="true" class="sr-only">
+                <span class="fq-tile"><i data-lucide="shield-check" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Tak, mam poduszkę</span>
+              </label>
+              <label class="block cursor-pointer">
+                <input type="radio" name="has_emergency_fund" value="false" class="sr-only">
+                <span class="fq-tile"><i data-lucide="piggy-bank" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Jeszcze ją buduję</span>
+              </label>
+            </div>
+            <p class="fq-error" data-error-for="has_emergency_fund" role="alert" hidden></p>
+          </fieldset>
+
+          <!-- 5. Główna obawa -->
+          <fieldset class="fq-field md:col-span-2" data-field="main_concern">
+            <legend class="fq-q"><span class="fq-q-num">5</span>Czego najbardziej się obawiasz?</legend>
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block cursor-pointer">
+                <input type="radio" name="main_concern" value="freeze_money" class="sr-only">
+                <span class="fq-tile"><i data-lucide="snowflake" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Boję się, że zamrożę pieniądze</span>
+              </label>
+              <label class="block cursor-pointer">
+                <input type="radio" name="main_concern" value="no_time" class="sr-only">
+                <span class="fq-tile"><i data-lucide="clock" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Nie mam czasu na giełdę</span>
+              </label>
+              <label class="block cursor-pointer">
+                <input type="radio" name="main_concern" value="lose_money" class="sr-only">
+                <span class="fq-tile"><i data-lucide="trending-down" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Boję się, że stracę pieniądze</span>
+              </label>
+              <label class="block cursor-pointer">
+                <input type="radio" name="main_concern" value="too_late" class="sr-only">
+                <span class="fq-tile"><i data-lucide="hourglass" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Chyba za późno na start</span>
+              </label>
+            </div>
+            <p class="fq-error" data-error-for="main_concern" role="alert" hidden></p>
+          </fieldset>
+
+          <!-- 6. Samoocena pewności -->
+          <fieldset class="fq-field md:col-span-2" data-field="self_confidence_start">
+            <legend class="fq-q"><span class="fq-q-num">6</span>Jak pewnie czujesz się na myśl o zainwestowaniu pierwszych pieniędzy?</legend>
+            <div class="mt-3 grid grid-cols-5 gap-2 sm:gap-3">
+              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="1" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">1</span></label>
+              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="2" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">2</span></label>
+              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="3" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">3</span></label>
+              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="4" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">4</span></label>
+              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="5" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">5</span></label>
+            </div>
+            <div class="mt-1.5 flex justify-between text-xs text-slate-500" aria-hidden="true"><span>1 — wcale</span><span>5 — bardzo pewnie</span></div>
+            <p class="fq-error" data-error-for="self_confidence_start" role="alert" hidden></p>
+          </fieldset>
+        </div>
+      </form>
+
       <div class="mt-6">
         <button type="button" id="cta-onboarding" data-action="submit-onboarding" class="btn-3d w-full text-base sm:w-auto sm:text-lg">
+          <span class="fq-spinner" aria-hidden="true" hidden></span>
           <span data-label>Ułóż mój 14-dniowy plan Speakly</span>
-          <i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i>
+          <span data-idle-icon class="inline-flex"><i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i></span>
         </button>
       </div>
     </section>
 
-    <!-- Ekran 2: Filtr Speakly, mapa 14 dni, mikro-lekcje, podział środków, Wehikuł Czasu -->
+    <!-- Ekran 2: Mapa 14 dni, Filtr Speakly + mikro-lekcje, podział środków, Wehikuł Czasu (docs/01 §7 Ekran 2) -->
     <section id="screen_filter_and_timemachine" class="screen" aria-labelledby="screen_filter_title" hidden>
-      <h2 id="screen_filter_title" data-screen-title tabindex="-1" class="sr-only">Twój plan Dnia 1: filtr Speakly i Wehikuł Czasu</h2>
+      <h2 id="screen_filter_title" data-screen-title tabindex="-1" class="sr-only">Twój plan Dnia 1: mapa 14 dni, filtr Speakly i Wehikuł Czasu</h2>
+      <div id="plan-intro" class="mb-4 flex flex-wrap items-center gap-2 md:mb-6"></div>
+
       <div class="grid grid-cols-1 gap-4 md:gap-6">
-        <!-- Issue #8: Karta A — Mapa 14 dni (roadmap_milestones) -->
-        <div id="card-roadmap" data-slot="Karta A — Mapa 14 dni (Issue #8)" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
-        <!-- Issue #8: Karta B — Filtr Speakly + 3 mikro-lekcje (speakly_filter, micro_lessons) -->
-        <div id="card-speakly" data-slot="Karta B — Filtr Speakly i 3 mikro-lekcje (Issue #8)" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-          <!-- Issue #8: Karta C — Przykładowy podział wolnych środków (safe_investment) -->
-          <div id="card-split" data-slot="Karta C — Przykładowy podział wolnych środków (Issue #8)" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
-          <!-- Issue #8: Karta D — Wehikuł Czasu (projection_series, assumptions) -->
-          <div id="card-timemachine" data-slot="Karta D — Wehikuł Czasu (Issue #8)" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
+        <!-- Karta A — Mapa 14 dni (roadmap_milestones) -->
+        <div id="card-roadmap" data-slot="Karta A — Mapa 14 dni" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
+
+        <!-- Karta B — Filtr Speakly + 3 mikro-lekcje (speakly_filter, micro_lessons) -->
+        <div id="card-speakly" data-slot="Karta B — Filtr Speakly i 3 mikro-lekcje" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
+
+        <!-- Karta C — Przykładowy podział wolnych środków (safe_investment) -->
+        <div id="card-split" data-slot="Karta C — Przykładowy podział wolnych środków" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
+
+        <!-- Karta D — Wehikuł Czasu (projection_series, assumptions) -->
+        <div id="card-timemachine" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Wehikuł Czasu: gotówka vs szeroki ETF</h3>
+              <p class="text-sm text-slate-500">w dzisiejszych złotych • przykład: <span id="tm-monthly" class="font-bold text-brand-dark tabular-nums">0 zł/mies.</span></p>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="flex items-baseline justify-between gap-3">
+              <label for="tm-years" class="text-sm font-bold">Przewiń czas</label>
+              <output id="tm-years-out" for="tm-years" class="text-2xl font-extrabold tabular-nums">15 lat</output>
+            </div>
+            <input id="tm-years" type="range" min="1" max="20" step="1" value="15" class="fq-range w-full">
+            <div class="flex justify-between text-xs text-slate-400" aria-hidden="true"><span>1 rok</span><span>20 lat</span></div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div class="rounded-2xl border border-inflation-red/25 bg-inflation-red/5 p-4">
+              <p class="text-xs font-bold leading-snug text-inflation-red">Wpłaty na koncie 0% (realnie, w dzisiejszych zł)</p>
+              <p class="mt-1.5 text-2xl font-extrabold tabular-nums"><span id="kpi-cash">0</span> zł</p>
+              <p class="mt-0.5 text-xs text-slate-500">wpłacono łącznie <span id="kpi-paid" class="tabular-nums">0</span> zł</p>
+            </div>
+            <div class="rounded-2xl border border-etf-green/30 bg-etf-green/5 p-4">
+              <p class="text-xs font-bold leading-snug text-emerald-700">Szeroki ETF (realnie, założenia poniżej)</p>
+              <p class="mt-1.5 text-2xl font-extrabold tabular-nums"><span id="kpi-etf">0</span> zł</p>
+              <p class="mt-0.5 text-xs text-slate-500">nominalnie ok. <span id="kpi-etf-nominal" class="tabular-nums">0</span> zł</p>
+            </div>
+            <div class="rounded-2xl border border-brand-yellow/70 bg-brand-yellow/10 p-4">
+              <p class="text-xs font-bold leading-snug text-brand-yellow-dark">Okna historyczne (ilustracyjnie)</p>
+              <p class="mt-1.5 text-sm leading-snug">W ilustracyjnych oknach historycznych <strong id="kpi-win" class="text-2xl font-extrabold tabular-nums">0%</strong> kończyło się dodatnim wynikiem realnym</p>
+              <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-brand-yellow/30" aria-hidden="true"><div id="kpi-win-bar" class="h-full rounded-full bg-brand-yellow-dark transition-[width] duration-500" style="width: 0%"></div></div>
+              <p class="mt-1.5 text-[11px] text-slate-500">ilustracyjne dane edukacyjne<span id="kpi-win-source"></span></p>
+            </div>
+          </div>
+
+          <div class="relative mt-5 h-64 sm:h-72 lg:h-80">
+            <canvas id="tm-chart" role="img" aria-label="Wykres: wartość wpłat na koncie 0% i w szerokim ETF w dzisiejszych złotych, ze scenariuszem wahania -20% w roku 3"></canvas>
+          </div>
+          <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-600">
+            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--solid" aria-hidden="true"></span>Szeroki ETF (realnie)</li>
+            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--dashed" aria-hidden="true"></span>Wpłaty na koncie 0% (realnie)</li>
+            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--dotted" aria-hidden="true"></span>Scenariusz wahania -20% w roku 3 (edukacyjny)</li>
+          </ul>
+
+          <div class="mt-4 space-y-1.5 border-t border-slate-100 pt-4 text-xs leading-relaxed text-slate-500">
+            <p id="tm-assumptions" class="font-semibold text-slate-600"></p>
+            <p>Symulacja historyczna; wyniki są zmienne i nie gwarantują przyszłych zysków.</p>
+            <p id="tm-compliance"></p>
+          </div>
         </div>
       </div>
+
       <div class="mt-6">
         <button type="button" data-goto="screen_mission_live" class="btn-3d w-full text-base sm:w-auto sm:text-lg">
           <span data-label>Rozpocznij Symulację Dnia 1 z AI Coachem</span>
