@@ -401,26 +401,26 @@
     <!-- Ekran 4: Ukończenie Dnia 1, wyzwanie, ranking, Commerzbank -->
     <section id="screen_checklist" class="screen" aria-labelledby="screen_checklist_title" hidden>
       <h2 id="screen_checklist_title" data-screen-title tabindex="-1" class="sr-only">Podsumowanie Dnia 1 z 14</h2>
-      <!-- Issue #10: baner awansu (.level-pop, pełna szerokość) -->
-      <div id="card-levelup" data-slot="Baner ukończenia Dnia 1 / awansu (Issue #10)" class="mb-4 md:mb-6"></div>
+      <!-- Baner ukończenia Dnia 1 / awansu (.level-pop), Gotowość start -> wynik, samoocena „po" -->
+      <div id="card-levelup" class="mb-4 md:mb-6"></div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <div class="flex flex-col gap-4 md:gap-6">
-          <!-- Issue #10: Karta 1 — realne mikro-wyzwanie; Karta 2 — checklista Dnia 1 -->
-          <div id="card-challenge" data-slot="Karta 1 — Realne mikro-wyzwanie (Issue #10)"></div>
-          <div id="card-checklist" data-slot="Karta 2 — Checklista Dnia 1 (Issue #10)"></div>
+          <!-- Lewa kolumna — realne działanie dziś: Karta 1 (mikro-wyzwanie), Karta 2 (checklista) -->
+          <div id="card-challenge"></div>
+          <div id="card-checklist"></div>
         </div>
         <div class="flex flex-col gap-4 md:gap-6">
-          <!-- Issue #10: Karta 3 — przykładowy plan w Commerzbanku; Karta 4 — ranking -->
-          <div id="card-bank" data-slot="Karta 3 — Przykładowy plan w Commerzbanku (Issue #10)"></div>
-          <div id="card-leaderboard" data-slot="Karta 4 — Ranking znajomych (Issue #10)"></div>
+          <!-- Prawa kolumna — bank i społeczność: Karta 3 (przykładowy plan), Karta 4 (ranking) -->
+          <div id="card-bank"></div>
+          <div id="card-leaderboard"></div>
         </div>
       </div>
-      <!-- Issue #10: stopka compliance (docs/01 §7, Ekran 4) -->
-      <footer id="compliance-footer" data-slot="Stopka compliance (Issue #10)" class="mt-8"></footer>
+      <!-- Stopka compliance (docs/01 §7 Ekran 4, pkt 4) -->
+      <footer id="compliance-footer" class="mt-8"></footer>
     </section>
   </main>
 
-  <!-- ===================== MODAL: modal_bank_order (DEMO, Issue #10) ===================== -->
+  <!-- ===================== MODAL: modal_bank_order (DEMO — Zero-Friction Handoff) ===================== -->
   <div id="modal_bank_order" class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modal_bank_order_title" hidden>
     <div class="absolute inset-0 bg-brand-dark/60 backdrop-blur-sm" data-action="close-modal"></div>
     <div class="screen-enter relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card-bg p-6 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-8">
@@ -430,7 +430,7 @@
           <i data-lucide="x" class="h-5 w-5" aria-hidden="true"></i>
         </button>
       </div>
-      <div id="bank-order-content" data-slot="Opcja A / Opcja B — krok w banku (Issue #10)" class="mt-4"></div>
+      <div id="bank-order-content" class="mt-4"></div>
     </div>
   </div>
 
