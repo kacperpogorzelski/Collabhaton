@@ -110,15 +110,15 @@ Aplikacja musi otwierać się bezpośrednio pod adresem **`http://localhost:8000
 
 * **Prompt dla Osoby 1:**
 
-  > `@AGENTS.md @docs/02_TECH_API_AND_MATH.md Przeczytaj SSOT i zaimplementuj pliki: docker-compose.yml, requirements.txt, .env.example, backend/__init__.py, backend/database.py, backend/models.py, backend/schemas.py, backend/finance_math.py oraz backend/main.py. Użyj lekkiego PostgreSQL z docker-compose.yml i 2 prostych tabel SQLAlchemy (sessions, leaderboard_entries) tworzonych przez create_all na starcie (bez Alembica). Ściśle trzymaj się nazw pól Pydantic oraz wzorów matematycznych. Nie twórz autoryzacji.`
+  > `@AGENTS.md @WORKLOG.md @docs/02_TECH_API_AND_MATH.md Przeczytaj SSOT oraz WORKLOG i zaimplementuj pliki: docker-compose.yml, requirements.txt, .env.example, backend/__init__.py, backend/database.py, backend/models.py, backend/schemas.py, backend/finance_math.py oraz backend/main.py. Użyj lekkiego PostgreSQL z docker-compose.yml, synchronicznych funkcji def i 2 prostych tabel SQLAlchemy (sessions, leaderboard_entries) tworzonych przez create_all na starcie (bez Alembica). Ściśle trzymaj się nazw pól Pydantic, sygnatur z AGENTS.md §7 oraz wzorów matematycznych. Nie twórz autoryzacji.`
 
 * **Prompt dla Osoby 2:**
 
-  > `@AGENTS.md @docs/02_TECH_API_AND_MATH.md @docs/03_LUNA_INTEGRATION_AND_PROMPTS.md Przeczytaj SSOT i zaimplementuj backend/demo_data.py oraz backend/luna_service.py na bazie naszego klienta OpenAI. Uwzględnij 3 persony, 14-dniową mapę postępu (ROADMAP_BY_GROUP), mikro-lekcje Dnia 1, dane seedowe rankingu znajomych, realne mikro-wyzwanie (np. 5 zł), System Prompt codziennego AI Coacha Luny oraz niezawodny fallback w try/except.`
+  > `@AGENTS.md @WORKLOG.md @docs/02_TECH_API_AND_MATH.md @docs/03_LUNA_INTEGRATION_AND_PROMPTS.md Przeczytaj SSOT oraz WORKLOG i zaimplementuj backend/demo_data.py oraz backend/luna_service.py na bazie wzorców klienta OpenAI (synchroniczne def). Uwzględnij 3 persony, 14-dniową mapę postępu (ROADMAP_BY_GROUP), mikro-lekcje Dnia 1, dane seedowe rankingu znajomych, realne mikro-wyzwanie (5 zł / 50 zł), System Prompt codziennego AI Coacha Luny, strict json_schema (extra="forbid") oraz niezawodny fallback w try/except.`
 
 * **Prompt dla Osoby 3:**
 
-  > `@AGENTS.md @docs/01_PRODUCT_AND_GUI_SPEC.md @docs/02_TECH_API_AND_MATH.md Przeczytaj SSOT i stwórz kompletny, dopaminowy frontend w static/index.html, static/styles.css i static/app.js (czysty HTML/JS + Tailwind/Chart.js/Confetti/Lucide z CDN, bez npm). Zaimplementuj 4 ekrany, nagłówek (Dzień 1/14, poziom, streak, gotowość), animację cięcia tematów Speakly, podgląd 14-dniowej mapy nauki, mikro-lekcje, suwak Wehikuł Czasu, symulację wyborów z AI Coachem, awans na Poziom 2, realne wyzwanie 5 zł, ranking znajomych oraz modal bankowy Commerzbanku.`
+  > `@AGENTS.md @WORKLOG.md @docs/01_PRODUCT_AND_GUI_SPEC.md @docs/02_TECH_API_AND_MATH.md Przeczytaj SSOT oraz WORKLOG i stwórz kompletny, dopaminowy frontend w static/index.html, static/styles.css i static/app.js (czysty HTML/JS + Tailwind/Chart.js/Confetti/Lucide z CDN, bez npm). Zaimplementuj 4 ekrany, nagłówek (Dzień 1/14, poziom, streak, monotoniczne XP, gotowość), animację cięcia tematów Speakly, podgląd 14-dniowej mapy nauki, mikro-lekcje, suwak Wehikuł Czasu (z punktem Rok 0), symulację wyborów z AI Coachem, awans na Poziom 2, realne wyzwanie 5 zł, ranking znajomych oraz modal bankowy Commerzbanku.`
 
 ## 6. Scenariusz 5-minutowej prezentacji na żywo (Golden Path Demo)
 
@@ -131,3 +131,25 @@ Aplikacja musi otwierać się bezpośrednio pod adresem **`http://localhost:8000
 4. **3:15 – 4:15 (Awans, Realne Wyzwanie 5 zł, Ranking i Commerzbank):** Ekran ukończenia Dnia 1 z konfetti, awansem `Poziom 1 -> Poziom 2` (`+155 XP`) i podtrzymanym streakiem (`🔥 1 dzień`). Kliknięcie **Realnego Mikro-Wyzwania na Dzień 1 („Wpłać 5 zł na konto oszczędnościowe”)**, odhaczenie checklisty Dnia 1, podgląd skoku w Rankingu Znajomych + przycisk „Wyzwij znajomego” oraz otwarcie modala Commerzbanku (wybór: mikro-wpłata 5 zł dziś lub podgląd docelowego planu ETF na Dzień 14).
 
 5. **4:15 – 5:00 (Innovations for all generations):** Jedno kliknięcie w górnym pasku na `[56 l. 50+]` -> natychmiastowa zmiana horyzontu na 7 lat, inna 14-dniowa mapa i inne odrzucone tematy, inny zestaw mikro-lekcji oraz spokojniejszy ton AI Coacha skupiony na ochronie przed inflacją i haśle „inwestować można w każdym wieku”.
+
+## 7. Git & Multi-Agent Workflow (Zespół 3-osobowy)
+
+Aby agenty AI (Antigravity, GitHub Copilot, Roo Code) 3 osób pracowały równolegle bez konfliktów przy merge'u, obowiązują poniższe twarde zasady:
+
+* **Twarda własność plików (File Ownership):** Każda osoba i jej agent edytują **WYŁĄCZNIE** pliki przypisane swojej roli w Sekcji 5:
+  * **Osoba 1 (`[INFRA]` / `[BE]`):** `.gitignore`, `docker-compose.yml`, `requirements.txt`, `.env.example`, `backend/__init__.py`, `backend/database.py`, `backend/models.py`, `backend/schemas.py`, `backend/finance_math.py`, `backend/main.py`.
+  * **Osoba 2 (`[AI]`):** `backend/demo_data.py`, `backend/luna_service.py`.
+  * **Osoba 3 (`[FE]`):** `static/index.html`, `static/styles.css`, `static/app.js`.
+  * **Pliki wspólne (`AGENTS.md`, `docs/*`, `WORKLOG.md`, wskaźniki agentów):** modyfikowane wyłącznie po uzgodnieniu zespołu w małych, atomowych commitach; `WORKLOG.md` aktualizujemy po zamknięciu każdego Issue.
+  * **Kanoniczne nazwy plików:** używamy wyłącznie `backend/database.py` (NIE `db.py`) oraz `static/styles.css` (NIE `style.css`).
+* **Konwencja branchy i commitów:**
+  * Każdy GitHub Issue realizujemy na osobnym branchu: **`feat/issue-<nr>-<krotka-nazwa>`** (np. `feat/issue-2-db-schemas`).
+  * Zasada **1 Issue = 1 mały PR / commit** i szybki merge do `main`. Przed startem nowego zadania wykonaj `git checkout main && git pull --rebase origin main`.
+  * Nigdy nie commituj `.env` ani kluczy API.
+* **Zamrożenie kontraktu API i schematów:**
+  * **BEZWZGLĘDNY ZAKAZ** modyfikowania nazw pól JSON, ścieżek endpointów ani modeli z `docs/02_TECH_API_AND_MATH.md` bez jednoczesnej aktualizacji `backend/schemas.py`, wpisu w `WORKLOG.md` i powiadomienia pozostałych 2 osób.
+  * **Wiążące sygnatury międzymodułowe (wszystkie jako synchroniczne `def`):**
+    * `backend/finance_math.py`: `get_age_group(age)`, `calculate_safe_investment(age, net_income, free_cash, has_emergency_fund)`, `generate_projection_series(monthly_amount)`, `calculate_half_year_etf_value(monthly_amount)`.
+    * `backend/demo_data.py`: `DEMO_PERSONAS`, `SEED_LEADERBOARD`, `SPEAKLY_FILTER_BY_GROUP`, `ROADMAP_BY_GROUP`, `MICRO_LESSONS_BY_GROUP`, `get_initial_mission_turn(...)`, `get_real_world_challenge(...)`, `get_final_checklist(...)`, `build_leaderboard(...)`, `get_fallback_turn(...)`.
+    * `backend/luna_service.py`: `process_mission_turn(session_data: dict, user_message: str, leaderboard_rows: list[dict] | None = None) -> MissionTurnResponse`.
+  * **Wspólny format `MissionSession.history`:** `[{"role": "user" | "assistant", "content": str}]`.

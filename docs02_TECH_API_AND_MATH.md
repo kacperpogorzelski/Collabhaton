@@ -86,7 +86,14 @@ class LeaderboardRow(Base):
 1. **Start aplikacji (`init_db`):** Jeśli tabela `leaderboard_entries` jest pusta, wrzuca 3 rekordy seedowe (`Kasia K.` 210 XP / 5 dni, `Tomek W.` 95 XP / 2 dni, `Marek Z.` 40 XP / 1 dzień).
 2. **`POST /api/onboarding/analyze`:** Tworzy nowy wiersz `MissionSession` w PostgreSQL i robi `db.commit()`.
 3. **`POST /api/mission/turn`:** Pobiera `MissionSession` z bazy po `session_id`, aktualizuje `current_step`, `confidence_score`, `xp` oraz `history` (pamiętaj o nadpisaniu nowej listy `session.history = list(session.history) + [...]`, aby SQLAlchemy wykrył zmianę w kolumnie JSON) i robi `db.commit()`. W Kroku 3 pobiera z tabeli `leaderboard_entries` rekordy seedowe, łączy je z aktualnym wynikiem użytkownika (`xp = 155`) i sortuje malejąco do pola `leaderboard`.
-4. **Opcjonalny zapis wyzwania (`POST /api/challenge/accept`):** Jeśli użytkownik kliknie na Ekranie 4 przycisk `Podejmuję wyzwanie (+50 XP)`, frontend może wysłać `{"session_id": "..."}` — backend ustawia `challenge_accepted = True`, podbija `xp += 50` w PostgreSQL i zwraca zaktualizowany `leaderboard` (z już przeliczoną wyższą pozycją!).
+4. **Opcjonalny zapis wyzwania (`POST /api/challenge/accept`):** Jeśli użytkownik kliknie na Ekranie 4 przycisk `Podejmuję wyzwanie (+50 XP)`, frontend wysyła `{"session_id": "..."}` — backend ustawia `challenge_accepted = True`, podbija `xp += 50` (ze `155` do `205 XP`) w PostgreSQL i zwraca zaktualizowany `leaderboard`.
+
+### D. Konwencje wykonawcze i kontrakt międzymodułowy (Zero błędów integracji)
+* **Synchroniczne `def` w całym backendzie:** Wszystkie trasy FastAPI (`backend/main.py`) oraz funkcje w `finance_math.py`, `demo_data.py` i `luna_service.py` definiujemy jako zwykłe **synchroniczne `def`** (nie `async def`). FastAPI automatycznie uruchamia je w threadpoolu, co idealnie współpracuje z synchronicznym SQLAlchemy (`psycopg2-binary`) oraz synchronicznym klientem `openai.OpenAI` i eliminuje błędy typu `coroutine was never awaited`.
+* **Wczytywanie `.env`:** `load_dotenv()` z `python-dotenv` wywołujemy zarówno w `backend/database.py`, jak i w `backend/luna_service.py` przed odczytem zmiennych środowiskowych (`DATABASE_URL`, `OPENAI_API_KEY`, `LUNA_MODEL`, `LUNA_TIMEOUT_SECONDS`).
+* **Warunkowe montowanie `/static` w `backend/main.py`:** Montujemy `StaticFiles` wyłącznie wtedy, gdy folder `static/` istnieje (`if STATIC_DIR.is_dir(): app.mount("/static", ...)`), a `GET /` zwraca `static/index.html` lub tymczasową odpowiedź JSON z adresem `/docs`, jeśli frontend nie został jeszcze zmergowany.
+* **Wiążący format `MissionSession.history`:** Lista słowników zgodna z formatem wiadomości OpenAI: `[{"role": "assistant" | "user", "content": "..."}]`. W `POST /api/onboarding/analyze` zapisujemy wpis startowy `[{"role": "assistant", "content": initial_mission_turn.luna_message}]`. W `POST /api/mission/turn` nadpisujemy nową listę: `session.history = list(session.history or []) + [{"role": "user", "content": req.user_message}, {"role": "assistant", "content": turn.luna_message}]`.
+* **Stan po ukończeniu Kroku 3 (`current_step` capped at `3`):** Gdy `answered_step == 3`, `mission_completed = True` i `confidence_score = 40`, w bazie `session.current_step` pozostaje równe `3` (nigdy `4` — schemat `MissionTurnResponse.step_number` wymaga `1 <= step_number <= 3`). Ewentualne ponowne wywołanie `POST /api/mission/turn` dla już ukończonej sesji zwraca idempotentnie odpowiedź finałową Kroku 3 bez błędu walidacji.
 
 ---
 
@@ -135,6 +142,15 @@ Dla miesięcznej wpłaty $P = \text{recommended\_monthly}$, miesięcznej stopy $
 * Różnica (`inflation_loss_vs_etf`):
   $$\Delta(t) = V_{\text{etf}}(t) - V_{\text{cash\_real}}(t)$$
 * Zaokrąglić wszystkie wartości do `int(round(...))`.
+* **Pomocnik po 6 miesiącach (`calculate_half_year_etf_value`):** $V_{\text{etf, 6m}} = \text{int}(\text{round}(P \cdot \frac{(1 + i)^6 - 1}{i}))$.
+
+#### Tabela referencyjna dokładnych wyników wzorów (Wektory testowe dla 3 person demo)
+
+| Persona | `recommended_monthly` (widełki) | Horyzont $h$ | `total_paid` | `etf_value` | `cash_real_value` | `inflation_loss_vs_etf` | `win_rate` | `6m_etf` |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `young_20` (22 l., 1000 wolne, brak poduszki) | `300` (`200–350`) | `15 lat` | `54 000` | `103 811` | `42 124` | `61 687` | `99%` | `1 830` |
+| `mid_38` (38 l., 2500 wolne, ma poduszkę) | `1 250` (`1000–1500`) | `10 lat` | `150 000` | `228 683` | `126 738` | `101 945` | `96%` | `7 626` |
+| `senior_56` (56 l., 3000 wolne, ma poduszkę) | `1 200` (`900–1500`) | `7 lat` | `100 800` | `134 536` | `89 453` | `45 083` | `93%` | `7 321` |
 
 ---
 
@@ -304,11 +320,11 @@ class ChallengeAcceptResponse(BaseModel):
 
 | Metoda i ścieżka | Opis działania | Model wejścia / wyjścia |
 | :--- | :--- | :--- |
-| `GET /` | Zwraca `static/index.html` (`FileResponse`). Zamontować `/static` przez `StaticFiles`. | HTML |
+| `GET /` | Zwraca `static/index.html` (`FileResponse`), a gdy `static/` nie istnieje jeszcze w trakcie dev — tymczasowy JSON ze statusem i linkiem do `/docs`. Zamontować `/static` warunkowo (`if STATIC_DIR.is_dir():`). | HTML |
 | `GET /api/demo-personas` | Zwraca listę 3 gotowych person (`young_20`, `mid_38`, `senior_56`). | `list[DemoPersona]` |
 | `POST /api/onboarding/analyze` | Generuje `session_id`, wylicza `finance_math`, dobiera filtr Speakly, 4 kamienie milowe mapy 14 dni (`roadmap_milestones`), 3 `micro_lessons` i Krok 1 symulacji Dnia 1 (`confidence_score = 10`, `GamificationState`: Poziom 1, 20 XP, Streak 1), **zapisuje `MissionSession` w PostgreSQL**. | `OnboardingRequest` -> `OnboardingResponse` |
-| `POST /api/mission/turn` | Pobiera `MissionSession` z PostgreSQL (`404` jeśli brak), wywołuje `luna_service.process_mission_turn(session_dict, req.user_message)`, zapisuje zaktualizowany krok/XP/historię w PostgreSQL, a w Kroku 3 dokleja `real_world_challenge`, `leaderboard` (z tabeli `leaderboard_entries` + wynik użytkownika), `final_checklist` i `bank_draft`. | `MissionTurnRequest` -> `MissionTurnResponse` |
-| `POST /api/challenge/accept` | Pobiera `MissionSession` z PostgreSQL, jeśli `challenge_accepted` jest `False` -> ustawia `True`, dodaje `+50 XP`, zapisuje w bazie i zwraca odświeżony, posortowany `leaderboard`. | `ChallengeAcceptRequest` -> `ChallengeAcceptResponse` |
+| `POST /api/mission/turn` | Pobiera `MissionSession` z PostgreSQL (`404` jeśli brak), pobiera rekordy `leaderboard_entries`, wywołuje `luna_service.process_mission_turn(session_dict, req.user_message, leaderboard_rows)`, zapisuje zaktualizowany krok (`<= 3`), `confidence_score`, `xp` i `history` w PostgreSQL, a w Kroku 3 dokleja `real_world_challenge`, `leaderboard`, `final_checklist` i `bank_draft`. | `MissionTurnRequest` -> `MissionTurnResponse` |
+| `POST /api/challenge/accept` | Pobiera `MissionSession` z PostgreSQL (`404` jeśli brak). Jeśli `challenge_accepted` jest `False` -> ustawia `True`, dodaje `+50 XP`, zapisuje w bazie i zwraca `reward_xp=50` + posortowany `leaderboard`. Przy ponownym wywołaniu jest idempotentny: zwraca `reward_xp=0`, niezmienione `xp` i aktualny `leaderboard`. | `ChallengeAcceptRequest` -> `ChallengeAcceptResponse` |
 
 ---
 
@@ -325,7 +341,7 @@ Aby frontendowiec (Osoba 3) miał 100% jasności przy budowaniu Ekranu 4:
   "luna_message": "Dzień 1 z 14 zaliczony i awansujesz na Poziom 2! Twoja gotowość inwestycyjna wzrosła dziś z 10% do 40%. Zrób dziś małe wyzwanie za 5 zł, utrzymaj serię i widzimy się jutro na Dniu 2!",
   "quick_replies": [],
   "portfolio_status": {
-    "simulated_value": 104515,
+    "simulated_value": 103811,
     "event_badge": "Dzień 1 ukończony • Cel: 15 lat"
   },
   "gamification": {
@@ -362,9 +378,11 @@ Aby frontendowiec (Osoba 3) miał 100% jasności przy budowaniu Ekranu 4:
     "monthly_amount": 300,
     "horizon_years": 15,
     "instrument_category": "Szeroki globalny fundusz ETF (edukacyjny wzorzec na Dzień 14)",
-    "projected_etf_value": 104515,
-    "projected_cash_real_value": 41890,
+    "projected_etf_value": 103811,
+    "projected_cash_real_value": 42124,
     "historical_win_rate": 99
   }
 }
 ```
+
+*(Wartości `103811` i `42124` pochodzą bezpośrednio z deterministycznych wzorów w §3D dla `recommended_monthly = 300` i `horizon_years = 15`.)*

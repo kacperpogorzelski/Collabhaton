@@ -2,31 +2,35 @@
 
 ## 1. Plan szybkiej przeróbki istniejącego modułu Luny na codziennego AI Coacha (15–20 minut)
 
-Z istniejącego projektu wirtualnego asystenta (Allegro) przenosimy wyłącznie warstwę połączenia z LLM do pliku `backend/luna_service.py`:
+Z istniejącego projektu wirtualnego asystenta (Allegro, `C:\Projekty\AutoResponder_Allegro\src\autoresponder`) przenosimy wyłącznie wzorce połączenia z LLM oraz fail-safe walidacji JSON do pliku `backend/luna_service.py`:
 
-* **ZACHOWUJEMY:**
+* **ZACHOWUJEMY (i upraszczamy pod synchroniczne `def`):**
 
-  * Inicjalizację klienta (`OpenAI(api_key=os.getenv("OPENAI_API_KEY"), timeout=8.0)`).
+  * Wywołanie `load_dotenv()` przed odczytem zmiennych środowiskowych: `OPENAI_API_KEY`, `LUNA_MODEL` (domyślnie `"gpt-4o-mini"`, wspiera też `"gpt-6-luna"`), `LUNA_TIMEOUT_SECONDS` (domyślnie `8.0`).
 
-  * Wywołanie chat completions z wymuszonym JSON: `response_format={"type": "json_object"}`.
+  * Inicjalizację synchronicznego klienta `OpenAI(api_key=api_key, timeout=timeout, max_retries=0)` (brak ukrytych retry SDK na prezentacji, wyciszenie loggera `openai` do `WARNING`).
 
-  * Przekazywanie krótkiej listy `messages` (`system` + tury użytkownika).
+  * Wymuszenie ścisłego schematu JSON (`response_format={"type": "json_schema", "json_schema": {"name": "LunaLlmOutput", "schema": ..., "strict": True}}`), gdzie model Pydantic `LunaLlmOutput` **MUSI** mieć `model_config = ConfigDict(extra="forbid")` (generuje `additionalProperties: false` i wszystkie pola w `required` — bez tego OpenAI API odrzuci request błędem `400`).
+
+  * Warunkowe przekazywanie `reasoning_effort="none"` **wyłącznie** wtedy, gdy `model == "gpt-6-luna"`.
+
+  * Przekazywanie krótkiej listy `messages` (`system` + ostatnie max 6 wpisów z `session_data["history"]` + bieżący `user_message`) oraz sprawdzanie `choice.message.refusal` / `finish_reason != "stop"` wzorem `openai_adapter.py` i bezpiecznej klasyfikacji błędów bez logowania promptów ani klucza.
 
 * **USUWAMY:**
 
-  * Całą logikę Allegro, pobieranie aukcji/zamówień, stare bazy danych, RAG, wyszukiwanie produktów.
+  * Całą logikę Allegro, pobieranie aukcji/zamówień, stare bazy danych SQLite/Alembic, workera/outboxa, Discorda, RAG, wyszukiwanie produktów oraz cały moduł cennika tokenowego (`_usage_metrics`, `Decimal`).
 
 * **DODAJEMY (OBOWIĄZKOWY BEZPIECZNIK NA DEMO):**
 
   * Całe wywołanie LLM owinięte w `try ... except Exception:`.
 
-  * Jeśli API przekroczy `8 sekund`, zwróci błąd sieci, zły JSON albo brak klucza w `.env` -> `luna_service.py` natychmiast zwraca gotowy, dopracowany obiekt `MissionTurnResponse` z `demo_data.py` dla `(age_group, target_step)` uzupełniony o realne liczby użytkownika!
+  * Jeśli API przekroczy `8 sekund`, zwróci błąd sieci, odmowę (`refusal`), zły JSON albo brak/błędny klucz w `.env` -> `luna_service.py` natychmiast zwraca gotowy, dopracowany obiekt `MissionTurnResponse` zbudowany na bazie `get_fallback_turn()` z `demo_data.py` dla `(age_group, answered_step)` uzupełniony o realne liczby użytkownika!
 
 ## 2. Maszyna Stanów Misji Dnia 1 i Realistyczna Progresja (Zawsze 3 kroki)
 
-Stan sesji jest przechowywany w PostgreSQL w tabeli `sessions` (`backend/models.py` -> `MissionSession`). Do funkcji `luna_service.process_mission_turn(session_data: dict, user_message: str, leaderboard_rows: list[dict])` `main.py` przekazuje słownik z polami sesji wczytanymi z bazy:
+Stan sesji jest przechowywany w PostgreSQL w tabeli `sessions` (`backend/models.py` -> `MissionSession`). Do synchronicznej funkcji `luna_service.process_mission_turn(session_data: dict, user_message: str, leaderboard_rows: list[dict] | None = None) -> MissionTurnResponse` `main.py` przekazuje słownik z polami sesji wczytanymi z bazy:
 
-```
+```python
 {
     "session_id": str,
     "age": int,
@@ -37,15 +41,28 @@ Stan sesji jest przechowywany w PostgreSQL w tabeli `sessions` (`backend/models.
     "etf_future_value": int,
     "cash_real_value": int,
     "win_rate": int,
-    "current_step": 1,
-    "confidence_score": 10,
-    "xp": 20,
-    "history": []
+    "current_step": 1,       # wartości w bazie: 1, 2 lub 3 (nigdy 4)
+    "confidence_score": 10,  # 10 -> 20 -> 30 -> 40
+    "xp": 20,                # 20 -> 60 -> 95 -> 155
+    "history": [             # format OpenAI messages; do LLM przekazuj ostatnie max 6 wpisów
+        {"role": "assistant", "content": "..."},
+        {"role": "user", "content": "..."},
+    ],
 }
-
 ```
 
-*(Dzięki takiemu rozdzieleniu Osoba 2 pracująca nad `luna_service.py` nie musi nawet importować SQLAlchemy — zapisem do PostgreSQL zajmuje się wyłącznie `backend/main.py` Osoby 1!)*
+*(Dzięki takiemu rozdzieleniu Osoba 2 pracująca nad `luna_service.py` nie importuje SQLAlchemy — zapisem do PostgreSQL zajmuje się wyłącznie `backend/main.py` Osoby 1!)*
+
+### Wiążąca wartość `portfolio_status.simulated_value` i reguły bezpieczeństwa odpowiedzi LLM
+
+* **Wartość portfela symulacji (`simulated_value`):**
+  * **Krok 1 (Start):** `recommended_monthly`
+  * **Krok 2 (po 6 mies.):** `half_year_value = int(round(recommended_monthly * (((1 + 0.08/12) ** 6 - 1) / (0.08/12))))`
+  * **Krok 3 oraz Finał Dnia 1:** `etf_future_value`
+* **Twarde reguły nadpisywania w Pythonie (ochrona UI przed halucynacjami LLM):**
+  * Gdy `answered_step == 3` (finał): w Pythonie **ZAWSZE** nadpisuj `step_number = 3`, `quick_replies = []`, `mission_completed = True`, `trigger_confetti = True`, `confidence_score = 40`, `xp = 155`, `level = 2`, `leveled_up = True`.
+  * Gdy `answered_step in (1, 2)` i LLM zwróci puste `quick_replies` (lub `< 2` opcje): podmień `quick_replies` z fallbacku w `demo_data.py`, aby użytkownik nigdy nie został bez przycisków wyboru.
+  * Gdy sesja ma już `current_step == 3` i `confidence_score >= 40`: zwróć idempotentnie odpowiedź finałową bez podnoszenia `step_number` powyżej `3`.
 
 ### Logika przejść, realistycznej gotowości (`10% -> 40%`), XP i awansu w `POST /api/mission/turn`:
 
@@ -121,7 +138,19 @@ WYMAGANY FORMAT WYJŚCIOWY (WYŁĄCZNIE CZYSTY JSON):
 
 ```
 
-## 4. Dane do `backend/demo_data.py` (Mapa 14 Dni, Mikro-lekcje, Wyzwania 5 zł, Seed Rankingu i Fallbacki)
+## 4. Dane do `backend/demo_data.py` (Persony, Filtr Speakly, Mapa 14 Dni, Mikro-lekcje, Wyzwania 5 zł, Seed Rankingu i Fallbacki)
+
+### 0. Persony Demo (`DEMO_PERSONAS`) i Filtr Speakly (`SPEAKLY_FILTER_BY_GROUP`)
+
+* **`DEMO_PERSONAS: list[DemoPersona]`:**
+  1. `id="young_20"`, `short_label="22 l. Student"`, `full_label="22 l. • Student (Start od zera)"`, `age=22`, `net_income=4500`, `free_cash=1000`, `has_emergency_fund=False`
+  2. `id="mid_38"`, `short_label="38 l. Rodzina"`, `full_label="38 l. • Kariera i Rodzina"`, `age=38`, `net_income=11000`, `free_cash=2500`, `has_emergency_fund=True`
+  3. `id="senior_56"`, `short_label="56 l. 50+"`, `full_label="56 l. • Ochrona Kapitału 50+"`, `age=56`, `net_income=9500`, `free_cash=3000`, `has_emergency_fund=True`
+
+* **`SPEAKLY_FILTER_BY_GROUP: dict[AgeGroup, SpeaklyFilter]`** (spójny 1:1 z tabelą pokoleń w `01_PRODUCT_AND_GUI_SPEC.md` §3):
+  * `"20+"`: `time_saved_hours=3.5`, `kept_topics=["Inflacja zjada gotówkę", "Płynność ETF (wypłata w 2–3 dni)", "Efekt skali od małych kwot"]`, `removed_topics=["Analiza sprawozdań finansowych", "Derywaty i opcje", "Optymalizacja podatkowa", "Obligacje emerytalne", "Day-trading", "Wybór pojedynczych akcji", "Strategie przedemerytalne"]`
+  * `"30-50"`: `time_saved_hours=4.0`, `kept_topics=["Inflacja zjada oszczędności", "Automatyzacja w tle bez wykresów", "Oddzielenie poduszki od inwestycji"]`, `removed_topics=["Day-trading", "Spekulacja krypto", "Analiza techniczna", "Podstawy obsługi konta", "Krótkoterminowy forex", "Opcje", "Lewarowanie"]`
+  * `"50+"`: `time_saved_hours=3.5`, `kept_topics=["Inwestować można w każdym wieku", "Tarcza antyinflacyjna kapitału", "Prostota i globalna dywersyfikacja"]`, `removed_topics=["Agresywne strategie na 30 lat", "Dźwignia finansowa", "Kryptowaluty", "Startupy wysokiego ryzyka", "Day-trading", "Spekulacja opcjami", "Spółki memowe"]`
 
 ### A. 14-Dniowa Mapa Postępu (`ROADMAP_BY_GROUP`)
 
@@ -158,6 +187,7 @@ Każda grupa otrzymuje listę 4 obiektów `RoadmapMilestone`:
   4. `day=14`, `title="Świadomy start w Commerzbanku"`, `focus="Gotowość 100% • Bezstresowe uruchomienie planu"`, `status="locked"`
 
 ### B. 3 Mikro-Lekcje Dnia 1 w pigułce (`MICRO_LESSONS_BY_GROUP`)
+Każda karta używa modelu `MicroLessonCard` (`duration_sec=20`, `xp_reward=15`) z wiążącymi identyfikatorami `"ml_20_1".."ml_20_3"`, `"ml_30_1".."ml_30_3"`, `"ml_50_1".."ml_50_3"`:
 
 * **Dla `20+`:**
 
@@ -219,7 +249,12 @@ Rekordy wrzucane do tabeli PostgreSQL `leaderboard_entries` przez `init_db()` pr
 
 3. `{"name": "Marek Z.", "level_title": "Obserwator", "xp": 40, "streak_days": 1}`
 
-Funkcja pomocnicza `build_leaderboard(db_rows: list[dict], user_xp: int) -> list[LeaderboardEntry]` łączy rekordy z bazy z wierszem `{"name": "Ty (Awans!)", "level_title": "Świadomy Start", "xp": user_xp, "streak_days": 1, "is_current_user": True}`, sortuje malejąco po `xp` i nadaje `rank: 1..N`.
+Funkcja pomocnicza `build_leaderboard(db_rows: list[dict], user_xp: int, user_level_title: str = "Świadomy Start") -> list[LeaderboardEntry]` łączy rekordy z bazy z wierszem `{"name": "Ty (Awans!)", "level_title": user_level_title, "xp": user_xp, "streak_days": 1, "is_current_user": True}`, sortuje malejąco po `xp` i nadaje `rank: 1..N`.
+
+### D2. Pozostałe wiążące funkcje eksportowane przez `backend/demo_data.py`
+* `get_initial_mission_turn(age_group: AgeGroup, recommended_monthly: int) -> MissionTurnResponse` — zwraca Krok 1 startowy Dnia 1 (`confidence_score=10`, `xp=20`, `simulated_value=recommended_monthly`).
+* `get_final_checklist(age_group: AgeGroup, recommended_monthly: int, horizon_years: int) -> list[ChecklistItem]` — zwraca 4 pozycje `chk_1`..`chk_4` (wzór z `02_TECH_API_AND_MATH.md` §6, gdzie `chk_3` adresuje główny lęk generacji: płynność 2–3 dni dla `20+`, automatyzacja w tle bez patrzenia w wykresy dla `30-50`, spokojny horyzont `{horizon_years} lat` i brak limitu wieku dla `50+`).
+* `get_fallback_turn(session_data: dict, answered_step: int) -> dict` — zwraca słownik 5 pól (`understanding_feedback`, `luna_message`, `quick_replies`, `event_badge`, `trigger_confetti`) dla kroku po odpowiedzi użytkownika (`answered_step=1` -> Krok 2, `2` -> Krok 3, `3` -> Finał Dnia 1). **UWAGA:** funkcja musi wywołać `.format(**ctx)` również dla każdego elementu `quick_replies`, ponieważ w grupie `50+` (Krok 2) jedna z szybkich odpowiedzi zawiera placeholder `{horizon_years}`!
 
 ### E. Kompletne Fallbacki i Kroki Startowe Symulacji Dnia 1
 

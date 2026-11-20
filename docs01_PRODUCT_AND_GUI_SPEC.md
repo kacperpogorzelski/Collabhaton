@@ -25,9 +25,9 @@ Każdy element grywalizacji wspiera regularny powrót do aplikacji przez 14 dni 
    * Start w Dniu 1: **`Poziom 1: Obserwator`** (`20 / 100 XP`).
    * Ukończenie misji Dnia 1 podbija XP do `155` i wyzwala spektakularną kartę **`🏆 AWANS! Poziom 2: Świadomy Start`**.
 7. **Streak (Seria dni) — Nagłówek:** Pigułka **`🔥 Dzień 1`** (po ukończeniu sesji animuje się komunikatem *„Seria rozpoczęta! Wróć jutro po Dzień 2”*).
-8. **Realne Mikro-Wyzwanie „Zero Strachu” na Dzień 1 (Ekran 4):** Aby budować nawyk działania od pierwszego dnia (zanim klient zainwestuje pełną kwotę w Dniu 14), dostaje natychmiastowe, mikroskopijne zadanie: np. ***„Realne wyzwanie na Dzień 1: Wpłać 5 zł na konto oszczędnościowe”*** (dla `20+` lub bez poduszki: 5 zł; dla `30-50` / `50+` z poduszką: 50 zł testowo na subkonto startowe). Kliknięcie **`Podejmuję wyzwanie (+50 XP)`** odpala konfetti i podbija pozycję w rankingu!
+8. **Realne Mikro-Wyzwanie „Zero Strachu” na Dzień 1 (Ekran 4):** Aby budować nawyk działania od pierwszego dnia (zanim klient zainwestuje pełną kwotę w Dniu 14), dostaje natychmiastowe, mikroskopijne zadanie: np. ***„Realne wyzwanie na Dzień 1: Wpłać 5 zł na konto oszczędnościowe”*** (dla `20+` lub bez poduszki: 5 zł; dla `30-50` / `50+` z poduszką: 50 zł testowo na subkonto startowe). Kliknięcie **`Podejmuję wyzwanie (+50 XP)`** odpala konfetti i podnosi wynik w backendzie ze `155` do `205 XP` (tuż za 1. miejscem `Kasia K. — 210 XP`, brakuje już tylko `5 XP`, co motywuje do powrotu na Dzień 2!).
 9. **Ranking i Wyzwania z Kolegami (Ekran 4 — Mockowany widget społecznościowy):**
-   * Tabela „Ranking znajomych (Ten tydzień)” z 4 pozycjami (3 zmockowanych znajomych + **Ty**). Po Dniu 1 użytkownik awansuje w tabeli (np. z #4 na #2 miejsce!).
+   * Tabela „Ranking znajomych (Ten tydzień)” z 4 pozycjami (3 zmockowanych znajomych + **Ty**). Po Dniu 1 użytkownik awansuje w tabeli na **#2 miejsce** (`155 XP`), a po przyjęciu mikro-wyzwania (`+50 XP`) zbliża się na `205 XP` do lidera (`Kasia K. — 210 XP`).
    * Przycisk **`⚔️ Wyzwij znajomego`**: kopiuje do schowka zaproszenie (np. *„Ukończyłem Dzień 1 z 14 w Finance Quest i awansowałem na Poziom 2! Dołącz do mojego 14-dniowego wyzwania inwestycyjnego -> [link]”*) i pokazuje zielony toast.
 
 ---
@@ -94,7 +94,7 @@ Każdy element grywalizacji wspiera regularny powrót do aplikacji przez 14 dni 
 * **Formularz:**
   1. **Wiek:** suwak `18–70` + tag grupy (`20+` / `30–50` / `50+`). Pole API: `age`.
   2. **Miesięczne zarobki netto (zł):** suwak `2 500 – 25 000` (krok `500`). Pole API: `net_income`.
-  3. **Wolne środki miesięcznie po opłatach (zł):** suwak `200 – 10 000` (krok `100`). Pole API: `free_cash`.
+  3. **Wolne środki miesięcznie po opłatach (zł):** suwak `200 – 10 000` (krok `100`). Pole API: `free_cash`. UI pilnuje `free_cash <= net_income` (obniżenie `net_income` poniżej `free_cash` automatycznie dopasowuje suwak `free_cash` w dół).
   4. **Poduszka finansowa (min. 3 mies. wydatków):** 2 duże kafelki (`Tak, mam poduszkę` / `Jeszcze ją buduję`). Pole API: `has_emergency_fund`.
 * **Akcja CTA:** `.btn-3d`: **`Ułóż mój 14-dniowy plan Speakly ->`** -> wywołuje `POST /api/onboarding/analyze`.
 
@@ -104,7 +104,7 @@ Dane pochodzą z `POST /api/onboarding/analyze`:
    * Pozioma oś pokazująca 4 kluczowe kamienie milowe (np. `Dzień 1: Inflacja i pierwszy krok [Aktywny - Dziś]`, `Dzień 4: ... [🔒]`, `Dzień 9: ... [🔒]`, `Dzień 14: Pierwsza inwestycja w Commerzbanku [🔒]`).
 2. **Karta B — Filtr Speakly + 3 Mikro-Lekcje Dnia 1:**
    * Badge: `⚡ Zaoszczędzono {speakly_filter.time_saved_hours}h zbędnej nauki`.
-   * **Lewa kolumna (3 klikalne Mikro-Lekcje Dnia 1 z `micro_lessons`):** Każda karta pokazuje tytuł, czas (`20 sek.`), 1-zdaniowy konkret oraz przycisk `Rozumiem! (+15 XP)` — kliknięcie odhacza kartę na zielono i podbija XP w nagłówku *(opcjonalne, nie blokuje przejścia dalej)*.
+   * **Lewa kolumna (3 klikalne Mikro-Lekcje Dnia 1 z `micro_lessons`):** Każda karta pokazuje tytuł, czas (`20 sek.`), 1-zdaniowy konkret oraz przycisk `Rozumiem! (+15 XP)` — kliknięcie odhacza kartę na zielono i podbija lokalny bonus `microLessonBonusXp` w stanie UI (maks. `+45 XP`, opcjonalne — nie blokuje przejścia dalej). **Reguła monotonicznego XP w nagłówku:** pasek XP zawsze wyświetla `gamification.xp + microLessonBonusXp`, aby po wejściu na Ekran 3 (gdzie backend zwraca bazowe `xp = 60 / 95 / 155`) licznik XP w nagłówku nigdy nie cofnął się w dół; poziom i awans (`Poziom 2`) wynikają zawsze z `gamification.level` / `gamification.leveled_up` z backendu.
    * **Prawa kolumna (`.topic-strike`):** Lista `speakly_filter.removed_topics` przekreślana na oczach użytkownika (*„Wyrzuciliśmy to z Twojego 14-dniowego planu”*).
 3. **Karta C — Twoja Docelowa Bezpieczna Kwota:**
    * Animowany licznik: **`{safe_investment.min_monthly} – {safe_investment.max_monthly} zł / mies.`** (kwota do symulacji: `{safe_investment.recommended_monthly} zł`).
@@ -115,7 +115,7 @@ Dane pochodzą z `POST /api/onboarding/analyze`:
      * Czerwony: *„Gotówka na koncie (po inflacji)”* -> `cash_real_value` zł.
      * Zielony: *„Szeroki ETF (historycznie)”* -> `etf_value` zł.
      * Złoty/Zielony: *„Historyczna szansa bez straty”* -> **`{historical_win_rate}%`**.
-   * Wykres `Chart.js` (2 linie: zielony ETF vs czerwona gotówka po inflacji).
+   * Wykres `Chart.js` (2 linie: zielony ETF vs czerwona gotówka po inflacji): przed `projection_series.slice(0, year)` wykres zawsze dopina punkt początkowy `Rok 0` (`etf=0`, `cash=0`), dzięki czemu nawet przy suwaku na `1 rok` widać wyraźnie dwie rozchodzące się krzywe. Wywołania `fetch` w `app.js` używają ścieżek względnych `/api/...` (z fallbackiem na `http://localhost:8000` przy uruchomieniu przez `file://`).
 * **Akcja CTA:** `.btn-3d`: **`Rozpocznij Symulację Dnia 1 z AI Coachem ->`** -> Ekran 3.
 
 ### Ekran 3: `screen_mission_live` (Symulacja Wyborów Dnia 1 z AI Coachem Luną — 3 kroki)
@@ -139,14 +139,14 @@ Układ 2-kolumnowy na desktopie (1 kolumna na mobile), zaprojektowany na mocny f
 2. **Lewa kolumna — Realne Działanie Dziś:**
    * **Karta 1: Realne Mikro-Wyzwanie na Dzień 1 (`real_world_challenge`):**
      * Wyróżniona złotą ramką `#FFCC00` z ikoną błyskawicy: np. **`Realne Wyzwanie Dnia 1: Wpłać 5 zł na konto oszczędnościowe`** (`description`: *„Zanim za 2 tygodnie ruszysz z regularnym ETF-em, przełam dziś barierę pierwszego przelewu symboliczną kwotą 5 zł!”*).
-     * Przycisk: **`Podejmuję wyzwanie (+{reward_xp} XP)`** -> po kliknięciu zmienia się w zielony badge `✅ Wyzwanie przyjęte! +50 XP`, odpala konfetti i natychmiast podbija XP użytkownika w Rankingu Znajomych!
+     * Przycisk: **`Podejmuję wyzwanie (+{reward_xp} XP)`** -> wywołuje `POST /api/challenge/accept`, zmienia się w zielony badge `✅ Wyzwanie przyjęte! +50 XP`, odpala konfetti, podnosi XP w backendzie ze `155` do `205 XP` (brakuje tylko `5 XP` do 1. miejsca `Kasia K. — 210 XP`) i odświeża tabelę Rankingu Znajomych!
    * **Karta 2: Interaktywna Checklista Dnia 1 (`final_checklist` — 4 pozycje):**
      * Odhaczenie wszystkich 4 punktów odpala pełne konfetti Commerzbanku i włącza `.glow-pulse` na przycisku bankowym.
 3. **Prawa kolumna — Bank i Społeczność:**
    * **Karta 3: Podgląd Twojego Planu w Commerzbanku (`bank_draft`):**
      * Pokazuje 2 konkretne kroki: mikro-ruch już dziś (`{real_world_challenge.amount_pln} zł`) oraz docelowy plan regularny na koniec 14-dniowej ścieżki (`{bank_draft.monthly_amount} zł/mies.`, horyzont `{bank_draft.horizon_years} lat`, prognoza historyczna) + przycisk `.btn-3d`: **`Wykonaj krok Dnia 1 lub zobacz szkic w Commerzbanku ->`** (otwiera `modal_bank_order`).
    * **Karta 4: Ranking Znajomych & Wyzwanie (`leaderboard`):**
-     * Lista 4 osób z punktami XP i serią `🔥`. Wiersz użytkownika (`is_current_user: true`) podświetlony na żółto-zielono z badge'em **`⬆️ Awans!`**.
+     * Lista 4 osób z punktami XP i serią `🔥`. Wiersz użytkownika (`is_current_user: true`) podświetlony na żółto-zielono z badge'em **`⬆️ Awans!`** (`155 XP` na #2 miejscu, a po przyjęciu mikro-wyzwania `205 XP` — zaledwie `5 XP` za 1. miejscem).
      * Przycisk **`⚔️ Wyzwij znajomego`** -> kopiuje zaproszenie do 14-dniowego wyzwania do schowka i pokazuje zielony toast.
 4. **Stopka (Compliance):** Krótki disclaimer edukacyjny (brak doradztwa inwestycyjnego MiFID II).
 
