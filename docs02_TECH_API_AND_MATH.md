@@ -1,6 +1,6 @@
-# 02. SSOT Architektury Python, Matematyki i Kontraktu API
+# 02. SSOT Architektury Python, Bazy Docker, Matematyki i Kontraktu API
 
-Ten dokument jest **wiążącym kontraktem technicznym**. Nazwy plików, endpointów i pól JSON muszą zgadzać się co do znaku między backendem (Osoba 1 i 2) a frontendem (Osoba 3).
+Ten dokument jest **wiążącym kontraktem technicznym**. Nazwy plików, tabel, endpointów i pól JSON muszą zgadzać się co do znaku między backendem (Osoba 1 i 2) a frontendem (Osoba 3).
 
 ---
 
@@ -8,6 +8,7 @@ Ten dokument jest **wiążącym kontraktem technicznym**. Nazwy plików, endpoin
 ```text
 finance-quest/
 ├── AGENTS.md
+├── docker-compose.yml     # Lekki PostgreSQL 16 (uruchamiany: docker compose up -d)
 ├── requirements.txt
 ├── .env
 ├── .env.example
@@ -17,54 +18,107 @@ finance-quest/
 │   └── 03_LUNA_INTEGRATION_AND_PROMPTS.md
 ├── backend/
 │   ├── __init__.py
+│   ├── database.py        # Połączenie SQLAlchemy z PostgreSQL + init_db() z seedem
+│   ├── models.py          # 2 proste tabele ORM: MissionSession, LeaderboardRow
 │   ├── main.py            # FastAPI app, CORS, trasy API, serwowanie /static
 │   ├── schemas.py         # Wszystkie modele Pydantic (100% kontraktu poniżej)
 │   ├── finance_math.py    # Deterministyczne obliczenia ETF, inflacji i widełek
-│   ├── demo_data.py       # 3 persony, filtry Speakly i fallbacki misji
-│   └── luna_service.py    # Adaptacja modułu Luny + System Prompt + fallback
+│   ├── demo_data.py       # 3 persony, mapa 14 dni, mikro-lekcje, seed rankingu, wyzwania 5 zł, fallbacki
+│   └── luna_service.py    # Adaptacja modułu Luny (AI Coach) + System Prompt + fallback
 └── static/
-    ├── index.html         # Kompletny SPA (4 ekrany + modal)
-    ├── app.js             # Logika UI, Chart.js, animacje, fetch API
-    └── styles.css         # Animacje CSS (btn-3d, shimmer, strike, pulse)
+    ├── index.html         # Kompletny SPA bez npm (4 ekrany + modal)
+    ├── app.js             # Logika UI, Chart.js, animacje, grywalizacja, fetch API
+    └── styles.css         # Animacje CSS (btn-3d, shimmer, strike, level-pop, pulse)
 ```
 
 ---
 
-## 2. Deterministyczna Matematyka Finansowa (`backend/finance_math.py`)
+## 2. Podstawowa Baza Danych w Dockerze (`backend/database.py` i `backend/models.py`)
 
-**ZASADA:** LLM nigdy nie liczy pieniędzy ani procentów. Wszystkie wartości oblicza `finance_math.py`, a Luna otrzymuje gotowe liczby w prompcie.
+**ZASADA PROSTOTY:** Zero Alembica, zero ręcznych migracji SQL. Przy starcie FastAPI (`lifespan` lub `on_event("startup")`) wywołujemy `init_db()`, które odpala `Base.metadata.create_all(bind=engine)` i zasiewa tabelę `leaderboard_entries` 3 początkowymi znajomymi (jeśli jest pusta).
+
+### A. Konfiguracja połączenia (`backend/database.py`)
+* Pobiera `DATABASE_URL` z `.env` (domyślnie: `"postgresql://finance:finance@localhost:5432/finance_quest"`).
+* Udostępnia standardowe `engine`, `SessionLocal`, `Base` oraz generator zależności `get_db()` dla FastAPI.
+* Jeśli podczas szybkiego testu lokalnego bez uruchomionego Dockera połączenie z Postgres zawiedzie, `init_db()` może zalogować jasny komunikat `Uruchom bazę komendą: docker compose up -d`.
+
+### B. Dokładne 2 tabele ORM (`backend/models.py`)
+Skopiuj poniższy schemat 1:1 do `backend/models.py`:
+
+```python
+from datetime import datetime, timezone
+from sqlalchemy import Boolean, Column, DateTime, Integer, JSON, String
+from backend.database import Base
+
+
+class MissionSession(Base):
+    __tablename__ = "sessions"
+
+    id = Column(String(64), primary_key=True, index=True)
+    age = Column(Integer, nullable=False)
+    age_group = Column(String(16), nullable=False)
+    has_emergency_fund = Column(Boolean, default=False, nullable=False)
+    recommended_monthly = Column(Integer, nullable=False)
+    horizon_years = Column(Integer, nullable=False)
+    etf_future_value = Column(Integer, nullable=False)
+    cash_real_value = Column(Integer, nullable=False)
+    win_rate = Column(Integer, nullable=False)
+    current_step = Column(Integer, default=1, nullable=False)
+    confidence_score = Column(Integer, default=10, nullable=False)
+    xp = Column(Integer, default=20, nullable=False)
+    challenge_accepted = Column(Boolean, default=False, nullable=False)
+    history = Column(JSON, default=list, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class LeaderboardRow(Base):
+    __tablename__ = "leaderboard_entries"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(64), nullable=False)
+    level_title = Column(String(64), nullable=False)
+    xp = Column(Integer, nullable=False)
+    streak_days = Column(Integer, default=1, nullable=False)
+    is_seed = Column(Boolean, default=True, nullable=False)
+```
+
+### C. Jak aplikacja korzysta z PostgreSQL (Minimum pracy, maksimum efektu)
+1. **Start aplikacji (`init_db`):** Jeśli tabela `leaderboard_entries` jest pusta, wrzuca 3 rekordy seedowe (`Kasia K.` 210 XP / 5 dni, `Tomek W.` 95 XP / 2 dni, `Marek Z.` 40 XP / 1 dzień).
+2. **`POST /api/onboarding/analyze`:** Tworzy nowy wiersz `MissionSession` w PostgreSQL i robi `db.commit()`.
+3. **`POST /api/mission/turn`:** Pobiera `MissionSession` z bazy po `session_id`, aktualizuje `current_step`, `confidence_score`, `xp` oraz `history` (pamiętaj o nadpisaniu nowej listy `session.history = list(session.history) + [...]`, aby SQLAlchemy wykrył zmianę w kolumnie JSON) i robi `db.commit()`. W Kroku 3 pobiera z tabeli `leaderboard_entries` rekordy seedowe, łączy je z aktualnym wynikiem użytkownika (`xp = 155`) i sortuje malejąco do pola `leaderboard`.
+4. **Opcjonalny zapis wyzwania (`POST /api/challenge/accept`):** Jeśli użytkownik kliknie na Ekranie 4 przycisk `Podejmuję wyzwanie (+50 XP)`, frontend może wysłać `{"session_id": "..."}` — backend ustawia `challenge_accepted = True`, podbija `xp += 50` w PostgreSQL i zwraca zaktualizowany `leaderboard` (z już przeliczoną wyższą pozycją!).
+
+---
+
+## 3. Deterministyczna Matematyka Finansowa (`backend/finance_math.py`)
+
+**ZASADA:** LLM nigdy nie liczy pieniędzy ani procentów. Wszystkie wartości oblicza `finance_math.py`, a AI Coach Luna otrzymuje gotowe liczby w prompcie.
 
 ### A. Stałe edukacyjne (uśrednione dane historyczne szerokiego rynku globalnego)
 * Nominalna średnia roczna stopa zwrotu szerokiego ETF: $r_{\text{etf}} = 0.08$ ($8.0\%$ rocznie).
 * Średnia roczna inflacja (utrata siły nabywczej gotówki na koncie $0\%$): $r_{\text{inf}} = 0.035$ ($3.5\%$ rocznie).
 * **Historyczny odsetek okresów kończących się zyskiem** (`HISTORICAL_WIN_RATE`):
-  * $1$ rok: $73\%$
-  * $3$ lata: $84\%$
-  * $5$ lat: $90\%$
-  * $7$ lat: $93\%$
-  * $10$ lat: $96\%$
-  * $15$ lat: $99\%$
-  * $20$ lat: $100\%$
-  *(Dla pozostałych lat $t \in \{1, \dots, 20\}$ stosować liniową interpolację zaokrągloną do liczby całkowitej `int`).*
+  * $1$ rok: $73\%$, $3$ lata: $84\%$, $5$ lat: $90\%$, $7$ lat: $93\%$, $10$ lat: $96\%$, $15$ lat: $99\%$, $20$ lat: $100\%$.
+  *(Dla pozostałych lat $t \in \{1, \dots, 20\}$ stosować liniową interpolację zaokrągloną do `int`).*
 
 ### B. Klasyfikacja grupy wiekowej (`get_age_group`)
-* `age < 30` -> `age_group = "20+"`, `default_horizon_years = 15`, `persona_label = "Młody Start (20+)"`
-* `30 <= age <= 50` -> `age_group = "30-50"`, `default_horizon_years = 10`, `persona_label = "Kariera i Rodzina (30–50)"`
-* `age > 50` -> `age_group = "50+"`, `default_horizon_years = 7`, `persona_label = "Ochrona Kapitału (50+)"`
+* $age < 30$ -> `age_group = "20+"`, `default_horizon_years = 15`, `persona_label = "Młody Start (20+)"`
+* $30 \le age \le 50$ -> `age_group = "30-50"`, `default_horizon_years = 10`, `persona_label = "Kariera i Rodzina (30–50)"`
+* $age > 50$ -> `age_group = "50+"`, `default_horizon_years = 7`, `persona_label = "Ochrona Kapitału (50+)"`
 
-### C. Wyliczanie bezpiecznej miesięcznej kwoty (`calculate_safe_investment`)
+### C. Wyliczanie bezpiecznej miesięcznej kwoty docelowej (`calculate_safe_investment`)
 Wejście: `age: int`, `net_income: float`, `free_cash: float`, `has_emergency_fund: bool`.
 1. Zabezpieczenie brzegowe: jeśli `free_cash < 100`, przyjmij `effective_free = 100`.
 2. Dobór widełek procentowych od `effective_free`:
    * Jeśli `has_emergency_fund is False`:
      * `min_pct = 0.20`, `max_pct = 0.35`
-     * `reasoning`: *"Budujesz jeszcze poduszkę bezpieczeństwa, więc na start wystarczy 20–35% wolnych środków. Resztę odkładaj na poduszkę, a małą kwotą bezpiecznie przełamiesz barierę startu."*
+     * `reasoning`: *"Budujesz jeszcze poduszkę bezpieczeństwa, więc docelowo na start wystarczy 20–35% wolnych środków. Resztę kieruj na poduszkę, a w ciągu 14 dni bezpiecznie przygotujesz się do pierwszej wpłaty."*
    * Jeśli `has_emergency_fund is True`:
-     * Dla `20+`: `min_pct = 0.50`, `max_pct = 0.70`, `reasoning`: *"Masz już poduszkę i najcenniejszy zasób — czas. Przeznaczenie 50–70% wolnych środków na szeroki ETF uruchomi potężny efekt procentu składanego."*
+     * Dla `20+`: `min_pct = 0.50`, `max_pct = 0.70`, `reasoning`: *"Masz już poduszkę i najcenniejszy zasób — czas. Docelowe 50–70% wolnych środków w szerokim ETF uruchomi potężny efekt procentu składanego."*
      * Dla `30-50`: `min_pct = 0.40`, `max_pct = 0.60`, `reasoning`: *"Masz zabezpieczoną poduszkę rodzinną, więc 40–60% wolnych nadwyżek może automatycznie pracować w szerokich ETF-ach w tle, bez tracenia Twojego czasu."*
      * Dla `50+`: `min_pct = 0.30`, `max_pct = 0.50`, `reasoning`: *"Masz solidną poduszkę, dlatego 30–50% wolnych środków możesz bezpiecznie skierować do szerokich ETF-ów, aby chronić swój kapitał przed inflacją."*
-3. Zaokrąglanie (czytelne kwoty na demo):
-   * Funkcja pomocnicza `round_to_50(val) = max(100, int(round(val / 50.0) * 50))`.
+3. Zaokrąglanie:
+   * `round_to_50(val) = max(100, int(round(val / 50.0) * 50))`
    * `min_monthly = round_to_50(effective_free * min_pct)`
    * `max_monthly = max(min_monthly + 50, round_to_50(effective_free * max_pct))`
    * `recommended_monthly = round_to_50((min_monthly + max_monthly) / 2.0)`
@@ -78,12 +132,14 @@ Dla miesięcznej wpłaty $P = \text{recommended\_monthly}$, miesięcznej stopy $
   $$V_{\text{etf}}(t) = P \cdot \frac{(1 + i)^n - 1}{i}$$
 * **Realna siła nabywcza tej samej gotówki na zwykłym koncie $0\%$ (po inflacji):**
   $$V_{\text{cash\_real}}(t) = \sum_{m=1}^{n} \frac{P}{(1 + r_{\text{inf}})^{m/12}}$$
-* **Wartości zaokrąglamy do pełnych złotówek (`int(round(...))`).**
+* Różnica (`inflation_loss_vs_etf`):
+  $$\Delta(t) = V_{\text{etf}}(t) - V_{\text{cash\_real}}(t)$$
+* Zaokrąglić wszystkie wartości do `int(round(...))`.
 
 ---
 
-## 3. Pełne modele Pydantic (`backend/schemas.py`)
-Skopiuj poniższy plik 1:1 do `backend/schemas.py` — gwarantuje pełną zgodność między backendem, Luną i frontendem:
+## 4. Pełne modele Pydantic (`backend/schemas.py`)
+Skopiuj poniższy kod 1:1 do `backend/schemas.py`:
 
 ```python
 from typing import Literal, Optional
@@ -116,6 +172,22 @@ class SafeInvestmentAdvice(BaseModel):
     reasoning: str
 
 
+class RoadmapMilestone(BaseModel):
+    day: int
+    title: str
+    focus: str
+    status: Literal["active", "locked"] = "locked"
+
+
+class MicroLessonCard(BaseModel):
+    id: str
+    title: str
+    duration_sec: int = 20
+    summary: str
+    key_takeaway: str
+    xp_reward: int = 15
+
+
 class SpeaklyFilter(BaseModel):
     time_saved_hours: float
     kept_topics: list[str]
@@ -134,6 +206,33 @@ class ProjectionPoint(BaseModel):
 class PortfolioStatus(BaseModel):
     simulated_value: int
     event_badge: str
+
+
+class GamificationState(BaseModel):
+    level: int = 1
+    level_title: str = "Obserwator"
+    xp: int = 20
+    next_level_xp: int = 100
+    xp_gained: int = 0
+    leveled_up: bool = False
+    streak_days: int = 1
+
+
+class RealWorldChallenge(BaseModel):
+    title: str
+    description: str
+    amount_pln: int
+    target_account: str
+    reward_xp: int = 50
+
+
+class LeaderboardEntry(BaseModel):
+    rank: int
+    name: str
+    level_title: str
+    xp: int
+    streak_days: int
+    is_current_user: bool = False
 
 
 class ChecklistItem(BaseModel):
@@ -160,8 +259,11 @@ class MissionTurnResponse(BaseModel):
     luna_message: str
     quick_replies: list[str]
     portfolio_status: PortfolioStatus
+    gamification: GamificationState
     trigger_confetti: bool = False
     mission_completed: bool = False
+    real_world_challenge: Optional[RealWorldChallenge] = None
+    leaderboard: Optional[list[LeaderboardEntry]] = None
     final_checklist: Optional[list[ChecklistItem]] = None
     bank_draft: Optional[BankDraft] = None
 
@@ -171,8 +273,12 @@ class OnboardingResponse(BaseModel):
     age_group: AgeGroup
     persona_label: str
     default_horizon_years: int
+    current_day: int = 1
+    total_program_days: int = 14
     safe_investment: SafeInvestmentAdvice
     speakly_filter: SpeaklyFilter
+    roadmap_milestones: list[RoadmapMilestone]
+    micro_lessons: list[MicroLessonCard]
     projection_series: list[ProjectionPoint]
     initial_mission_turn: MissionTurnResponse
 
@@ -180,65 +286,82 @@ class OnboardingResponse(BaseModel):
 class MissionTurnRequest(BaseModel):
     session_id: str
     user_message: str = Field(..., min_length=1, max_length=600)
+
+
+class ChallengeAcceptRequest(BaseModel):
+    session_id: str
+
+
+class ChallengeAcceptResponse(BaseModel):
+    xp: int
+    reward_xp: int
+    leaderboard: list[LeaderboardEntry]
 ```
 
 ---
 
-## 4. Specyfikacja Endpointów (`backend/main.py`)
+## 5. Specyfikacja Endpointów (`backend/main.py`)
 
 | Metoda i ścieżka | Opis działania | Model wejścia / wyjścia |
 | :--- | :--- | :--- |
-| `GET /` | Zwraca `static/index.html` (`FileResponse`). Dodatkowo zamontować `/static` przez `StaticFiles`. | HTML |
-| `GET /api/demo-personas` | Zwraca listę 3 gotowych person (`young_20`, `mid_38`, `senior_56`) do paska Demo Mode. | `list[DemoPersona]` |
-| `POST /api/onboarding/analyze` | Generuje `session_id` (`uuid4().hex[:8]`), wylicza `finance_math`, dobiera filtr Speakly, przygotowuje Krok 1 misji, zapisuje sesję w `SESSIONS[session_id]` i zwraca komplet danych dla Ekranu 2 i startu Ekranu 3. | `OnboardingRequest` -> `OnboardingResponse` |
-| `POST /api/mission/turn` | Pobiera sesję z `SESSIONS` (jeśli brak `session_id` -> `404`), wywołuje `luna_service.process_mission_turn(session, req.user_message)`, aktualizuje `current_step` w sesji i zwraca kolejny krok lub zakończenie z `final_checklist` i `bank_draft`. | `MissionTurnRequest` -> `MissionTurnResponse` |
+| `GET /` | Zwraca `static/index.html` (`FileResponse`). Zamontować `/static` przez `StaticFiles`. | HTML |
+| `GET /api/demo-personas` | Zwraca listę 3 gotowych person (`young_20`, `mid_38`, `senior_56`). | `list[DemoPersona]` |
+| `POST /api/onboarding/analyze` | Generuje `session_id`, wylicza `finance_math`, dobiera filtr Speakly, 4 kamienie milowe mapy 14 dni (`roadmap_milestones`), 3 `micro_lessons` i Krok 1 symulacji Dnia 1 (`confidence_score = 10`, `GamificationState`: Poziom 1, 20 XP, Streak 1), **zapisuje `MissionSession` w PostgreSQL**. | `OnboardingRequest` -> `OnboardingResponse` |
+| `POST /api/mission/turn` | Pobiera `MissionSession` z PostgreSQL (`404` jeśli brak), wywołuje `luna_service.process_mission_turn(session_dict, req.user_message)`, zapisuje zaktualizowany krok/XP/historię w PostgreSQL, a w Kroku 3 dokleja `real_world_challenge`, `leaderboard` (z tabeli `leaderboard_entries` + wynik użytkownika), `final_checklist` i `bank_draft`. | `MissionTurnRequest` -> `MissionTurnResponse` |
+| `POST /api/challenge/accept` | Pobiera `MissionSession` z PostgreSQL, jeśli `challenge_accepted` jest `False` -> ustawia `True`, dodaje `+50 XP`, zapisuje w bazie i zwraca odświeżony, posortowany `leaderboard`. | `ChallengeAcceptRequest` -> `ChallengeAcceptResponse` |
 
 ---
 
-## 5. Przykład odpowiedzi końcowej (Krok 3 — `mission_completed: true`)
-Aby frontendowiec (Osoba 3) mógł od razu zbudować Ekran 4 na 100% zgodny z backendem:
+## 6. Przykład finałowej odpowiedzi Kroku 3 Dnia 1 (`mission_completed: true`)
+Aby frontendowiec (Osoba 3) miał 100% jasności przy budowaniu Ekranu 4:
 
 ```json
 {
   "step_number": 3,
   "total_steps": 3,
-  "confidence_score": 100,
-  "confidence_delta": 20,
-  "understanding_feedback": "Świetne podejście! Widzisz już wyraźnie różnicę między spokojnym budowaniem kapitału w czasie a utratą wartości gotówki przez inflację.",
-  "luna_message": "Misja ukończona! W 3 minuty opanowałeś najważniejsze zasady, które decydują o sukcesie początkującego inwestora. Odhacz swoją checklistę poniżej i zobacz gotowy szkic pierwszego kroku.",
+  "confidence_score": 40,
+  "confidence_delta": 10,
+  "understanding_feedback": "Świetny refleks! Widzisz już, jak czas i procent składany budują przewagę nad gotówką zjadaną przez inflację.",
+  "luna_message": "Dzień 1 z 14 zaliczony i awansujesz na Poziom 2! Twoja gotowość inwestycyjna wzrosła dziś z 10% do 40%. Zrób dziś małe wyzwanie za 5 zł, utrzymaj serię i widzimy się jutro na Dniu 2!",
   "quick_replies": [],
   "portfolio_status": {
     "simulated_value": 104515,
-    "event_badge": "Horyzont 15 lat osiągnięty!"
+    "event_badge": "Dzień 1 ukończony • Cel: 15 lat"
+  },
+  "gamification": {
+    "level": 2,
+    "level_title": "Świadomy Start",
+    "xp": 155,
+    "next_level_xp": 250,
+    "xp_gained": 60,
+    "leveled_up": true,
+    "streak_days": 1
   },
   "trigger_confetti": true,
   "mission_completed": true,
+  "real_world_challenge": {
+    "title": "Realne wyzwanie Dnia 1: Wpłać 5 zł na konto oszczędnościowe",
+    "description": "Zanim za 2 tygodnie ruszysz z regularnym ETF-em, przełam dziś barierę pierwszego przelewu symboliczną kwotą 5 zł i podtrzymaj swoją serię!",
+    "amount_pln": 5,
+    "target_account": "Konto Oszczędnościowe Commerzbank",
+    "reward_xp": 50
+  },
+  "leaderboard": [
+    {"rank": 1, "name": "Kasia K.", "level_title": "Świadomy Start", "xp": 210, "streak_days": 5, "is_current_user": false},
+    {"rank": 2, "name": "Ty (Awans!)", "level_title": "Świadomy Start", "xp": 155, "streak_days": 1, "is_current_user": true},
+    {"rank": 3, "name": "Tomek W.", "level_title": "Obserwator", "xp": 95, "streak_days": 2, "is_current_user": false},
+    {"rank": 4, "name": "Marek Z.", "level_title": "Obserwator", "xp": 40, "streak_days": 1, "is_current_user": false}
+  ],
   "final_checklist": [
-    {
-      "id": "chk_1",
-      "text": "Mam wyznaczoną bezpieczną kwotę startową: 300 zł/mies.",
-      "detail": "Bez naruszania codziennego budżetu i budowy poduszki."
-    },
-    {
-      "id": "chk_2",
-      "text": "Rozumiem, że gotówka na koncie traci realną wartość przez inflację.",
-      "detail": "Po 15 latach na zwykłym koncie tracisz tysiące złotych siły nabywczej."
-    },
-    {
-      "id": "chk_3",
-      "text": "Wiem, dlaczego szeroki ETF na 15 lat minimalizuje ryzyko.",
-      "detail": "Historycznie aż 99% okresów 15-letnich kończyło się zyskiem."
-    },
-    {
-      "id": "chk_4",
-      "text": "Wiem, że środki w ETF są płynne i nie są zamrożone na zawsze.",
-      "detail": "W nagłej sytuacji możesz sprzedać część jednostek w kilka dni roboczych."
-    }
+    {"id": "chk_1", "text": "Znam swoją docelową kwotę miesięczną: 300 zł/mies.", "detail": "Bez naruszania codziennego budżetu i poduszki."},
+    {"id": "chk_2", "text": "Wiem, że gotówka na koncie traci wartość przez inflację.", "detail": "Różnica po 15 latach sięga kilkudziesięciu tysięcy zł."},
+    {"id": "chk_3", "text": "Rozumiem, że środki w ETF są płynne i nie są zamrożone.", "detail": "W nagłej potrzebie mogę je wypłacić w 2–3 dni robocze."},
+    {"id": "chk_4", "text": "Wracam jutro na 5-minutowy Dzień 2 (temat: jak reagować na spadki).", "detail": "Regularność w 14 dni buduje prawdziwą pewność siebie."}
   ],
   "bank_draft": {
     "monthly_amount": 300,
     "horizon_years": 15,
-    "instrument_category": "Szeroki globalny fundusz ETF (edukacyjny wzorzec)",
+    "instrument_category": "Szeroki globalny fundusz ETF (edukacyjny wzorzec na Dzień 14)",
     "projected_etf_value": 104515,
     "projected_cash_real_value": 41890,
     "historical_win_rate": 99
