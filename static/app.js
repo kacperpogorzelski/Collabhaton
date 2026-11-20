@@ -9,6 +9,8 @@
      (dzień, poziom/XP, streak, Gotowość), Demo Mode, toasty, modal, konfetti.
    - Issue #8: Ekran 1 (ankieta 6 pytań) i Ekran 2 (mapa 14 dni, filtr Speakly,
      mikro-lekcje, przykładowy podział środków, Wehikuł Czasu z Chart.js).
+   - Issue #9: Ekran 3 (symulacja wyborów z Luną: karty quick_replies, własna
+     odpowiedź, feedback, konfetti) i ciche odtworzenie sesji po 404.
    ========================================================================== */
 (function () {
   'use strict';
@@ -24,6 +26,9 @@
   const MICRO_LESSON_BONUS_CAP = 45;    // docs/01 §2: maks. +45 XP z 3 mikro-lekcji
   const FREE_CASH_CAP = 10000;          // docs/01 §7 Ekran 1: maks. wolnych środków = min(10 000, net_income)
   const WIN_RATE_DISPLAY_CAP = 97;      // docs/02 §3B: nigdy > 97%
+  const MISSION_MESSAGE_MAX = 600;      // docs/02 §4 MissionTurnRequest.user_message: 1–600 znaków
+  const ANSWER_PREVIEW_MAX = 140;       // skrót własnej odpowiedzi w karcie feedbacku
+  const REPLY_KEYS = ['A', 'B', 'C', 'D'];
 
   // docs/02 §3B: Osoba 2 uzupełni źródło/okres/walutę (np. '; źródło: …'). Pusty = brak dopisku.
   const WIN_RATE_SOURCE_NOTE = '';
@@ -104,6 +109,14 @@
     completedLessons: new Set(),
     timeMachine: { year: null, point: null },
     rendered: { xp: null, level: null, readiness: null }, // ostatnio narysowane wartości nagłówka
+    mission: {
+      busy: false,           // trwa POST /api/mission/turn (blokada podwójnego kliku)
+      token: 0,              // rośnie przy nowej analizie — odpowiedzi starej sesji są ignorowane
+      log: [],               // wysłane odpowiedzi {user_message, quick_reply_id?} (odtworzenie po 404)
+      lastAnswer: null,      // tekst ostatniej odpowiedzi (w karcie feedbacku)
+      renderedValue: 0,      // ostatnio narysowane portfolio_status.simulated_value
+      restoring: null,       // Promise trwającego odtwarzania sesji
+    },
   };
 
   const els = {};
@@ -162,6 +175,33 @@
     els.tmChart = byId('tm-chart');
     els.tmAssumptions = byId('tm-assumptions');
     els.tmCompliance = byId('tm-compliance');
+
+    // Ekran 3
+    els.msPanel = byId('ms-panel');
+    els.msDay = byId('ms-day');
+    els.msTotalDays = byId('ms-total-days');
+    els.msStep = byId('ms-step');
+    els.msTotalSteps = byId('ms-total-steps');
+    els.msSteps = byId('ms-steps');
+    els.msBadgeText = byId('ms-badge-text');
+    els.msValue = byId('ms-value');
+    els.msFeedback = byId('ms-feedback');
+    els.msFeedbackTitle = byId('ms-feedback-title');
+    els.msFeedbackAnswer = byId('ms-feedback-answer');
+    els.msFeedbackText = byId('ms-feedback-text');
+    els.msFeedbackXp = byId('ms-feedback-xp');
+    els.msFeedbackReadiness = byId('ms-feedback-readiness');
+    els.msFeedbackLevel = byId('ms-feedback-level');
+    els.msLuna = byId('ms-luna');
+    els.msLunaMessage = byId('ms-luna-message');
+    els.msThinking = byId('ms-thinking');
+    els.msInteraction = byId('ms-interaction');
+    els.msReplies = byId('ms-replies');
+    els.msForm = byId('ms-form');
+    els.msInput = byId('ms-input');
+    els.msSend = byId('ms-send');
+    els.msCount = byId('ms-count');
+    els.ctaFinishDay = byId('cta-finish-day');
   }
 
   // ------------------------------------------------------------------------
@@ -234,15 +274,18 @@
     el.textContent = (format || formatNumber)(value);
   }
 
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
   // Płynne liczenie w górę/dół (kwoty, XP, procenty).
   function animateNumber(el, from, to, options) {
     if (!el) return;
     const opts = options || {};
     const duration = opts.duration || 650;
     const format = opts.format || formatNumber;
-    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     // Karta w tle: requestAnimationFrame jest wstrzymany — od razu wartość końcowa.
-    if (reduced || from === to || document.hidden) {
+    if (prefersReducedMotion() || from === to || document.hidden) {
       setNumber(el, to, format);
       return;
     }
@@ -336,7 +379,7 @@
   const api = {
     getDemoPersonas: () => apiRequest('/api/demo-personas'),
     analyze: (profile) => apiRequest('/api/onboarding/analyze', { method: 'POST', body: profile }),
-    // Issue #9: przy 404 frontend po cichu ponawia analyze z state.lastProfile (docs/02 §5).
+    // Wywołuj przez withSessionRecovery — przy 404 sesja jest po cichu odtwarzana (docs/02 §5).
     missionTurn: (payload) => apiRequest('/api/mission/turn', { method: 'POST', body: payload }),
     acceptChallenge: (sessionId) => apiRequest('/api/challenge/accept', { method: 'POST', body: { session_id: sessionId } }),
   };
@@ -364,6 +407,49 @@
       if (field && !errors[field]) errors[field] = FIELD_MESSAGES[field];
     });
     return errors;
+  }
+
+  // --- Ciche odtworzenie sesji po 404 (docs/02 §5) ---------------------------
+  // Np. restart serwera w trybie SQLite-w-pamięci kasuje sesje. Frontend tworzy nową sesję
+  // z ostatnim profilem (analyze) i odtwarza wysłane już odpowiedzi, więc serwer wraca do
+  // bieżącego kroku. Treść Ekranu 2 jest identyczna (ten sam profil), bonus z mikro-lekcji zostaje.
+
+  function isSessionMissing(err) {
+    return err instanceof ApiError && err.status === 404;
+  }
+
+  function restoreSession() {
+    if (!state.lastProfile) return Promise.reject(new ApiError(404, null, 'http'));
+    if (!state.mission.restoring) {
+      const profile = state.lastProfile;
+      const log = state.mission.log.slice();
+      const token = state.mission.token;
+      state.mission.restoring = (async () => {
+        const data = await api.analyze(profile);
+        for (const entry of log) {
+          await api.missionTurn(Object.assign({ session_id: data.session_id }, entry));
+        }
+        // W międzyczasie nowa analiza (np. Demo Mode)? Wtedy nie nadpisujemy jej sesji.
+        if (token === state.mission.token) state.session = data;
+        return data;
+      })().finally(() => {
+        state.mission.restoring = null;
+      });
+    }
+    return state.mission.restoring;
+  }
+
+  // request(sessionId) -> Promise. Jedno ciche ponowienie po 404; kolejny błąd idzie dalej.
+  async function withSessionRecovery(request) {
+    if (!state.session) throw new ApiError(404, null, 'http');
+    try {
+      return await request(state.session.session_id);
+    } catch (err) {
+      if (!isSessionMissing(err) || !state.lastProfile) throw err;
+      console.info('[Finance Quest] Sesja nie istnieje na serwerze (404) — odtwarzam ją po cichu.');
+      const data = await restoreSession();
+      return request(data.session_id);
+    }
   }
 
   // ------------------------------------------------------------------------
@@ -652,7 +738,8 @@
     const spinner = cta.querySelector('.fq-spinner');
     const idleIcon = cta.querySelector('[data-idle-icon]');
     if (spinner) spinner.hidden = !isBusy;
-    if (idleIcon) idleIcon.hidden = isBusy;
+    // Ikona Lucide jest <svg> — SVGElement nie ma właściwości .hidden, więc atrybut.
+    if (idleIcon) idleIcon.toggleAttribute('hidden', isBusy);
   }
 
   function applyOnboardingResponse(data) {
@@ -662,12 +749,15 @@
     state.completedLessons = new Set();
     state.timeMachine = { year: null, point: null };
     resetHeaderBaseline();
+    resetMission();
+    renderMission({ animate: false });
   }
 
-  // Wyniki tury misji (Issue #9) — nagłówek animuje wzrost XP i Gotowości.
+  // Wynik tury misji — nagłówek animuje wzrost XP i Gotowości, Ekran 3 pokazuje kolejny krok.
   function applyMissionTurn(turn) {
     state.turn = turn;
     renderHeader();
+    renderMission();
   }
 
   function addMicroLessonBonusXp(xp) {
@@ -1096,7 +1186,211 @@
   }
 
   // ------------------------------------------------------------------------
-  // 10. Toasty, modal, konfetti
+  // 10. Ekran 3 — symulacja wyborów z Luną (docs/01 §7 Ekran 3, docs/02 §4)
+  // ------------------------------------------------------------------------
+
+  function resetMission() {
+    const m = state.mission;
+    m.token += 1;
+    m.log = [];
+    m.lastAnswer = null;
+    m.renderedValue = 0;
+    if (els.msInput) els.msInput.value = '';
+    syncMissionCounter();
+    setMissionBusy(false);
+  }
+
+  function renderMission(options) {
+    const t = state.turn;
+    if (!t || !els.msLunaMessage) return;
+    const animate = !options || options.animate !== false;
+    const s = state.session;
+    const completed = t.mission_completed === true;
+    const total = t.total_steps || 3;
+    const step = clamp(t.step_number || 1, 1, total);
+
+    // Mini-panel: Dzień X z 14 • Symulacja wyborów • Krok N z 3
+    els.msDay.textContent = s ? s.current_day : 1;
+    els.msTotalDays.textContent = s ? s.total_program_days : 14;
+    els.msStep.textContent = step;
+    els.msTotalSteps.textContent = total;
+    Array.from(els.msSteps.children).forEach((bar, i) => {
+      const n = i + 1;
+      bar.dataset.state = completed || n < step ? 'done' : n === step ? 'current' : 'todo';
+    });
+    const portfolio = t.portfolio_status || { simulated_value: 0, event_badge: '' };
+    els.msBadgeText.textContent = portfolio.event_badge || '';
+    const value = Number(portfolio.simulated_value) || 0;
+    if (animate && value !== state.mission.renderedValue) {
+      animateNumber(els.msValue, state.mission.renderedValue, value, { duration: 900 });
+    } else {
+      setNumber(els.msValue, value);
+    }
+    state.mission.renderedValue = value;
+
+    renderMissionFeedback(t, animate);
+    els.msLunaMessage.textContent = t.luna_message || '';
+    if (animate) replayClass(els.msLuna, 'screen-enter');
+
+    // Po Kroku 3 znikają karty i pole tekstowe, pojawia się CTA na Ekran 4.
+    renderQuickReplies(completed ? [] : t.quick_replies || []);
+    els.msInteraction.hidden = completed;
+    els.ctaFinishDay.hidden = !completed;
+    refreshIcons();
+  }
+
+  function shortAnswer(text) {
+    const value = String(text || '');
+    return value.length > ANSWER_PREVIEW_MAX ? value.slice(0, ANSWER_PREVIEW_MAX - 1).trimEnd() + '…' : value;
+  }
+
+  // Karta feedbacku: zielona przy is_optimal_choice === true, ciepły bursztyn przy false.
+  function renderMissionFeedback(t, animate) {
+    const visible = t.is_optimal_choice != null && !!t.understanding_feedback;
+    els.msFeedback.hidden = !visible;
+    if (!visible) return;
+    const good = t.is_optimal_choice === true;
+    const g = t.gamification || DEFAULT_GAMIFICATION;
+    els.msFeedback.dataset.tone = good ? 'good' : 'warm';
+    els.msFeedbackTitle.textContent = good ? 'Trafna decyzja' : 'Wskazówka od Luny';
+    const answer = state.mission.lastAnswer;
+    els.msFeedbackAnswer.hidden = !answer;
+    els.msFeedbackAnswer.textContent = answer ? 'Twoja odpowiedź: „' + shortAnswer(answer) + '”' : '';
+    els.msFeedbackText.textContent = t.understanding_feedback;
+    els.msFeedbackXp.textContent = '+' + (g.xp_gained || 0) + NBSP + 'XP';
+    const delta = Number(t.confidence_delta) || 0;
+    els.msFeedbackReadiness.hidden = delta <= 0;
+    els.msFeedbackReadiness.textContent = 'Gotowość +' + delta + NBSP + 'pkt';
+    els.msFeedbackLevel.hidden = !g.leveled_up;
+    els.msFeedbackLevel.textContent = '🏆 Awans: Poziom ' + g.level + ' ' + g.level_title;
+    if (animate) replayClass(els.msFeedback, 'screen-enter');
+  }
+
+  function renderQuickReplies(replies) {
+    els.msReplies.innerHTML = replies.map((reply, i) =>
+      '<button type="button" class="fq-reply" data-action="quick-reply" data-reply-id="' + escapeHtml(reply.id) + '">' +
+        '<span class="fq-reply-key" aria-hidden="true">' + (REPLY_KEYS[i] || i + 1) + '</span>' +
+        '<span class="min-w-0">' + escapeHtml(reply.text) + '</span>' +
+        '<i data-lucide="chevron-right" class="h-5 w-5" aria-hidden="true"></i>' +
+      '</button>'
+    ).join('');
+  }
+
+  function syncMissionCounter() {
+    if (els.msCount && els.msInput) els.msCount.textContent = String(els.msInput.value.length);
+  }
+
+  // Blokada kontrolek na czas żądania (zero dubli). Kropki „Luna analizuje…" tylko dla wolnego tekstu.
+  function setMissionBusy(isBusy, options) {
+    const opts = options || {};
+    state.mission.busy = isBusy;
+    if (!els.msInteraction) return;
+    els.msInteraction.setAttribute('aria-busy', String(isBusy));
+    els.msReplies.querySelectorAll('[data-action="quick-reply"]').forEach((btn) => {
+      btn.disabled = isBusy;
+      if (isBusy && btn.dataset.replyId === opts.selectedId) btn.setAttribute('data-selected', '');
+      else btn.removeAttribute('data-selected');
+    });
+    els.msInput.disabled = isBusy;
+    els.msSend.disabled = isBusy;
+
+    const thinking = isBusy && opts.freeText === true;
+    els.msThinking.hidden = !thinking;
+    els.msLunaMessage.classList.toggle('fq-dim', thinking);
+    const label = els.msSend.querySelector('[data-label]');
+    if (label) label.textContent = thinking ? 'Wysyłam...' : 'Wyślij';
+    const spinner = els.msSend.querySelector('.fq-spinner');
+    const idleIcon = els.msSend.querySelector('[data-idle-icon]');
+    if (spinner) spinner.hidden = !thinking;
+    if (idleIcon) idleIcon.toggleAttribute('hidden', thinking);
+    if (thinking) revealElement(els.msThinking, 'nearest');
+  }
+
+  // Przewija do elementu tylko wtedy, gdy nie widać jego początku.
+  function revealElement(el, block) {
+    if (!el || el.hidden) return;
+    const rect = el.getBoundingClientRect();
+    const visible = rect.top >= 80 && rect.top <= window.innerHeight * 0.6;
+    if (visible) return;
+    el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: block || 'start' });
+  }
+
+  // Po odpowiedzi: mini-panel (rosnąca kwota) razem z feedbackiem, jeśli oba mieszczą się na ekranie;
+  // inaczej sam feedback (na telefonie / małym rzutniku).
+  function revealMissionResult() {
+    const target = els.msFeedback.hidden ? els.msLuna : els.msFeedback;
+    const panelTop = els.msPanel.getBoundingClientRect().top;
+    const targetBottom = target.getBoundingClientRect().bottom;
+    const fitsWithPanel = targetBottom - panelTop + 96 <= window.innerHeight;
+    revealElement(fitsWithPanel ? els.msPanel : target);
+  }
+
+  function describeMissionError(err) {
+    if (err instanceof ApiError && err.status === 422) return 'Odpowiedź musi mieć od 1 do ' + MISSION_MESSAGE_MAX + ' znaków.';
+    if (isSessionMissing(err)) return 'Nie udało się odtworzyć sesji. Wróć do ankiety i spróbuj ponownie.';
+    return describeApiError(err);
+  }
+
+  // Klik karty: {session_id, user_message: text, quick_reply_id: id} — ocena po stronie serwera bez LLM.
+  // Wolny tekst: {session_id, user_message} — BEZ pola quick_reply_id (ocenia LLM lub fallback).
+  async function sendMissionAnswer(answer) {
+    const m = state.mission;
+    const current = state.turn;
+    if (m.busy || !state.session || !current || current.mission_completed) return false;
+    const text = String((answer && answer.text) || '').trim().slice(0, MISSION_MESSAGE_MAX);
+    if (!text) return false;
+    const quickReplyId = (answer && answer.quickReplyId) || null;
+    const payload = { user_message: text };
+    if (quickReplyId) payload.quick_reply_id = quickReplyId;
+
+    const token = m.token;
+    setMissionBusy(true, { freeText: !quickReplyId, selectedId: quickReplyId });
+    try {
+      const turn = await withSessionRecovery((sessionId) =>
+        api.missionTurn(Object.assign({ session_id: sessionId }, payload))
+      );
+      if (token !== m.token) return false; // w międzyczasie nowa analiza — odpowiedź starej sesji
+      m.log.push(payload);
+      m.lastAnswer = text;
+      if (!quickReplyId) {
+        els.msInput.value = '';
+        syncMissionCounter();
+      }
+      setMissionBusy(false);
+      applyMissionTurn(turn);
+      if (turn.trigger_confetti === true) fireConfetti('micro');
+      revealMissionResult();
+      if (turn.mission_completed) els.ctaFinishDay.focus({ preventScroll: true });
+      return true;
+    } catch (err) {
+      if (token === m.token) {
+        setMissionBusy(false);
+        showToast(describeMissionError(err), 'warn');
+      }
+      return false;
+    }
+  }
+
+  function answerWithQuickReply(replyId) {
+    const replies = (state.turn && state.turn.quick_replies) || [];
+    const reply = replies.find((r) => r.id === replyId);
+    if (!reply) return;
+    sendMissionAnswer({ text: reply.text, quickReplyId: reply.id });
+  }
+
+  function submitFreeText() {
+    if (state.mission.busy) return;
+    const text = els.msInput.value.trim();
+    if (!text) {
+      els.msInput.focus();
+      showToast('Napisz kilka słów albo wybierz jedną z kart.', 'info', 2400);
+      return;
+    }
+    sendMissionAnswer({ text });
+  }
+
+  // ------------------------------------------------------------------------
+  // 11. Toasty, modal, konfetti
   // ------------------------------------------------------------------------
 
   const TOAST_TONES = {
@@ -1156,7 +1450,7 @@
   }
 
   // ------------------------------------------------------------------------
-  // 11. Zdarzenia i start
+  // 12. Zdarzenia i start
   // ------------------------------------------------------------------------
 
   function bindEvents() {
@@ -1171,6 +1465,8 @@
         submitOnboarding();
       } else if (target.dataset.action === 'complete-lesson') {
         completeLesson(target.dataset.lessonId);
+      } else if (target.dataset.action === 'quick-reply') {
+        answerWithQuickReply(target.dataset.replyId);
       } else if (target.dataset.action === 'open-modal') {
         openModal(target.dataset.target);
       } else if (target.dataset.action === 'close-modal') {
@@ -1189,6 +1485,20 @@
     }
     if (els.tmYears) {
       els.tmYears.addEventListener('input', () => updateTimeMachine(els.tmYears.value));
+    }
+    if (els.msForm) {
+      els.msForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        submitFreeText();
+      });
+      els.msInput.addEventListener('input', syncMissionCounter);
+      // Enter = wyślij, Shift+Enter = nowa linia (bez przerywania kompozycji IME).
+      els.msInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+          event.preventDefault();
+          submitFreeText();
+        }
+      });
     }
   }
 
@@ -1234,6 +1544,9 @@
     resetHeaderBaseline,
     applyOnboardingResponse,
     applyMissionTurn,
+    renderMission,
+    sendMissionAnswer,
+    withSessionRecovery,
     addMicroLessonBonusXp,
     analyzeProfile,
     selectPersona,
