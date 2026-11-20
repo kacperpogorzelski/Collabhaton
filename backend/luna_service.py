@@ -171,8 +171,7 @@ def _parse_timeout(raw: str | None) -> float:
 
 
 def _settings() -> dict:
-    """Czyta konfigurację po ``load_dotenv()``; nic nie loguje i nie cache'uje."""
-    load_dotenv()
+    """Czyta bieżące ``os.environ`` (``.env`` ładowany raz przy imporcie); nic nie loguje."""
     model = (os.getenv("LUNA_MODEL") or DEFAULT_MODEL).strip() or DEFAULT_MODEL
     return {
         "api_key": (os.getenv("OPENAI_API_KEY") or "").strip(),
@@ -248,13 +247,24 @@ def _request_assessment(prompt: str, settings: dict) -> LunaAssessment:
 
     # ``reasoning_effort`` wysyłamy wyłącznie dla modelu obsługującego tę opcję.
     model_options: dict = (
-        {"reasoning_effort": "none"} if model == LUNA_MODEL_NAME else {"temperature": 0.0}
+        {"reasoning_effort": "none", "temperature": 0.0}
+        if model == LUNA_MODEL_NAME
+        else {"temperature": 0.0}
     )
 
     try:
         completion = client.chat.completions.create(
             model=model,
-            messages=[{"role": "system", "content": prompt}],
+            messages=[
+                {"role": "system", "content": prompt},
+                {
+                    "role": "user",
+                    "content": (
+                        "Oceń odpowiedź użytkownika z sekcji ODPOWIEDŹ i zwróć wyłącznie "
+                        "JSON zgodny ze schematem LunaAssessment."
+                    ),
+                },
+            ],
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -289,9 +299,13 @@ def _request_assessment(prompt: str, settings: dict) -> LunaAssessment:
         raise _LunaUnavailable("RESPONSE_INVALID")
 
     try:
-        return LunaAssessment.model_validate_json(content, strict=True)
+        assessment = LunaAssessment.model_validate_json(content, strict=True)
     except ValidationError:
         raise _LunaUnavailable("ASSESSMENT_INVALID") from None
+
+    if not assessment.understanding_feedback.strip():
+        raise _LunaUnavailable("ASSESSMENT_EMPTY")
+    return assessment
 
 
 def assess_free_text(
