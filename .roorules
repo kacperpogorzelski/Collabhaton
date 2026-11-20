@@ -1,0 +1,17 @@
+# Reguły SSOT dla Roo Code — Finance Quest (Collabothon 2026)
+
+Ten plik jest lekkim wskaźnikiem. Nie duplikuje specyfikacji — jedynym źródłem prawdy (SSOT) jest `AGENTS.md` + `docs/`.
+
+## Obowiązkowe kroki przed każdą edycją
+1. Przeczytaj `AGENTS.md` (cel demo, §3 *Out of Scope*, §5 *File Ownership*, §7 *Git & Multi-Agent Workflow*).
+2. Przeczytaj `WORKLOG.md` (aktywne blokery, statusy endpointów, ustalony *Contract Lock*).
+3. Przeczytaj pliki SSOT dla swojej roli w `docs/`:
+   - `docs/01_PRODUCT_AND_GUI_SPEC.md` (Osoba 3 — ekranówka, grywalizacja, lokalne biblioteki)
+   - `docs/02_TECH_API_AND_MATH.md` (wszyscy — Docker Postgres, matematyka, Pydantic, API, Contract Lock)
+   - `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md` (Osoba 2 i 1 — AI Coach Luna, fallbacki)
+
+## Zasady niepodlegające dyskusji
+- **Zakazy (`AGENTS.md` §3):** ZERO autoryzacji/JWT, ZERO Alembica/migracji, ZERO Node/npm/React/TS, brak pełnych misji dla dni 2–14.
+- **Własność plików (`AGENTS.md` §5 i §7):** Edytuj wyłącznie pliki swojej roli. Kanoniczne nazwy to `backend/database.py` (nie `db.py`) i `static/styles.css` (nie `style.css`).
+- **Zamrożony kontrakt:** Nie duplikuj ani nie zmieniaj kontraktu z `docs/02_TECH_API_AND_MATH.md` bez aktualizacji `backend/schemas.py` i wpisu w `WORKLOG.md`.
+- **Git:** Jeden Issue = jeden branch `feat/issue-<nr>-<krotka-nazwa>` oraz jeden mały PR/commit. Nigdy nie commituj `.env`. Po zamknięciu zadania zaktualizuj `WORKLOG.md`.

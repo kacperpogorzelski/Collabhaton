@@ -1,0 +1,58 @@
+# WORKLOG — Finance Quest (Collabothon 2026)
+
+> **Instrukcja dla zespołu i agentów AI:** Aktualizuj ten plik po zamknięciu każdego Issue, uruchomieniu endpointu lub wykryciu blokera. Zawsze sprawdź poniższy status i sekcję *Contract Lock* przed rozpoczęciem pracy nad nowym zadaniem.
+
+## 1. Aktywne Blokery (do zdjęcia w pierwszych 30 min)
+- `[P0]` Brak fundamentu backendu (`backend/schemas.py`, `backend/database.py`, `backend/models.py`) blokujący pełną integrację Osoby 2 (`luna_service.py`) i Osoby 3 (podpięcie API) — **[Issue #2](https://github.com/kacperpogorzelski/Collabhaton/issues/2)**.
+- `[P0]` **Opisy Issues `#2`, `#3`, `#5`, `#6`, `#7` na GitHubie są nieaktualne względem SSOT v3** (nowe pola kontraktu, nowa matematyka, nowa rola LLM — patrz sekcja 3, pkt 9). Należy je zaktualizować przed startem prac (Osoba 1).
+- `[P1]` Wyznaczyć **jedną osobę od pitchu i business case** (docs/01 §4) — nie powinna to być osoba z najcięższym modułem kodu.
+- `[P1]` Osoba 2: policzyć `HISTORICAL_WIN_RATE` z publicznych danych i podać źródło (docs/02 §3B); do tego czasu wartości są ilustracyjne (limit 97%).
+- `[P1]` Osoba 3: pobrać biblioteki do `static/vendor/` (docs/01 §5) — zero CDN w runtime.
+- ✅ *Zdjęte (merge SSOT v3):* dokumenty przeniesione do `docs/`, dodane `.gitignore`, `requirements.txt`, `.env.example`, `docker-compose.yml`.
+
+## 2. Tablica gotowości modułów, endpointów i Issues
+
+| Moduł / Endpoint | Issue | Rola | Pliki | Status | Uwagi |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| `Docker PostgreSQL + deps + docs/ + .gitignore` | [#1](https://github.com/kacperpogorzelski/Collabhaton/issues/1) | Osoba 1 (`[INFRA]`) | `docker-compose.yml`, `requirements.txt`, `.env.example`, `.gitignore`, `docs/` | 🟩 DONE (w merge SSOT v3) | Do zamknięcia na GitHubie po weryfikacji `docker compose up -d` |
+| `DB ORM + Schemas + FastAPI base + GET /` | [#2](https://github.com/kacperpogorzelski/Collabhaton/issues/2) | Osoba 1 (`[BE]`) | `backend/__init__.py`, `backend/database.py`, `backend/models.py`, `backend/schemas.py`, `backend/main.py` | ⬜ TODO | Bloker P0; modele wg docs/02 §2B i §4; bezpiecznik SQLite-w-pamięci |
+| `Dane demo, mapa 14 dni, mikro-lekcje, kroki misji` | [#3](https://github.com/kacperpogorzelski/Collabhaton/issues/3) | Osoba 2 (`[AI]`) | `backend/demo_data.py` | ⬜ TODO | Bloker P0 (po `schemas.py`); bloki kroków wg docs/03 §7 (opcje z `is_optimal`/`feedback`) |
+| `Szkielet SPA + design system + nagłówek Demo Mode` | [#4](https://github.com/kacperpogorzelski/Collabhaton/issues/4) | Osoba 3 (`[FE]`) | `static/index.html`, `static/styles.css`, `static/app.js`, `static/vendor/` | ⬜ TODO | Bloker P0; biblioteki lokalnie |
+| `Deterministyczna matematyka finansowa` | [#5](https://github.com/kacperpogorzelski/Collabhaton/issues/5) | Osoba 1 (`[BE]`) | `backend/finance_math.py` | ⬜ TODO | P1-demo (po #2); tryby planu, wspólny deflator, `build_session_facts` |
+| `Endpointy API (/api/demo-personas, analyze, turn, accept)` | [#6](https://github.com/kacperpogorzelski/Collabhaton/issues/6) | Osoba 1 (`[BE]`) | `backend/main.py` | ⬜ TODO | P1-demo (po #2, #3, #5); najpierw mocki z przykładu docs/02 §6 |
+| `AI Coach Luna (ocena wolnego tekstu + proces tury + fallback)` | [#7](https://github.com/kacperpogorzelski/Collabhaton/issues/7) | Osoba 2 (`[AI]`) | `backend/luna_service.py` | ⬜ TODO | P1-demo (po #2, #3); timeout 3,5 s, `DEMO_OFFLINE` |
+| `Ekran 1–2 (Ankieta, Speakly, Mikro-lekcje, Chart.js)` | [#8](https://github.com/kacperpogorzelski/Collabhaton/issues/8) | Osoba 3 (`[FE]`) | `static/index.html`, `static/styles.css`, `static/app.js` | ⬜ TODO | P1-demo (po #4) |
+| `Ekran 3 (Symulacja Wyborów z Luną — 3 kroki)` | [#9](https://github.com/kacperpogorzelski/Collabhaton/issues/9) | Osoba 3 (`[FE]`) | `static/index.html`, `static/styles.css`, `static/app.js` | ⬜ TODO | P1-demo (po #8) |
+| `Ekran 4 (Awans, Wyzwanie 5 zł, Ranking) + Modal` | [#10](https://github.com/kacperpogorzelski/Collabhaton/issues/10) | Osoba 3 (`[FE]`) | `static/index.html`, `static/styles.css`, `static/app.js` | ⬜ TODO | P1-demo (po #9) |
+| `Próba E2E Backend + AI (Live & Offline fallback)` | [#11](https://github.com/kacperpogorzelski/Collabhaton/issues/11) | Osoba 1 + 2 (`[BE][AI]`) | `backend/main.py`, `backend/luna_service.py`, `backend/demo_data.py`, `scripts/` | ⬜ TODO | P2-polish (po #6, #7); `smoke_test.py`, `check_math.py` |
+| `Polish dopaminowy + Golden Path Demo < 5 min` | [#12](https://github.com/kacperpogorzelski/Collabhaton/issues/12) | Osoba 3 (`[FE]`) | `static/index.html`, `static/styles.css`, `static/app.js` | ⬜ TODO | P2-polish (po #6, #10); próby z zegarem, także offline |
+
+## 3. Ustalone decyzje techniczne (Contract Lock)
+1. **Kanoniczne nazwy plików:** wyłącznie `backend/database.py` (nie `db.py`) oraz `static/styles.css` (nie `style.css`).
+2. **Synchroniczne `def` wszędzie w backendzie + `load_dotenv()`:** wszystkie trasy FastAPI i funkcje w `finance_math.py`, `demo_data.py`, `luna_service.py` to synchroniczne `def`. `load_dotenv()` w `backend/database.py` i `backend/luna_service.py`.
+3. **Warunkowe montowanie `/static` w `main.py`:** `if STATIC_DIR.is_dir(): app.mount("/static", ...)` — backend startuje czysto jeszcze przed zmergowaniem Issue #4.
+4. **Wiążące sygnatury międzymodułowe (`AGENTS.md` §7) — zaktualizowane w v3:**
+   - `finance_math.py`: `get_age_group(age)`, `calculate_safe_investment(age, net_income, free_cash, has_emergency_fund)`, `generate_projection_series(monthly_amount)`, `calculate_half_year_etf_value(monthly_amount)`, `calculate_etf_value_after_months(monthly_amount, months)`, `historical_win_rate(year)`, `build_session_facts(session_columns)`.
+   - `demo_data.py`: `DEMO_PERSONAS`, `SEED_LEADERBOARD`, `SPEAKLY_FILTER_BY_GROUP`, `ROADMAP_BY_GROUP`, `MICRO_LESSONS_BY_GROUP`, `get_step_block(step, session_facts)`, `get_initial_mission_turn(session_facts) -> (MissionTurnResponse, current_options)`, `shuffle_options(...)`, `get_real_world_challenge(...)`, `get_final_checklist(session_facts)`, `get_bank_draft(session_facts)`, `build_leaderboard(db_rows, user_xp, user_level_title, leveled_up)`. *(Usunięto `get_fallback_turn` — patrz pkt 9.)*
+   - `luna_service.py`: `process_mission_turn(session_data: dict, user_message: str, leaderboard_rows: list[dict] | None = None, quick_reply_id: str | None = None) -> MissionTurnResponse` (modyfikuje `session_data` in place; zero SQLAlchemy).
+5. **Format `MissionSession.history` i stan końcowy:** `[{"role": "user"|"assistant", "content": str}]` (nadpisanie nowej listy przy zapisie w SQLAlchemy). Po Kroku 3 `current_step` pozostaje `3`; idempotencja realizowana kolumną `mission_completed` (powtórne `POST /api/mission/turn` zwraca niezmienioną odpowiedź finałową).
+6. **Strict JSON Schema dla OpenAI + brak cennika:** model `LunaAssessment` (poprzednio `LunaLlmOutput`) z `model_config = ConfigDict(extra="forbid")` i **bez wartości domyślnych** w polach, `LUNA_MODEL` z `.env`, `reasoning_effort="none"` wyłącznie dla `gpt-6-luna`, `max_retries=0`, kontrola `refusal`/`finish_reason`, brak `Decimal`/`_usage_metrics`.
+7. **Dokładne wektory matematyczne (`docs/02` §3H; założenia 5,7% netto, inflacja 3,5%, wspólny deflator) — zastępują wektory z v2:**
+   - `young_20` (`200 zł/mies.`, plan `split` 800 + 200, `15 lat`): `total_paid=36000`, `etf_nominal=56700`, `etf_real=33844`, `cash_real=21488`, `6m_etf=1214`.
+   - `mid_38` (`1250 zł/mies.`, `invest`, `10 lat`): `total_paid=150000`, `etf_nominal=201548`, `etf_real=142881`, `cash_real=106338`, `win_rate=96`, `6m_etf=7590`.
+   - `senior_56` (`1200 zł/mies.`, `invest`, `7 lat`): `total_paid=100800`, `etf_nominal=123518`, `etf_real=97084`, `cash_real=79228`, `win_rate=93`, `6m_etf=7286`.
+8. **Reguły UI (`docs/01`):** clamp `free_cash <= net_income`; punkt `Rok 0` (`0, 0, 0`) w wykresie; monotoniczne XP w nagłówku (`gamification.xp + microLessonBonusXp`); po wyzwaniu `+50 XP` użytkownik ma `205 XP` (5 XP za Kasią K. `210 XP`) — przy samych odpowiedziach optymalnych; baner awansu zależy od `gamification.leveled_up`; gotowość z API (`confidence_start` -> `confidence_score`), **nie** na sztywno.
+9. **Zmiany kontraktu i architektury w SSOT v3 (merge wersji zespołu z poprawkami jakościowymi):**
+   - **Matematyka:** ETF i gotówka porównywane **realnie** (wspólny deflator); stopa 5,7% netto zamiast 8%; `ProjectionPoint`: `etf_value` -> `etf_nominal_value` + `etf_real_value`, `inflation_loss_vs_etf` -> `real_gain_vs_cash`, nowe `etf_stress_real_value`; `historical_win_rate` ilustracyjny z limitem 97%.
+   - **Plan:** `SafeInvestmentAdvice.plan_type` (`savings_first` / `split` 80-20 / `invest`), `emergency_savings_monthly`, `training_etf_monthly`, `illustrative_only`; `BankDraft`: `projected_etf_real_value`, `projected_etf_nominal_value`, `assumptions_text`, `costs_note`.
+   - **Personalizacja:** nowe pola `main_concern` i `self_confidence_start` w `OnboardingRequest`/`DemoPersona`; scenariusz Kroku 2 wg obawy, nie wieku. `SpeaklyFilter` bez `time_saved_hours`.
+   - **Ocena odpowiedzi:** `quick_replies` jako `QuickReply {id, text}`; `MissionTurnRequest.quick_reply_id`; klik karty oceniany deterministycznie (`is_optimal`/`feedback` w `current_options`, tylko serwer); LLM wyłącznie dla wolnego tekstu (`is_optimal_choice` + `understanding_feedback`); `MissionTurnResponse`: `confidence_start`, `is_optimal_choice`.
+   - **Gotowość/XP:** gotowość startuje od samooceny (demo 10%), `+10` za dobrą odpowiedź, `+2` za złą; XP `+40/+35/+60` (połowa za złą); awans przy 100 XP.
+   - **Baza:** nowe kolumny `main_concern`, `free_cash`, `plan_type`, `emergency_savings_monthly`, `confidence_start`, `mission_completed`, `current_options`; usunięte kolumny pochodne (`etf_future_value`, `cash_real_value`, `win_rate`) — wyliczane przez `build_session_facts`. Bezpiecznik: SQLite w pamięci, gdy Postgres niedostępny.
+   - **Infrastruktura:** biblioteki frontendu lokalnie w `static/vendor/` (zero CDN w runtime); `LUNA_TIMEOUT_SECONDS=3.5`; `DEMO_OFFLINE`; **zakaz `--reload` na prezentacji**.
+   - **Compliance:** słownik sformułowań (docs/01 §8): „przykładowa kwota", „przykładowy plan", bez „bezpieczna kwota" i „bez straty".
+
+## 4. Dziennik wpisów
+- **2026-11-20 (Setup):** Zakończony audyt SSOT i modułu `AutoResponder_Allegro`. Utworzono konfigurację multi-agent (`.github/copilot-instructions.md`, `.agent/rules/ssot.md`, `.roorules`, `AGENTS.md` §7, `WORKLOG.md`) oraz 12 GitHub Issues `#1`–`#12`.
+- **2026-11-20 (Pogłębiony audyt SSOT):** Usunięto niespójności matematyczne (`104515/41890` -> `103811/42124`), zablokowano sygnatury `demo_data.py` i `finance_math.py`, synchroniczne `def`, format `history`, `extra="forbid"`, `Rok 0`, monotoniczne XP oraz `205 XP` po wyzwaniu; zaktualizowano dokumentację SSOT i opisy 12 Issues na GitHubie.
+- **2026-11-20 (Merge SSOT v3):** Scalono wersję zespołu (14 dni, PostgreSQL, grywalizacja, Contract Lock) z poprawkami jakościowymi z `oprawki_claude.txt` (uczciwe porównanie realne, tryby planu 80/20, deterministyczna ocena kart, `main_concern`, offline-safe). Zaktualizowano `AGENTS.md`, `docs/01–03`, ten plik; dodano `.gitignore`, `requirements.txt`, `.env.example`, `docker-compose.yml`; dokumenty przeniesione do `docs/` (Issue #1). Pełna lista zmian kontraktu: sekcja 3, pkt 9. **Do zrobienia:** zaktualizować opisy Issues `#2`, `#3`, `#5`, `#6`, `#7` na GitHubie.
