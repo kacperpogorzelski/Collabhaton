@@ -45,6 +45,7 @@ def _lang_of(session_facts: dict | None, lang: str | None = None) -> Language:
     return _normalize_lang((session_facts or {}).get("lang"))
 
 __all__ = [
+    "Language",
     "DEMO_PERSONAS",
     "SEED_LEADERBOARD",
     "SPEAKLY_FILTER_BY_GROUP",
@@ -1792,7 +1793,7 @@ def get_final_message(session_facts: dict, lang: Language | None = None) -> str:
 
 
 def get_final_badge(session_facts: dict, lang: Language | None = None) -> str:
-    """Badge zdarzenia w turze finale (``Dzień 1 ukończony • Cel: X lat``)."""
+    """Badge zdarzenia w turze finałowej (``Dzień 1 ukończony • Cel: X lat``)."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
     template = FINAL_BADGE_EN if active == "en" else FINAL_BADGE
@@ -1803,13 +1804,16 @@ _LEVEL_TITLES_EN: dict[str, str] = {
     "Świadomy Start": "Confident Start",
     "Obserwator": "Observer",
 }
+_LEVEL_TITLES_PL: dict[str, str] = {
+    "Confident Start": "Świadomy Start",
+    "Observer": "Obserwator",
+}
 
 
 def _translate_level_title(title: str, lang: Language) -> str:
-    """Tłumaczy tytuł poziomu w locie (bez modyfikowania wierszy bazy)."""
-    if lang != "en":
-        return title
-    return _LEVEL_TITLES_EN.get(title, title)
+    """Tłumaczy tytuł poziomu dwukierunkowo w locie (bez modyfikowania wierszy bazy)."""
+    table = _LEVEL_TITLES_EN if lang == "en" else _LEVEL_TITLES_PL
+    return table.get(title, title)
 
 
 def build_leaderboard(

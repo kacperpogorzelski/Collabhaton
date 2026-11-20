@@ -360,7 +360,7 @@ def _request_assessment(prompt: str, settings: dict, lang: Language = "pl") -> L
             model=model,
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": _USER_INSTRUCTION[lang]},
+                {"role": "user", "content": _USER_INSTRUCTION[_normalize_lang(lang)]},
             ],
             response_format=response_format,
             **request_options,
@@ -557,12 +557,15 @@ def _evaluate_answer(
     lang: Language = "pl",
 ) -> tuple[bool, str]:
     """Klik karty = ocena deterministyczna (0 ms, bez LLM); inaczej wolny tekst."""
+    block = get_step_block(answered_step, session_data, lang)
     if quick_reply_id:
         for option in _options(session_data):
             if option.get("id") == quick_reply_id:
+                for localized in block["options"]:
+                    if localized.get("id") == quick_reply_id:
+                        return bool(localized.get("is_optimal")), str(localized.get("feedback") or "")
                 return bool(option.get("is_optimal")), str(option.get("feedback") or "")
 
-    block = get_step_block(answered_step, session_data, lang)
     assessment = assess_free_text(
         user_message,
         step_question=str(block.get("step_question") or ""),
