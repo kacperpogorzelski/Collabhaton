@@ -9,6 +9,8 @@
 - `[P1]` Osoba 2: policzyć `HISTORICAL_WIN_RATE` z publicznych danych i podać źródło (docs/02 §3B); do tego czasu wartości są ilustracyjne (limit 97%).
 - `[P1]` Osoba 3: pobrać biblioteki do `static/vendor/` (docs/01 §5) — zero CDN w runtime.
 - ✅ *Zdjęte (merge SSOT v3 + Issue #1):* dokumenty w `docs/`, `.gitignore`, `requirements.txt`, `.env.example`, `docker-compose.yml`; Docker/PostgreSQL i `pip install` zweryfikowane lokalnie.
+- ✅ *Zdjęte (merge SSOT v3):* dokumenty przeniesione do `docs/`, dodane `.gitignore`, `requirements.txt`, `.env.example`, `docker-compose.yml`.
+- ✅ *Zdjęte (sync Issues v3):* zaktualizowano opisy wszystkich 12 Issues (#1–#12) na GitHubie pod SSOT v3 oraz zaostrzono zakaz pracy bezpośrednio na `main` w regułach agentów.
 
 ## 2. Tablica gotowości modułów, endpointów i Issues
 
@@ -57,3 +59,4 @@
 - **2026-11-20 (Pogłębiony audyt SSOT):** Usunięto niespójności matematyczne (`104515/41890` -> `103811/42124`), zablokowano sygnatury `demo_data.py` i `finance_math.py`, synchroniczne `def`, format `history`, `extra="forbid"`, `Rok 0`, monotoniczne XP oraz `205 XP` po wyzwaniu; zaktualizowano dokumentację SSOT i opisy 12 Issues na GitHubie.
 - **2026-11-20 (Merge SSOT v3):** Scalono wersję zespołu (14 dni, PostgreSQL, grywalizacja, Contract Lock) z poprawkami jakościowymi z `oprawki_claude.txt` (uczciwe porównanie realne, tryby planu 80/20, deterministyczna ocena kart, `main_concern`, offline-safe). Zaktualizowano `AGENTS.md`, `docs/01–03`, ten plik; dodano `.gitignore`, `requirements.txt`, `.env.example`, `docker-compose.yml`; dokumenty przeniesione do `docs/` (Issue #1). Pełna lista zmian kontraktu: sekcja 3, pkt 9. **Do zrobienia:** zaktualizować opisy Issues `#2`, `#3`, `#5`, `#6`, `#7` na GitHubie.
 - **2026-11-20 (Issue #1 — weryfikacja INFRA):** `docker compose up -d` stawia `finance_quest_db` (PostgreSQL 16.16), `pip install -r requirements.txt` w `.venv` (Python 3.14.2) bez błędów, `pip check` czysty, połączenie SQLAlchemy -> Postgres działa. **Dwie poprawki konfiguracji:** (1) `DATABASE_URL` musi mieć jawny sterownik `postgresql+psycopg2://` — SQLAlchemy 2.1 dla gołego `postgresql://` wybiera `psycopg` v3, którego nie ma w `requirements.txt` (bez tego `create_engine` kończy się `ModuleNotFoundError: psycopg`); (2) port hosta jest konfigurowalny przez `POSTGRES_PORT` (domyślnie 5432)
+- **2026-11-20 (Sync Issues v3):** Zaktualizowano wszystkie 12 Issues (`#1`–`#12`) na GitHubie pod SSOT v3 oraz dodano twardy zakaz edycji/commitów bezpośrednio na `main` w `AGENTS.md`, `.agent/rules/ssot.md`, `.github/copilot-instructions.md` i `.roorules`.

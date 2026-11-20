@@ -14,4 +14,4 @@ Ten plik jest lekkim wskaźnikiem. Nie duplikuje specyfikacji — jedynym źród
 - **Zakazy (`AGENTS.md` §3):** ZERO autoryzacji/JWT, ZERO Alembica/migracji, ZERO Node/npm/React/TS, brak pełnych misji dla dni 2–14.
 - **Własność plików (`AGENTS.md` §5 i §7):** Edytuj wyłącznie pliki swojej roli. Kanoniczne nazwy to `backend/database.py` (nie `db.py`) i `static/styles.css` (nie `style.css`).
 - **Zamrożony kontrakt:** Nie duplikuj ani nie zmieniaj kontraktu z `docs/02_TECH_API_AND_MATH.md` bez aktualizacji `backend/schemas.py` i wpisu w `WORKLOG.md`.
-- **Git:** Jeden Issue = jeden branch `feat/issue-<nr>-<krotka-nazwa>` oraz jeden mały PR/commit. Nigdy nie commituj `.env`. Po zamknięciu zadania zaktualizuj `WORKLOG.md`.
+- **Git (ZAKAZ pracy na `main`):** przed pierwszą edycją sprawdź `git branch --show-current`; jeśli jesteś na `main`, załóż nowy branch `feat/issue-<nr>-<krotka-nazwa>` (1 Issue = 1 mały PR/commit). Zakaz edycji i commitów kodu aplikacji bezpośrednio na `main`. Nigdy nie commituj `.env`. Po zamknięciu zadania zaktualizuj `WORKLOG.md`.
