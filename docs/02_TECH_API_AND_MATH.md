@@ -46,7 +46,7 @@ finance-quest/
 **ZASADA PROSTOTY:** Zero Alembica, zero migracji. Przy starcie FastAPI (`lifespan` lub `on_event("startup")`) wołamy `init_db()`: `Base.metadata.create_all(bind=engine)` + seed tabeli `leaderboard_entries` 3 znajomymi (jeśli pusta).
 
 ### A. Konfiguracja połączenia (`backend/database.py`)
-* `load_dotenv()`, `DATABASE_URL` z `.env` (domyślnie `postgresql://finance:finance@localhost:5432/finance_quest`).
+* `load_dotenv()`, `DATABASE_URL` z `.env` (domyślnie `postgresql+psycopg2://finance:finance@localhost:5432/finance_quest`; **jawny sterownik `+psycopg2` jest obowiązkowy** — SQLAlchemy 2.1 dla gołego `postgresql://` używa `psycopg` v3, którego nie ma w `requirements.txt`).
 * Udostępnia `engine`, `SessionLocal`, `Base`, generator `get_db()`.
 * **Bezpiecznik prezentacji (nowość v3):** jeśli przy starcie połączenie z PostgreSQL zawiedzie (np. Docker nie uruchomiony), `init_db()` loguje wyraźny komunikat `Uruchom bazę: docker compose up -d` i **przełącza się na SQLAlchemy `sqlite://` w pamięci** (`StaticPool`, te same modele) — dzięki temu demo nie umiera z powodu jednego niewłączonego kontenera. To plan B, nie docelowa baza; środowisko docelowe i opis architektury to nadal PostgreSQL.
 
@@ -526,8 +526,9 @@ Wartości z wzorów §3 (P = 200 zł, 15 lat, 5,7% netto, inflacja 3,5%). Gotowo
 OPENAI_API_KEY=sk-twoj-klucz-lub-klucz-luny
 LUNA_MODEL=gpt-4o-mini
 LUNA_TIMEOUT_SECONDS=3.5
-DATABASE_URL=postgresql://finance:finance@localhost:5432/finance_quest
+DATABASE_URL=postgresql+psycopg2://finance:finance@localhost:5432/finance_quest
 DEMO_OFFLINE=0     # 1 = LLM wyłączony; wolny tekst dostaje od razu neutralny fallback (0 ms)
+POSTGRES_PORT=5432 # port bazy na hoście (zmień, jeśli 5432 jest zajęty, i dopasuj DATABASE_URL)
 ```
 
 ---
