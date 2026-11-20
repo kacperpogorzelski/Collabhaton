@@ -4,11 +4,11 @@
 
 ## 1. Aktywne Blokery (do zdjęcia w pierwszych 30 min)
 - `[P0]` Brak fundamentu backendu (`backend/schemas.py`, `backend/database.py`, `backend/models.py`) blokujący pełną integrację Osoby 2 (`luna_service.py`) i Osoby 3 (podpięcie API) — **[Issue #2](https://github.com/kacperpogorzelski/Collabhaton/issues/2)**.
-- `[P0]` **Opisy Issues `#2`, `#3`, `#5`, `#6`, `#7` na GitHubie są nieaktualne względem SSOT v3** (nowe pola kontraktu, nowa matematyka, nowa rola LLM — patrz sekcja 3, pkt 9). Należy je zaktualizować przed startem prac (Osoba 1).
 - `[P1]` Wyznaczyć **jedną osobę od pitchu i business case** (docs/01 §4) — nie powinna to być osoba z najcięższym modułem kodu.
 - `[P1]` Osoba 2: policzyć `HISTORICAL_WIN_RATE` z publicznych danych i podać źródło (docs/02 §3B); do tego czasu wartości są ilustracyjne (limit 97%).
 - `[P1]` Osoba 3: pobrać biblioteki do `static/vendor/` (docs/01 §5) — zero CDN w runtime.
 - ✅ *Zdjęte (merge SSOT v3):* dokumenty przeniesione do `docs/`, dodane `.gitignore`, `requirements.txt`, `.env.example`, `docker-compose.yml`.
+- ✅ *Zdjęte (sync Issues v3):* zaktualizowano opisy wszystkich 12 Issues (#1–#12) na GitHubie pod SSOT v3 oraz zaostrzono zakaz pracy bezpośrednio na `main` w regułach agentów.
 
 ## 2. Tablica gotowości modułów, endpointów i Issues
 
@@ -56,3 +56,4 @@
 - **2026-11-20 (Setup):** Zakończony audyt SSOT i modułu `AutoResponder_Allegro`. Utworzono konfigurację multi-agent (`.github/copilot-instructions.md`, `.agent/rules/ssot.md`, `.roorules`, `AGENTS.md` §7, `WORKLOG.md`) oraz 12 GitHub Issues `#1`–`#12`.
 - **2026-11-20 (Pogłębiony audyt SSOT):** Usunięto niespójności matematyczne (`104515/41890` -> `103811/42124`), zablokowano sygnatury `demo_data.py` i `finance_math.py`, synchroniczne `def`, format `history`, `extra="forbid"`, `Rok 0`, monotoniczne XP oraz `205 XP` po wyzwaniu; zaktualizowano dokumentację SSOT i opisy 12 Issues na GitHubie.
 - **2026-11-20 (Merge SSOT v3):** Scalono wersję zespołu (14 dni, PostgreSQL, grywalizacja, Contract Lock) z poprawkami jakościowymi z `oprawki_claude.txt` (uczciwe porównanie realne, tryby planu 80/20, deterministyczna ocena kart, `main_concern`, offline-safe). Zaktualizowano `AGENTS.md`, `docs/01–03`, ten plik; dodano `.gitignore`, `requirements.txt`, `.env.example`, `docker-compose.yml`; dokumenty przeniesione do `docs/` (Issue #1). Pełna lista zmian kontraktu: sekcja 3, pkt 9. **Do zrobienia:** zaktualizować opisy Issues `#2`, `#3`, `#5`, `#6`, `#7` na GitHubie.
+- **2026-11-20 (Sync Issues v3):** Zaktualizowano wszystkie 12 Issues (`#1`–`#12`) na GitHubie pod SSOT v3 oraz dodano twardy zakaz edycji/commitów bezpośrednio na `main` w `AGENTS.md`, `.agent/rules/ssot.md`, `.github/copilot-instructions.md` i `.roorules`.

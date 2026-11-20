@@ -19,4 +19,4 @@ Ten plik jest lekkim wskaźnikiem bez duplikowania treści. Jedynym źródłem p
 - Przestrzegaj `AGENTS.md` §5 i §7 (*File Ownership*): edytuj wyłącznie pliki przypisane swojej roli; używaj kanonicznych nazw `backend/database.py` (nie `db.py`) i `static/styles.css` (nie `style.css`).
 - Nie zmieniaj kontraktu JSON/API z `docs/02_TECH_API_AND_MATH.md` bez jednoczesnej aktualizacji `backend/schemas.py`, wpisu w `WORKLOG.md` i powiadomienia zespołu.
 - Nie wymyślaj dodatkowych funkcji, ekranów ani endpointów spoza SSOT.
-- Pracuj na branchu `feat/issue-<nr>-<krotka-nazwa>` (1 Issue = 1 mały PR/commit), nie commituj `.env` i aktualizuj `WORKLOG.md` po zakończeniu zadania lub wykryciu blokera.
+- **ZAKAZ edycji i commitów kodu bezpośrednio na `main`:** przed pierwszą edycją pliku sprawdź `git branch --show-current`; jeśli jesteś na `main`, załóż nowy branch `feat/issue-<nr>-<krotka-nazwa>` (1 Issue = 1 mały PR/commit), nie commituj `.env` i aktualizuj `WORKLOG.md` po zakończeniu zadania lub wykryciu blokera.
