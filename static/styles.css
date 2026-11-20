@@ -1,0 +1,340 @@
+/* ==========================================================================
+   Finance Quest — static/styles.css
+   SSOT: docs/01_PRODUCT_AND_GUI_SPEC.md §5 (system wizualny, 7 mikro-animacji).
+   Czysty CSS (bez @apply — Tailwind działa w przeglądarce z /static/vendor/tailwind.js).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Font: Plus Jakarta Sans (LOKALNIE, static/vendor/fonts/, licencja OFL)
+   Każda grubość ma 2 podzbiory: latin + latin-ext (polskie znaki: ą ć ę ł ń ó ś ź ż).
+   -------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-500.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-600.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-700-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-700.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-800-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('vendor/fonts/PlusJakartaSans-800.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --------------------------------------------------------------------------
+   2. Tokeny (te same wartości co paleta Tailwind w index.html)
+   -------------------------------------------------------------------------- */
+:root {
+  --fq-brand-dark: #002E3C;
+  --fq-brand-yellow: #FFCC00;
+  --fq-brand-yellow-dark: #D9A900;
+  --fq-etf-green: #10B981;
+  --fq-inflation-red: #F43F5E;
+  --fq-streak-orange: #F97316;
+  --fq-stress-amber: #F59E0B;
+  --fq-surface-bg: #F8FAFC;
+  --fq-card-bg: #FFFFFF;
+  --fq-ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: light;
+}
+
+/* --------------------------------------------------------------------------
+   3. Baza
+   -------------------------------------------------------------------------- */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Rzutnik / ekrany 1920x1080: lekkie powiększenie całego UI (rem). */
+@media (min-width: 1600px) {
+  html { font-size: 112.5%; }
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+  background-color: var(--fq-surface-bg);
+  color: var(--fq-brand-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Atrybut hidden wygrywa z klasami display Tailwinda (flex, grid, ...). */
+[hidden] { display: none !important; }
+
+/* Minimalny cel dotyku 44 px (docs/01 §5). */
+button,
+[role="button"],
+select,
+input[type="range"],
+.tap-target {
+  min-height: 44px;
+}
+button { touch-action: manipulation; }
+
+:focus-visible {
+  outline: 3px solid var(--fq-brand-yellow-dark);
+  outline-offset: 2px;
+}
+/* Nagłówki ekranów dostają fokus programowo (dostępność) — bez obwódki. */
+[tabindex="-1"]:focus { outline: none; }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Puste sloty szkieletu (Issues #8–#10): etykieta znika, gdy slot dostanie treść. */
+[data-slot]:empty {
+  display: block;
+  min-height: 5rem;
+  padding: 1.25rem;
+  border: 2px dashed #E2E8F0;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: none;
+}
+[data-slot]:empty::before {
+  content: attr(data-slot);
+  color: #94A3B8;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   4. OBOWIĄZKOWE MIKRO-ANIMACJE (docs/01 §5) — 7 klas
+   ========================================================================== */
+
+/* 4.1 .btn-3d — główny przycisk CTA z efektem wciśnięcia */
+.btn-3d {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0.875rem 1.5rem;
+  background: #FFCC00;
+  color: #002E3C;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-align: center;
+  border: 0;
+  border-bottom: 4px solid #D9A900;
+  border-radius: 1rem;
+  box-shadow: 0 12px 24px -14px rgba(217, 169, 0, 0.7);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 90ms ease, border-bottom-width 90ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+.btn-3d:hover { filter: brightness(1.04); }
+.btn-3d:active {
+  transform: translateY(3px);
+  border-bottom-width: 1px;
+  box-shadow: 0 4px 10px -8px rgba(217, 169, 0, 0.7);
+}
+.btn-3d:disabled,
+.btn-3d[aria-disabled="true"] {
+  cursor: wait;
+  filter: saturate(0.75);
+  opacity: 0.85;
+}
+.btn-3d:disabled:active,
+.btn-3d[aria-disabled="true"]:active {
+  transform: none;
+  border-bottom-width: 4px;
+}
+
+/* 4.2 .screen-enter — wejście ekranu */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+.screen-enter {
+  animation: fadeSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 4.3 .shimmer-bar — biały refleks na paskach Gotowości i XP przy każdym wzroście.
+   Ponowne odtworzenie: FQ.replayClass(el, 'shimmer-bar'). */
+@keyframes shimmerSweep {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(120%); }
+}
+.shimmer-bar {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 15%, rgba(255, 255, 255, 0.85) 50%, transparent 85%);
+  transform: translateX(-120%);
+  animation: shimmerSweep 0.9s ease-out 1 both;
+  pointer-events: none;
+}
+
+/* 4.4 .topic-strike — zbędne tematy: pojawiają się po 400 ms, potem co 120 ms
+   przekreślenie z czerwonym akcentem i opacity 0.45.
+   Kolejność ustawia JS: style="--i: 0", "--i: 1", ... */
+@keyframes topicAppear {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes topicStrike {
+  from { opacity: 1; text-decoration-color: transparent; }
+  to   { opacity: 0.45; text-decoration-color: #F43F5E; }
+}
+.topic-strike {
+  opacity: 0;
+  text-decoration-line: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: transparent;
+  animation:
+    topicAppear 0.3s ease-out 400ms forwards,
+    topicStrike 0.35s ease-out calc(700ms + var(--i, 0) * 120ms) forwards;
+}
+
+/* 4.5 .level-pop — bounce + złota poświata karty awansu (Ekran 4) */
+@keyframes levelPop {
+  0%   { transform: scale(0.85); opacity: 0; }
+  45%  { transform: scale(1.06); opacity: 1; }
+  70%  { transform: scale(0.98); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes levelGlow {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0); }
+  40%  { box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.45), 0 0 44px 12px rgba(255, 204, 0, 0.45); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0), 0 0 26px 4px rgba(255, 204, 0, 0.28); }
+}
+.level-pop {
+  animation:
+    levelPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    levelGlow 1.6s ease-out 0.2s both;
+}
+
+/* 4.6 .glow-pulse — pulsujący złoty cień przycisku bankowego po odhaczeniu checklisty */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.6), 0 12px 24px -14px rgba(217, 169, 0, 0.7); }
+  50%      { box-shadow: 0 0 0 10px rgba(255, 204, 0, 0), 0 0 34px 6px rgba(255, 204, 0, 0.55); }
+}
+.glow-pulse {
+  animation: glowPulse 1.6s ease-in-out infinite;
+}
+
+/* 4.7 .tabular-nums — równe szerokości cyfr dla kwot, XP i procentów */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   5. Pomocnicze animacje (nagłówek)
+   -------------------------------------------------------------------------- */
+
+/* Unoszący się licznik przyrostu: „+10" przy Gotowości, „+40 XP" przy poziomie. */
+@keyframes deltaFloat {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.9); }
+  18%  { opacity: 1; transform: translateY(0) scale(1.08); }
+  70%  { opacity: 1; transform: translateY(-4px) scale(1); }
+  100% { opacity: 0; transform: translateY(-12px) scale(1); }
+}
+.delta-float {
+  display: inline-block;
+  animation: deltaFloat 1.6s var(--fq-ease-out-expo) both;
+}
+
+/* Toasty (np. „Wyzwij znajomego", brak połączenia z backendem). */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(8px); }
+}
+.toast-in  { animation: toastIn 0.28s var(--fq-ease-out-expo) both; }
+.toast-out { animation: toastOut 0.22s ease-in both; }
+
+/* --------------------------------------------------------------------------
+   6. Ograniczenie ruchu (prefers-reduced-motion)
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .screen-enter,
+  .level-pop,
+  .delta-float,
+  .toast-in,
+  .toast-out,
+  .topic-strike {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+  .glow-pulse { animation: none; }
+  .shimmer-bar::after { animation: none; display: none; }
+  .btn-3d { transition: none; }
+}
