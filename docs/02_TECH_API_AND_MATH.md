@@ -536,3 +536,25 @@ POSTGRES_PORT=5432 # port bazy na hoście (zmień, jeśli 5432 jest zajęty, i d
 ## 8. Skrypty kontrolne (jedyny dozwolony „test")
 * **`scripts/check_math.py` (Osoba 2):** porównuje `finance_math` z tabelą §3H i przykładem §6.
 * **`scripts/smoke_test.py` (Osoba 1):** dla 3 person, `DEMO_OFFLINE=1`, na `TestClient`/HTTP: ścieżka gotowości 10 -> 20 -> 30 -> 40 i XP 20 -> 60 -> 95 -> 155 przy samych optymalnych kartach; dla `savings_first` brak ETF (`training_etf_monthly == 0`); odpowiedź nieoptymalna daje `+2` gotowości i brak konfetti; wolny tekst przy `DEMO_OFFLINE=1` daje neutralny fallback; po Kroku 3 `quick_replies == []`, komplet `final_checklist`/`bank_draft`/`leaderboard`; powtórne `POST /api/mission/turn` jest idempotentne; `POST /api/challenge/accept` dwukrotnie -> `+50` i `0` XP.
+
+---
+
+## 9. Kontrakt dwujęzyczności (`PL / EN`)
+
+* **Typ i wartość domyślna (`backend/schemas.py`):**
+  * `Language = Literal["pl", "en"]` (domyślnie `"pl"` — 100% wstecznej kompatybilności z istniejącymi testami i `scripts/check_math.py`).
+  * `OnboardingRequest.lang: Language = "pl"`
+  * `OnboardingResponse.lang: Language = "pl"`
+  * `MissionTurnRequest.lang: Optional[Language] = None` (gdy podane, pozwala zmienić język aktywnej sesji od tej tury).
+  * `ChallengeAcceptRequest.lang: Optional[Language] = None`
+* **Baza danych (`backend/models.py`, `backend/database.py`):**
+  * Kolumna `MissionSession.lang = Column(String(2), default="pl", nullable=False)`.
+  * W `init_db()` (po `Base.metadata.create_all`, dla dialektu `postgresql`): wykonać bezpieczne `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS lang VARCHAR(2) NOT NULL DEFAULT 'pl'` (bez Alembica; gwarantuje kompatybilność z istniejącym wolumenem `pgdata` w Dockerze).
+* **Matematyka (`backend/finance_math.py`):**
+  * Opcjonalny parametr `lang: Language = "pl"` w `get_age_group(age, lang="pl")` (`persona_label`) oraz `calculate_safe_investment(..., lang="pl")` (`reasoning`).
+  * `build_session_facts(session_columns)` przekazuje `lang = s.get("lang", "pl")` do słownika faktów sesji.
+  * **Brak przeliczania walut:** wszystkie liczby referencyjne (§3H) i `scripts/check_math.py` pozostają identyczne; w wersji EN UI używa etykiety `PLN`.
+* **Endpointy (`backend/main.py`):**
+  * `GET /api/demo-personas?lang=pl` (`lang: Language = "pl"`) — zwraca persony z przetłumaczonymi etykietami (`demo_data.get_demo_personas(lang)`).
+  * `POST /api/onboarding/analyze` — zapisuje `session.lang = req.lang` i przekazuje `lang=req.lang` do `finance_math` i `demo_data`.
+  * `POST /api/mission/turn` i `POST /api/challenge/accept` — jeśli `req.lang is not None`, aktualizują `session.lang = req.lang`; przekazują aktualny `lang` sesji do `luna_service` i `demo_data`.

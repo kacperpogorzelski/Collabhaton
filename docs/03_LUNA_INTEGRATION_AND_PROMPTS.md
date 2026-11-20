@@ -16,6 +16,7 @@ Z istniejącego projektu (Allegro, `C:\Projekty\AutoResponder_Allegro\src\autore
   * **Strict JSON Schema:** `response_format={"type": "json_schema", "json_schema": {"name": "LunaAssessment", "schema": ..., "strict": True}}`. Model `LunaAssessment` **MUSI** mieć `model_config = ConfigDict(extra="forbid")` i **wszystkie pola bez wartości domyślnych** (strict wymaga `additionalProperties: false` i wszystkich pól w `required`; domyślna wartość usuwa pole z `required` i OpenAI odrzuci request błędem `400`).
   * `reasoning_effort="none"` **wyłącznie** gdy `model == "gpt-6-luna"`.
   * Sprawdzanie `choice.message.refusal` / `finish_reason != "stop"`, bezpieczna klasyfikacja błędów bez logowania promptów i klucza.
+  * **Wstecznie kompatybilna obsługa DeepSeek API** (zaimplementowana w `backend/luna_service.py`): przy `DEEPSEEK_API_KEY` / `OPENAI_BASE_URL=https://api.deepseek.com` i `LUNA_MODEL=deepseek-chat` klient używa `base_url`, przełącza `response_format` na `{"type": "json_object"}` i `max_tokens`, klasyfikuje `HTTP 402` jako `BILLING_OR_QUOTA`, a ścisła walidacja `LunaAssessment` (`extra="forbid"`) pozostaje bez zmian; ścieżka OpenAI działa jak dotychczas.
 * **USUWAMY:** logikę Allegro, aukcje/zamówienia, stare bazy SQLite/Alembic, workera/outboxa, Discorda, RAG, wyszukiwanie produktów, cennik tokenowy (`_usage_metrics`, `Decimal`).
 * **DODAJEMY (bezpiecznik demo):**
   * Całe wywołanie LLM w `try ... except Exception`.
@@ -286,3 +287,16 @@ STEP3              = {...}                                           # §7C
 DEMO_PERSONAS, SEED_LEADERBOARD, SPEAKLY_FILTER_BY_GROUP, ROADMAP_BY_GROUP, MICRO_LESSONS_BY_GROUP
 FINAL_MESSAGE, PLAN_SENTENCE = ..., {"split": ..., "invest": ..., "savings_first": ...}
 ```
+
+---
+
+## 10. Obsługa języka angielskiego (`lang="en"`) w `demo_data.py` i `luna_service.py`
+
+* **`backend/demo_data.py`:**
+  * Pełne warianty `"en"` obok `"pl"` dla: `get_demo_personas(lang="pl")` (krótkie etykiety: `"22y Student"`, `"38y Family"`, `"56y 50+"`; pełne: `"22y • Student (Fresh Start)"`, `"38y • Career & Family"`, `"56y • Capital Protection 50+"`), `SPEAKLY_FILTER_BY_GROUP`, `ROADMAP_BY_GROUP`, `MICRO_LESSONS_BY_GROUP`, `PLAN_SENTENCE`, `STEP1_BY_AGE_GROUP`, `STEP2_BY_CONCERN`, `STEP3`, `FINAL_MESSAGE`, `FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX`, `FINAL_BADGE`, `ASSUMPTIONS_TEXT`, `COSTS_NOTE`, `INSTRUMENT_CATEGORY`, `get_real_world_challenge`, `get_final_checklist`, `get_bank_draft`, `get_level_state` (poziom 1 `"Observer"`, poziom 2 `"Confident Start"`), `build_leaderboard` (użytkownik: `"You"` / `"You (Level Up!)"` oraz tłumaczenie tytułów poziomów w wierszach seed przy wyświetlaniu — bez dublowania rekordów w bazie).
+  * Wszystkie kwoty i liczby pozostają w **PLN** (bez przeliczania kursów).
+  * Istniejące stałe i wywołania bez argumentu `lang` zwracają wariant `"pl"` (100% wstecznej kompatybilności).
+* **`backend/luna_service.py`:**
+  * `process_mission_turn(...)` odczytuje `lang = session_data.get("lang", "pl")` (domyślnie `"pl"`) i przekazuje go do `demo_data.py` oraz `assess_free_text(..., lang=lang)`.
+  * Dwujęzyczny prompt `LUNA_ASSESS_PROMPT` (lub wariant per `lang`): dla `lang == "en"` Luna ocenia odpowiedź użytkownika (napisaną po angielsku lub po polsku) zgodnie z tymi samymi kryteriami kroku i zasadami compliance, i zwraca `understanding_feedback` w **naturalnym języku angielskim** (1–2 krótkie zdania, ten sam ścisły schemat `LunaAssessment` z polami `is_optimal_choice` i `understanding_feedback`).
+  * Angielski fallback wolnego tekstu (`NEUTRAL_FEEDBACK_EN`): *„Thanks for your answer! I couldn't evaluate it right now, so let's see how it looks in numbers.”* (bez pochwały).
