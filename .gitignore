@@ -1,0 +1,22 @@
+# Sekrety — NIGDY do repo
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# IDE / lokalne narzędzia agentów
+.idea/
+.vscode/
+.codex/
+
+# System
+.DS_Store
+Thumbs.db
+
+# static/vendor/ celowo NIE jest ignorowany (biblioteki frontendu muszą być w repo — działanie offline na demo)

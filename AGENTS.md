@@ -1,79 +1,74 @@
 # AGENTS.md — Master SSOT & Twarde Reguły dla Agentów AI
 
-> **SINGLE SOURCE OF TRUTH (SSOT):** Ten plik oraz 3 dokumenty w folderze `/docs` stanowią jedyne i wiążące źródło prawdy dla całego projektu **Finance Quest** (Collabothon 2026 — Commerzbank). Jeśli agent ma wątpliwość, ma obowiązek oprzeć się wyłącznie na tych plikach i **nie wymyślać** dodatkowych funkcji, endpointów ani ekranów.
+> **SINGLE SOURCE OF TRUTH (SSOT):** Ten plik oraz 3 dokumenty w folderze `/docs` (wersja v2, po rewizji) stanowią jedyne i wiążące źródło prawdy dla projektu **Finance Quest** (Collabothon 2026 — Commerzbank). Jeśli agent ma wątpliwość, ma obowiązek oprzeć się wyłącznie na tych plikach i **nie wymyślać** dodatkowych funkcji, endpointów ani ekranów. Pliki `poprawki.txt` i `oprawki_claude.txt` są historią zmian — **nie są źródłem prawdy** (ich treść jest już wcielona do `/docs`).
 
 ## 1. Hierarchia dokumentacji (Kolejność czytania dla agenta)
 1. **`AGENTS.md`** (ten plik) — zakazy (*Out of Scope*), setup projektu, komendy uruchomieniowe i podział plików.
-2. **`docs/01_PRODUCT_AND_GUI_SPEC.md`** — wymagania biznesowe, metodologia Speakly, 3 grupy pokoleniowe, dokładny system wizualny, efekty dopaminowe i mapowanie ekranów.
-3. **`docs/02_TECH_API_AND_MATH.md`** — struktura folderów, deterministyczna matematyka finansowa, pełne schematy Pydantic i kontrakt API (ważniejszy od wszystkiego przy nazwach pól JSON).
-4. **`docs/03_LUNA_INTEGRATION_AND_PROMPTS.md`** — przeróbka modułu Luny, maszyna 3 stanów, gotowy System Prompt i kompletne fallbacki dla 3 pokoleń.
+2. **`docs/01_PRODUCT_AND_GUI_SPEC.md`** — wymagania biznesowe, metodologia Speakly, personalizacja (wiek + obawa), wartość dla banku, system wizualny, ekrany, słownik sformułowań.
+3. **`docs/02_TECH_API_AND_MATH.md`** — struktura folderów, deterministyczna matematyka finansowa, modele Pydantic i kontrakt API (ważniejszy od wszystkiego przy nazwach pól JSON).
+4. **`docs/03_LUNA_INTEGRATION_AND_PROMPTS.md`** — rola LLM (tylko ocena wolnego tekstu), maszyna 3 kroków, treści misji i fallbacki.
 
 ---
 
 ## 2. Cel projektu (Kontekst dla każdego agenta)
-* **Co budujemy:** Ultrapraktyczną aplikację webową w Pythonie (FastAPI + nowoczesny frontend SPA bez bundlera), wzorowaną na **Speakly**, która w **3–4 minuty** buduje pewność siebie (*Confidence*) samodzielnego inwestora i doprowadza go do gotowości wykonania pierwszej inwestycji w banku.
-* **Priorytet absolutny:** To jest **prototyp na 5-minutową prezentację na żywo**. Najważniejsze jest to, **co widać na ekranie**: płynność, dopaminowe mikro-efekty, błyskawiczne działanie wykresów i 100% niezawodności na scenie.
-* **Spełnienie wymogów Commerzbank Challenge Card:**
-  * 1 kompletna, w pełni działająca misja edukacyjna.
-  * Jasny profil odbiorcy i cel edukacyjny (*learning objective*).
-  * Dowód na zrozumienie (*understanding* — ocena odpowiedzi przez Lunę) i zaangażowanie (*engagement* — interaktywny wykres, symulacja LIVE, dopaminowy UX).
-  * *Innovations for all generations* — natychmiastowa adaptacja treści, horyzontu i scenariuszy pod `20+`, `30-50` i `50+`.
+* **Co budujemy:** Aplikację webową w Pythonie (FastAPI + frontend SPA bez bundlera), wzorowaną na **Speakly/Duolingo**, która w **3–4 minuty** buduje pewność siebie początkującego inwestora (wszystkie grupy wiekowe) i prowadzi go do pierwszego kroku w banku (konto oszczędnościowe / plan inwestycyjny).
+* **Priorytet absolutny:** To jest **prototyp na 5-minutową prezentację na żywo**. Najważniejsze: co widać na ekranie, płynność, mikro-efekty i **100% niezawodności na scenie** (łącznie z brakiem Wi-Fi: biblioteki frontendu są lokalnie, kliknięcia kart nie używają LLM).
+* **Zasada uczciwości:** żadnych gwarancji zysku, żadnych liczb bez jawnych założeń, ETF i gotówka zawsze porównywane w tej samej jednostce (docs/02 §2, docs/01 §7).
+* **Wymogi Commerzbank Challenge Card:**
+  * 1 kompletna, w pełni działająca misja edukacyjna,
+  * jasny profil odbiorcy i *learning objective*,
+  * dowód zrozumienia (ocena odpowiedzi + samoocena pewności przed/po) i zaangażowania,
+  * *Innovations for all generations* — adaptacja horyzontu, tonu i scenariusza (wiek + wybrana obawa).
 
 ---
 
 ## 3. TWARDE ZAKAZY (OUT OF SCOPE — NIE GENERUJ TEGO!)
-Agentom AI **kategorycznie zabrania się** implementowania poniższych rzeczy:
-* **ZERO autoryzacji:** brak rejestracji, logowania, haseł, JWT, ról użytkowników, sesji w cookies.
-* **ZERO baz danych:** brak SQLite, PostgreSQL, SQLAlchemy, Alembic, Redis. Cały stan sesji żyje wyłącznie w słowniku Pythona w pamięci RAM (`SESSIONS: dict[str, dict] = {}`).
-* **ZERO narzędzi buildowania frontendu:** nie twórz `package.json`, Node.js, Vite, Webpacka, Reacta ani TypeScriptu. Frontend to czyste pliki w `/static` (`index.html`, `app.js`, `styles.css`) korzystające wyłącznie z oficjalnych linków CDN.
-* **ZERO zbędnych podstron:** brak panelu admina, brak strony ustawień, brak listy 20 kursów (jest **1 kompletna misja** dynamicznie personalizowana pod profil).
-* **ZERO rozbudowanego security / testów jednostkowych:** wystarczą modele Pydantic + `try/except` z twardym fallbackiem w `luna_service.py`.
+* **ZERO autoryzacji:** brak rejestracji, logowania, haseł, JWT, ról, cookies sesyjnych.
+* **ZERO baz danych:** brak SQLite, PostgreSQL, SQLAlchemy, Alembic, Redis. Stan sesji tylko w `SESSIONS: dict[str, dict] = {}` w RAM.
+* **ZERO narzędzi buildowania frontendu:** nie twórz `package.json`, Node.js, Vite, Webpacka, Reacta ani TypeScriptu. Frontend to czyste pliki w `/static`. Biblioteki (Tailwind, Chart.js, canvas-confetti, Lucide, font) są **zapisane lokalnie w `static/vendor/`** (statyczne pliki, nie build) — **zakaz ładowania czegokolwiek z CDN w runtime**.
+* **ZERO zbędnych podstron:** brak panelu admina, ustawień, listy kursów (jest **1 misja** personalizowana; „następna misja" to tylko zablokowana karta).
+* **ZERO rozbudowanego security i testów jednostkowych.** *Jedyny dozwolony wyjątek:* dwa skrypty `scripts/check_math.py` i `scripts/smoke_test.py` (opis w docs/02 §8). Wystarczają modele Pydantic + `try/except` z fallbackiem w `luna_service.py`.
+* **ZERO infrastruktury produkcyjnej** (Kubernetes, Nginx, mikroserwis Luny): tylko jako diagram/roadmapa na slajdzie.
+* **Nigdy nie commitować `.env`** ani klucza API.
 
 ---
 
 ## 4. Środowisko, zależności i uruchamianie
+Pliki `requirements.txt`, `.env.example` i `.gitignore` są już w repo (zawartość: `.env.example` — docs/02 §7).
 
-### Plik `requirements.txt`
-```text
-fastapi>=0.115.0
-uvicorn[standard]>=0.32.0
-pydantic>=2.9.0
-openai>=1.55.0
-python-dotenv>=1.0.1
-```
-
-### Plik `.env.example`
-```env
-OPENAI_API_KEY=sk-twoj-klucz-lub-klucz-luny
-LUNA_MODEL=gpt-4o-mini
-LUNA_TIMEOUT_SECONDS=8
-```
-
-### Komenda startowa (lokalnie i na prezentacji)
 ```bash
+python -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+cp .env.example .env                                  # uzupełnij OPENAI_API_KEY (opcjonalne: DEMO_OFFLINE=1 działa bez klucza)
+uvicorn backend.main:app --host 0.0.0.0 --port 8000   # BEZ --reload na prezentacji (restart kasuje sesje)
 ```
-Aplikacja musi otwierać się bezpośrednio pod adresem **`http://localhost:8000`** (FastAPI serwuje `static/index.html` na trasie `GET /`).
+Aplikacja otwiera się pod **`http://localhost:8000`** (FastAPI serwuje `static/index.html` na `GET /`).
+W trakcie developmentu `--reload` jest dozwolone; na scenie i na próbach generalnych — nie.
 
 ---
 
 ## 5. Podział plików dla 3-osobowego zespołu (Zero konfliktów Git)
 
-| Osoba | Wyłączna własność plików | Pierwszy prompt do wklejenia agentowi (Roo Code / Copilot) |
+| Osoba | Wyłączna własność plików | Pierwszy prompt do wklejenia agentowi |
 | :--- | :--- | :--- |
-| **Osoba 1: Backend & Luna** | `backend/main.py`<br>`backend/schemas.py`<br>`backend/luna_service.py` | *"Przeczytaj `AGENTS.md`, `docs/02_TECH_API_AND_MATH.md` i `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md`. Wygeneruj `backend/schemas.py`, `backend/main.py` (z serwowaniem `/static`) oraz `backend/luna_service.py` z pełnym JSON mode i bezpiecznym fallbackiem z `demo_data.py`."* |
-| **Osoba 2: Matematyka, Dane & Pitch** | `backend/finance_math.py`<br>`backend/demo_data.py`<br>+ slajdy do pitchu | *"Przeczytaj `AGENTS.md`, `docs/02_TECH_API_AND_MATH.md` i `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md`. Wygeneruj `backend/finance_math.py` z dokładnymi wzorami ETF vs Inflacja oraz `backend/demo_data.py` zawierający 3 persony demo, filtry Speakly i kompletne fallbacki dla kroków 1–3."* |
-| **Osoba 3: Frontend & Dopamine UX** | `static/index.html`<br>`static/app.js`<br>`static/styles.css` | *"Przeczytaj `AGENTS.md`, `docs/01_PRODUCT_AND_GUI_SPEC.md` i `docs/02_TECH_API_AND_MATH.md`. Zbuduj kompletny, dopaminowy frontend SPA w `/static` (Tailwind CDN, Chart.js, canvas-confetti, Lucide Icons) dokładnie według kontraktu API i palety Commerzbanku."* |
+| **Osoba 1: Backend & Luna** | `backend/main.py`<br>`backend/schemas.py`<br>`backend/luna_service.py` | *"Przeczytaj `AGENTS.md`, `docs/02_TECH_API_AND_MATH.md` i `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md`. Wygeneruj `backend/schemas.py` 1:1 z docs/02 §3, `backend/main.py` (z serwowaniem `/static`, endpointy z mockami w pierwszej kolejności, potem pełna logika) oraz `backend/luna_service.py` (LLM tylko dla wolnego tekstu, timeout z .env, `DEMO_OFFLINE`, neutralny fallback)."* |
+| **Osoba 2: Matematyka & Dane** | `backend/finance_math.py`<br>`backend/demo_data.py`<br>`scripts/check_math.py`, `scripts/smoke_test.py` | *"Przeczytaj `AGENTS.md`, `docs/02_TECH_API_AND_MATH.md` i `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md`. Wygeneruj `backend/finance_math.py` dokładnie wg docs/02 §2 (trzy tryby planu, wspólny deflator, scenariusz stresowy) oraz `backend/demo_data.py` z treściami kroków 1–3 z docs/03 §6 (opcje z `is_optimal` i `feedback`), filtrem Speakly z docs/01 §2A i checklistą z docs/03 §7. Dodaj `scripts/check_math.py`."* |
+| **Osoba 3: Frontend & Dopamine UX** | `static/index.html`<br>`static/app.js`<br>`static/styles.css`<br>`static/vendor/` | *"Przeczytaj `AGENTS.md`, `docs/01_PRODUCT_AND_GUI_SPEC.md` i `docs/02_TECH_API_AND_MATH.md`. Zbuduj kompletny frontend SPA w `/static` (biblioteki lokalnie w `static/vendor/`) dokładnie wg kontraktu API, palety i ekranów z docs/01, włącznie z samooceną 1–5, trybami planu i ponawianiem analizy po 404."* |
+
+**Pitch i business case** (slajdy: docs/01 §3, roadmapa misji, compliance, architektura docelowa HA) ma **jedna wyznaczona osoba** — nie ta, która pisze `demo_data.py` (nierówny podział obciążenia). Po skończeniu backendu Osoba 1 przejmuje część tekstów `demo_data.py`.
+
+**Zamrożenie kontraktu:** `schemas.py` po 1. godzinie pracy zmieniamy wyłącznie przez PR zatwierdzony przez Osobę 1 i uzgodniony z Osobami 2 i 3.
 
 ---
 
 ## 6. Scenariusz 5-minutowego demo (Golden Path — Checklista Akceptacyjna)
-Przed oddaniem projektu przetestujcie dokładnie tę 6-krokową ścieżkę (musi przejść w 100% bez zająknięcia):
+Przed oddaniem projektu przetestujcie tę ścieżkę dwa razy z zegarem (musi przejść bez zająknięcia, także z `DEMO_OFFLINE=1` i bez Wi-Fi):
 
-1. **0:00 – 0:45 (Hook):** Otwarta strona `http://localhost:8000`. Krótkie wyjaśnienie problemu (paraliż decyzyjny, brak czasu) i inspiracji **Speakly** (maksimum praktyki w minimum czasu).
-2. **0:45 – 1:30 (Onboarding `20+` + Filtr Speakly):** Kliknięcie przycisku Demo Mode **`22 l. Student`** w nagłówku -> klik **`Stwórz moją krótką ścieżkę`** -> na ekranie odpala się animacja **przekreślania 7 zbędnych tematów („⚡ Oszczędzasz 4,5h”)** i licznik wyliczonej bezpiecznej kwoty (`300 zł/mies.`).
-3. **1:30 – 2:15 (Wehikuł Czasu ETF vs Inflacja):** Przesunięcie suwaka z `1 roku` na `15 lat` -> wykres na żywo pokazuje rozjazd między rosnącym ETF a topniejącą przez inflację gotówką, a szansa na zysk skacze z `73%` do `99%`.
-4. **2:15 – 3:30 (Misja LIVE z Luną — 3 tury):** Przejście symulacji (w tym test płynności: zepsuty laptop -> uświadomienie, że pieniądze z ETF można wypłacić!). Pokazanie, że można kliknąć kartę LUB wpisać własną odpowiedź. Pasek **Confidence Meter** rośnie płynnie z `25%` do `100%` z mikro-konfetti.
-5. **3:30 – 4:15 (Checklista + Most do Banku):** Odhaczenie 4 punktów checklisty -> wybuch **konfetti** -> klik **`Otwórz szkic pierwszego zlecenia w Commerzbanku`** -> pokazanie gotowego, spersonalizowanego ekranu pierwszego kroku.
-6. **4:15 – 5:00 (Innovations for all generations):** Kliknięcie w pasku Demo Mode **`56 l. Ochrona kapitału`** -> natychmiastowy reset na Ekran 1/2 z zupełnie innym horyzontem, tonem, kwotą i odrzuconymi tematami.
+1. **0:00 – 0:45 (Hook):** Otwarta strona `http://localhost:8000`. Problem: paraliż decyzyjny i brak pewności. Inspiracja: Speakly/Duolingo (maksimum praktyki w minimum czasu). Jedno zdanie o korzyści banku (docs/01 §3).
+2. **0:45 – 1:30 (Onboarding + Filtr):** Klik **`22 l. Student`** (4 500 zł netto, 1 000 zł wolne, bez poduszki, obawa „zamrożę pieniądze", pewność 2/5) -> **`Stwórz moją krótką ścieżkę`** -> animacja przekreślania 6 zbędnych tematów („⚡ Pominęliśmy 6 tematów…") i podział **poduszka 800 zł + trening ETF 200 zł/mies.** (80/20).
+3. **1:30 – 2:15 (Wehikuł czasu):** Suwak z `1 roku` na `15 lat`: wykres w dzisiejszych zł pokazuje ETF **ok. 33 844 zł** vs wpłaty na koncie 0% **ok. 21 488 zł** (wpłacono 36 000 zł) oraz przerywaną linię scenariusza -20% w roku 3. Pod wykresem widoczne założenia (5,7% po kosztach, przed podatkiem).
+4. **2:15 – 3:30 (Misja LIVE z Luną — 3 kroki):** Krok 1: **wolny tekst raz** (przy działającej sieci) lub karta. Krok 2: test „zepsuty laptop" -> płacę z poduszki, ETF zostaje. Krok 3: spadek -20% -> trzymam plan. Confidence rośnie **25% -> 60% -> 85% -> 100%** z mikro-konfetti.
+5. **3:30 – 4:15 (Checklista + Przykładowy plan):** Odhaczenie 4 punktów -> pełne konfetti -> pokazanie „Pewność: 25% -> 100%" i „Przed 2/5 -> Po Y/5" -> klik **`Przenieś ten przykładowy plan do konta w Commerzbanku`** -> modal z planem i plakietką „w wersji produkcyjnej: test odpowiedniości, KYC".
+6. **4:15 – 5:00 (Innovations for all generations):** Klik **`56 l. 50+`** -> reset na Ekran 1/2: horyzont 7 lat, kwota ok. 1 200 zł/mies., inny ton, inne tematy i obawa „za późno" (po stronie slajdu: roadmapa kolejnych misji i business case).
+
+**Kontrola przed prezentacją:** `scripts/check_math.py` i `scripts/smoke_test.py` przechodzą na zielono; biblioteki w `static/vendor/` są w repo; serwer uruchomiony **bez `--reload`**; `.env` nie jest commitowany.
