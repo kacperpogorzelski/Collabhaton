@@ -75,6 +75,8 @@ __all__ = [
 
 DEFAULT_MODEL: Final[str] = "gpt-4o-mini"
 LUNA_MODEL_NAME: Final[str] = "gpt-6-luna"
+DEEPSEEK_BASE_URL: Final[str] = "https://api.deepseek.com"
+DEFAULT_DEEPSEEK_MODEL: Final[str] = "deepseek-chat"
 DEFAULT_TIMEOUT_SECONDS: Final[float] = 3.5
 MAX_USER_MESSAGE_CHARS: Final[int] = 600
 MAX_FEEDBACK_TOKENS: Final[int] = 1024
@@ -172,9 +174,29 @@ def _parse_timeout(raw: str | None) -> float:
 
 def _settings() -> dict:
     """Czyta bieżące ``os.environ`` (``.env`` ładowany raz przy imporcie); nic nie loguje."""
-    model = (os.getenv("LUNA_MODEL") or DEFAULT_MODEL).strip() or DEFAULT_MODEL
+    raw_model = (os.getenv("LUNA_MODEL") or "").strip()
+    base_url = (os.getenv("OPENAI_BASE_URL") or "").strip()
+    deepseek_key = (os.getenv("DEEPSEEK_API_KEY") or "").strip()
+    openai_key = (os.getenv("OPENAI_API_KEY") or "").strip()
+
+    is_deepseek = (
+        bool(deepseek_key)
+        or "deepseek" in base_url.lower()
+        or raw_model.lower().startswith("deepseek")
+    )
+    if is_deepseek:
+        api_key = deepseek_key or openai_key
+        effective_base_url: str | None = base_url or DEEPSEEK_BASE_URL
+        model = raw_model or DEFAULT_DEEPSEEK_MODEL
+    else:
+        api_key = openai_key
+        effective_base_url = base_url or None
+        model = raw_model or DEFAULT_MODEL
+
     return {
-        "api_key": (os.getenv("OPENAI_API_KEY") or "").strip(),
+        "api_key": api_key,
+        "base_url": effective_base_url,
+        "is_deepseek": is_deepseek,
         "model": model,
         "timeout": _parse_timeout(os.getenv("LUNA_TIMEOUT_SECONDS")),
         "offline": (os.getenv("DEMO_OFFLINE") or "0").strip().lower() in _OFFLINE_VALUES,
@@ -197,7 +219,7 @@ def _safe_error_category(error: BaseException) -> tuple[str, int | None]:
         if isinstance(value, str)
     }
 
-    if codes & _BILLING_CODES:
+    if (codes & _BILLING_CODES) or status == 402:
         return "BILLING_OR_QUOTA", status
     if "model_not_found" in codes:
         return "MODEL_CONFIGURATION", status
@@ -228,7 +250,7 @@ def _assessment_json_schema() -> dict:
     return schema
 
 
-def _build_client(api_key: str, timeout: float):
+def _build_client(api_key: str, timeout: float, base_url: str | None = None):
     """Synchroniczny klient bez ukrytych retry; import SDK wyłącznie w locie."""
     try:
         from openai import OpenAI
@@ -237,20 +259,34 @@ def _build_client(api_key: str, timeout: float):
 
     # SDK przy DEBUG wypisuje całe opcje żądania, łącznie z promptem.
     logging.getLogger("openai").setLevel(logging.WARNING)
-    return OpenAI(api_key=api_key, timeout=timeout, max_retries=0)
+    kwargs: dict = {"api_key": api_key, "timeout": timeout, "max_retries": 0}
+    if base_url:
+        kwargs["base_url"] = base_url
+    return OpenAI(**kwargs)
 
 
 def _request_assessment(prompt: str, settings: dict) -> LunaAssessment:
     """Jedno wywołanie LLM; każdy problem kończy się ``_LunaUnavailable``."""
-    client = _build_client(settings["api_key"], settings["timeout"])
+    client = _build_client(settings["api_key"], settings["timeout"], settings.get("base_url"))
     model = settings["model"]
 
-    # ``reasoning_effort`` wysyłamy wyłącznie dla modelu obsługującego tę opcję.
-    model_options: dict = (
-        {"reasoning_effort": "none", "temperature": 0.0}
-        if model == LUNA_MODEL_NAME
-        else {"temperature": 0.0}
-    )
+    use_json_object = bool(settings.get("is_deepseek") or settings.get("base_url"))
+    if use_json_object:
+        response_format: dict = {"type": "json_object"}
+        request_options: dict = {"max_tokens": MAX_FEEDBACK_TOKENS, "temperature": 0.0}
+    else:
+        response_format = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "LunaAssessment",
+                "schema": _assessment_json_schema(),
+                "strict": True,
+            },
+        }
+        request_options = {"max_completion_tokens": MAX_FEEDBACK_TOKENS, "temperature": 0.0}
+        # ``reasoning_effort`` wysyłamy wyłącznie dla modelu obsługującego tę opcję.
+        if model == LUNA_MODEL_NAME:
+            request_options["reasoning_effort"] = "none"
 
     try:
         completion = client.chat.completions.create(
@@ -261,20 +297,13 @@ def _request_assessment(prompt: str, settings: dict) -> LunaAssessment:
                     "role": "user",
                     "content": (
                         "Oceń odpowiedź użytkownika z sekcji ODPOWIEDŹ i zwróć wyłącznie "
-                        "JSON zgodny ze schematem LunaAssessment."
+                        "obiekt JSON z dokładnie dwoma polami: is_optimal_choice (bool) "
+                        "i understanding_feedback (string)."
                     ),
                 },
             ],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "LunaAssessment",
-                    "schema": _assessment_json_schema(),
-                    "strict": True,
-                },
-            },
-            max_completion_tokens=MAX_FEEDBACK_TOKENS,
-            **model_options,
+            response_format=response_format,
+            **request_options,
         )
     except Exception as error:  # noqa: BLE001 - fallback musi objąć każde APIError
         category, status = _safe_error_category(error)
