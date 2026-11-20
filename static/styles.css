@@ -322,7 +322,160 @@ button { touch-action: manipulation; }
 .toast-out { animation: toastOut 0.22s ease-in both; }
 
 /* --------------------------------------------------------------------------
-   6. Ograniczenie ruchu (prefers-reduced-motion)
+   6. Ekran 1 — ankieta (suwaki, kafelki, błędy pól)
+   -------------------------------------------------------------------------- */
+.fq-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.fq-q {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.fq-q-num {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: var(--fq-brand-dark);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+/* Suwak: tor z wypełnieniem (--fill ustawia app.js), żółty uchwyt 28 px, cel dotyku 44 px. */
+.fq-range {
+  --fill: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+}
+.fq-range::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--fq-brand-yellow) 0 var(--fill), #E2E8F0 var(--fill) 100%);
+}
+.fq-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -9px;
+  border-radius: 9999px;
+  background: var(--fq-brand-yellow);
+  border: 4px solid var(--fq-brand-dark);
+  box-shadow: 0 4px 10px -2px rgba(0, 46, 60, 0.35);
+  transition: transform 120ms ease;
+}
+.fq-range:active::-webkit-slider-thumb { transform: scale(1.12); }
+.fq-range::-moz-range-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: #E2E8F0;
+}
+.fq-range::-moz-range-progress {
+  height: 10px;
+  border-radius: 9999px;
+  background: var(--fq-brand-yellow);
+}
+.fq-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: var(--fq-brand-yellow);
+  border: 4px solid var(--fq-brand-dark);
+  box-shadow: 0 4px 10px -2px rgba(0, 46, 60, 0.35);
+}
+.fq-range:focus-visible { outline: none; }
+.fq-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.55); }
+.fq-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.55); }
+
+/* Kafelki wyboru (natywne radio ukryte .sr-only + span.fq-tile).
+   position: relative trzyma ukryty input w obrębie kafelka (bez skoków przewijania przy fokusie). */
+.fq-field label { position: relative; }
+.fq-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 56px;
+  height: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 1rem;
+  background: #fff;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--fq-brand-dark);
+  transition: border-color 150ms ease, background-color 150ms ease, transform 120ms ease, box-shadow 150ms ease;
+}
+.fq-tile--center { justify-content: center; padding: 0.5rem; }
+.fq-tile svg { color: #64748B; transition: color 150ms ease; }
+label:hover > .fq-tile { border-color: rgba(255, 204, 0, 0.8); }
+label:active > .fq-tile { transform: scale(0.98); }
+input:checked + .fq-tile {
+  border-color: var(--fq-brand-yellow-dark);
+  background: rgba(255, 204, 0, 0.16);
+  box-shadow: 0 6px 16px -10px rgba(217, 169, 0, 0.9);
+}
+input:checked + .fq-tile svg { color: var(--fq-brand-dark); }
+input:focus-visible + .fq-tile {
+  outline: 3px solid var(--fq-brand-yellow-dark);
+  outline-offset: 2px;
+}
+[data-invalid] .fq-tile { border-color: rgba(244, 63, 94, 0.45); }
+
+.fq-error {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0.25rem 0 0;
+  color: #E11D48;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.fq-error::before { content: "⚠"; }
+
+/* Spinner w CTA podczas „Filtruję zbędną teorię..." */
+@keyframes fqSpin { to { transform: rotate(360deg); } }
+.fq-spinner {
+  display: inline-block;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 3px solid rgba(0, 46, 60, 0.25);
+  border-top-color: var(--fq-brand-dark);
+  border-radius: 9999px;
+  animation: fqSpin 0.7s linear infinite;
+}
+
+/* --------------------------------------------------------------------------
+   7. Ekran 2 — legenda wykresu Wehikułu Czasu
+   -------------------------------------------------------------------------- */
+.fq-legend-line {
+  display: inline-block;
+  width: 28px;
+  height: 0;
+  border-top-width: 3px;
+  border-top-color: var(--fq-etf-green);
+}
+.fq-legend-line--solid  { border-top-style: solid; }
+.fq-legend-line--dashed { border-top-style: dashed; border-top-color: var(--fq-inflation-red); }
+.fq-legend-line--dotted { border-top-style: dotted; border-top-color: var(--fq-stress-amber); }
+
+/* --------------------------------------------------------------------------
+   8. Ograniczenie ruchu (prefers-reduced-motion)
    -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   .screen-enter,
