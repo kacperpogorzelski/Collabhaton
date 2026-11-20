@@ -750,6 +750,11 @@ def _format_values(session_facts: dict | None) -> dict:
         if value is not None:
             raw[key] = value
 
+    if not session_facts or session_facts.get("training_etf_monthly") is None:
+        raw["training_etf_monthly"] = (
+            0 if str(raw.get("plan_type", "split")) == "savings_first" else raw["recommended_monthly"]
+        )
+
     values = {key: _format_value(value) for key, value in raw.items()}
     plan_type = str(raw.get("plan_type", "split"))
     template = PLAN_SENTENCE.get(plan_type, PLAN_SENTENCE["split"])
@@ -978,7 +983,7 @@ def get_bank_draft(session_facts: dict) -> BankDraft:
         projected_etf_real_value=_as_int(facts.get("etf_real_value"), 0),
         projected_etf_nominal_value=_as_int(facts.get("etf_nominal_value"), 0),
         projected_cash_real_value=_as_int(facts.get("cash_real_value"), 0),
-        historical_win_rate=_as_int(facts.get("win_rate"), 90),
+        historical_win_rate=min(97, _as_int(facts.get("win_rate"), 90)),
         assumptions_text=ASSUMPTIONS_TEXT,
         costs_note=COSTS_NOTE,
     )
