@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Finance Quest — static/app.js
+   Investly — static/app.js
    Vanilla JS, no build tool. Local globals from /static/vendor/: Chart, confetti.
    API contract: docs/02_TECH_API_AND_MATH.md §4–§5 (field names are binding).
 
@@ -228,7 +228,7 @@
       'about.title': 'About Investly',
       'about.sub': 'A calmer way to build investing confidence.',
       'about.teamTitle': 'Team',
-      'about.teamNames': 'Developer 1 · Developer 2 · Developer 3',
+      'about.teamNames': 'Kacper Pogorzelski · Mikita Karabeika · Bartłomiej Mączyński',
       'about.goalTitle': 'Collabothon 2026 goal',
       'about.goalText': 'Make the first investing step feel clear, calm and achievable for people of every generation.',
       'about.safetyTitle': 'Education and safety',
@@ -404,7 +404,7 @@
       'skip.later': 'Later',
 
       'lessons.title': '20-second lessons',
-      'lessons.titleDay': 'Day {n} lessons',
+      'lessons.titleDay': 'Stage {n} lessons',
       'lessons.sub': 'Pass each mini-check to unlock the challenge, up to +{n} XP',
       'lessons.progress': '{a} of {b} lessons passed',
       'lessons.check': 'Quick check',
@@ -455,7 +455,7 @@
       'cow.etfGain': '{amount} more than cash',
       'cow.note': 'Same assumptions as the chart: 5.7% a year after costs, 3.5% inflation. Illustrative, not a forecast or a guarantee.',
 
-      'compliance.mifid': 'Finance Quest is strictly an educational and simulation tool. Calculations are based on simplified assumptions and historical data, exclude capital gains tax, brokerage fees, and currency risk, do not guarantee future returns, and do not constitute investment advice or a recommendation under MiFID II. Investing involves the risk of losing part or all of your capital.',
+      'compliance.mifid': 'Investly is strictly an educational and simulation tool. Calculations are based on simplified assumptions and historical data, exclude capital gains tax, brokerage fees, and currency risk, do not guarantee future returns, and do not constitute investment advice or a recommendation under MiFID II. Investing involves the risk of losing part or all of your capital.',
       'ai.disclaimer': 'Atlas is an AI guide and can make mistakes. Always verify key details. Educational simulation only, not financial advice.',
 
       'mission.srTitle': 'Decision simulation',
@@ -470,7 +470,7 @@
       'mission.dayChip': 'Stage {d} of 14',
       'mission.stepChip': 'Step {s} of {t}',
       'mission.portfolio': 'Simulated portfolio {amount}',
-      'mission.coraWho': 'Atlas, your Commerzbank financial guide',
+      'mission.coraWho': 'Atlas, your Collabothon financial guide',
       'mission.ownLabel': 'Or answer in your own words',
       'mission.ownPlaceholder': "Tell Atlas what you'd do and why…",
       'mission.ownHint': 'Enter to check, Shift+Enter for a new line',
@@ -606,24 +606,25 @@
       'board.demo': 'Sample friends (demo)',
       'board.levelUp': 'Milestone',
       'board.gap': '{n} XP behind first place. Tomorrow can close the gap.',
-      'board.lead': "You're leading. Keep your practice going tomorrow.",
+      'board.lead': "You're leading. Keep your practice going.",
+      'board.meLevelUp': 'You (Level Up!)',
       'board.challenge': 'Challenge a friend',
       'board.copied': 'Invite copied. Send it to a friend!',
       'board.copyFail': "Couldn't copy. Here's the invite: {text}",
       'board.invite': "I'm on Stage {d} of the 14-Stage Investly Journey with {xp} XP. Can you catch me?",
 
-      'bank.title': 'Your sample plan at Commerzbank',
+      'bank.title': 'Your sample plan at Collabothon',
       'bank.preview': 'Preview of the banking app. Nothing is executed in the demo.',
       'bank.choose': 'Choose a step',
       'bank.optA': "Option A: today's step",
       'bank.recommended': 'Recommended',
       'bank.transfer': 'Transfer {amount} to {account}',
-      'bank.optB': 'Option B: sample plan for Day 14',
+      'bank.optB': 'Option B: sample plan for Stage 14',
       'bank.optBSavings': 'Cushion: {amount}/mo to a savings account. ETF later (example {etf}/mo).',
       'bank.kyc': 'In production: suitability test, identity check (KYC), cost and risk information.',
       'bank.noTransfer': 'Educational simulation — no money will be transferred.',
       'bank.simulate': 'Simulate this step (demo, no transfer)',
-      'bank.success': 'Your Day {d} step is recorded. See you tomorrow.',
+      'bank.success': 'Your Stage {d} step is recorded. Continue whenever you are ready.',
       'bank.successNote': 'Simulated: {what}. Nothing was executed in the demo.',
       'bank.nextGen': 'Try another generation (demo)',
       'bank.whatA': 'transfer of {amount} to {account}',
@@ -631,7 +632,7 @@
 
       'cp.srTitle': 'Checkpoint #1',
       'cp.title': 'Checkpoint #1',
-      'cp.sub': 'Four quick questions on Days 1–4. Score 75% to earn the Foundation Ready badge.',
+      'cp.sub': 'Four quick questions on Stages 1–4. Score 75% to earn the Foundation Ready badge.',
       'cp.q': 'Question {i} of {n}',
       'cp.next': 'Next question',
       'cp.submit': 'Check my answers',
@@ -664,11 +665,11 @@
       'cora.topic.diversification': 'Diversification',
       'cora.topic.fees': 'Fees (TER)',
 
-      'judges.title': 'How Finance Quest works',
-      'judges.sub': 'Commerzbank challenge: from financial knowledge to a first real step.',
+      'judges.title': 'How Investly works',
+      'judges.sub': 'Collabothon challenge: from financial knowledge to a first real step.',
       'judges.jumpDay4': 'Jump to Stage 4',
       'judges.openCp': 'Open Checkpoint #1',
-      'judges.noMultiDay': "This server doesn't have Days 2–4 yet.",
+      'judges.noMultiDay': "This server doesn't have Stages 2–4 yet.",
       'judges.demoHint': 'Sample life stages and presenter shortcuts are in Settings (the gear, top right).',
       'demo.stages': 'Sample life stage',
       'demo.shortcuts': 'Presenter shortcuts',
@@ -766,7 +767,7 @@
       'about.title': 'O Investly',
       'about.sub': 'Spokojniejszy sposób na zbudowanie pewności inwestowania.',
       'about.teamTitle': 'Zespół',
-      'about.teamNames': 'Deweloper 1 · Deweloper 2 · Deweloper 3',
+      'about.teamNames': 'Kacper Pogorzelski · Mikita Karabeika · Bartłomiej Mączyński',
       'about.goalTitle': 'Cel na Collabothon 2026',
       'about.goalText': 'Sprawić, aby pierwszy krok w inwestowaniu był jasny, spokojny i osiągalny dla osób w każdym wieku.',
       'about.safetyTitle': 'Edukacja i bezpieczeństwo',
@@ -993,7 +994,7 @@
       'cow.etfGain': 'O {amount} więcej niż gotówka',
       'cow.note': 'Te same założenia co na wykresie: 5,7% rocznie po kosztach, inflacja 3,5%. Ilustracja, a nie prognoza ani gwarancja.',
 
-      'compliance.mifid': 'Aplikacja Finance Quest ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.',
+      'compliance.mifid': 'Aplikacja Investly ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.',
       'ai.disclaimer': 'Atlas to przewodnik AI i może popełniać błędy. Symulacja wyłącznie edukacyjna — to nie jest porada inwestycyjna.',
 
       'mission.srTitle': 'Symulacja decyzji',
@@ -1008,7 +1009,7 @@
       'mission.dayChip': 'Etap {d} z 14',
       'mission.stepChip': 'Krok {s} z {t}',
       'mission.portfolio': 'Portfel w symulacji: {amount}',
-      'mission.coraWho': 'Atlas, przewodnik finansowy Commerzbanku',
+      'mission.coraWho': 'Atlas, przewodnik finansowy Collabothonu',
       'mission.ownLabel': 'Albo odpowiedz własnymi słowami',
       'mission.ownPlaceholder': 'Napisz Atlasowi, co robisz i dlaczego…',
       'mission.ownHint': 'Enter sprawdza, Shift+Enter to nowa linia',
@@ -1033,7 +1034,7 @@
       'alloc.safeAlt': 'Dostępne oszczędności',
       'alloc.grow': 'Potencjał wzrostu',
       'alloc.swing': 'Krótkie wahania',
-      'alloc.note': 'Po {years} część w ETF mogłaby być warta ok. {amount} w dzisiejszych złotych (ilustracyjnie).',
+      'alloc.note': 'Za {years} część w ETF mogłaby być warta ok. {amount} w dzisiejszych złotych (ilustracyjnie).',
       'alloc.okNoCushion': 'Najpierw poduszka. Gdy większość trafia do niej, zepsuty laptop nie zmusi Cię do sprzedaży w czasie spadku.',
       'alloc.tooMuchNoCushion': 'Odważnie, ale bez poduszki jeden nagły rachunek może zmusić Cię do sprzedaży w złym momencie. Na razie większość daj do poduszki.',
       'alloc.okCushion': 'Wyważone. Część pracuje długo w szerokim ETF, część zostaje pod ręką.',
@@ -1105,7 +1106,7 @@
       'bankcard.demo': 'Symulacja',
       'bankcard.step1': 'Miesięczny podział wolnych środków',
       'bankcard.step2': 'Dlaczego taki podział?',
-      'bankcard.step3': 'Szacowany efekt po {years}',
+      'bankcard.step3': 'Szacowany efekt za {years}',
       'bankcard.cushionLabel': 'Poduszka bezpieczeństwa',
       'bankcard.etfLabel': 'Szeroki globalny ETF',
       'bankcard.whySplit': 'Większość wolnych środków najpierw buduje Twoją poduszkę, a mała kwota na ETF pozwala spokojnie ćwiczyć bez ryzykowania pieniędzy na rachunki.',
@@ -1144,24 +1145,25 @@
       'board.demo': 'Przykładowi znajomi (demo)',
       'board.levelUp': 'Kamień milowy',
       'board.gap': 'Do 1. miejsca brakuje Ci {n} XP. Jutro możesz to nadrobić.',
-      'board.lead': 'Prowadzisz w rankingu. Kontynuuj praktykę jutro.',
+      'board.lead': 'Prowadzisz w rankingu. Kontynuuj praktykę.',
+      'board.meLevelUp': 'Ty (Awans!)',
       'board.challenge': 'Wyzwij znajomego',
       'board.copied': 'Zaproszenie skopiowane. Wyślij je znajomemu!',
       'board.copyFail': 'Nie udało się skopiować. Treść zaproszenia: {text}',
-      'board.invite': 'Jestem na Dniu {d} z 14 w Finance Quest i mam {xp} XP. Dogonisz mnie?',
+      'board.invite': 'Jestem na Etapie {d} z 14 na ścieżce Investly i mam {xp} XP. Dogonisz mnie?',
 
-      'bank.title': 'Przykładowy plan w Commerzbanku',
+      'bank.title': 'Przykładowy plan w Collabothonie',
       'bank.preview': 'Podgląd aplikacji bankowej. W wersji demo nic nie zostanie wykonane.',
       'bank.choose': 'Wybierz krok',
       'bank.optA': 'Opcja A: krok na dziś',
       'bank.recommended': 'Polecana',
       'bank.transfer': 'Przelew {amount} na {account}',
-      'bank.optB': 'Opcja B: przykładowy plan na Dzień 14',
+      'bank.optB': 'Opcja B: przykładowy plan na Etap 14',
       'bank.optBSavings': 'Poduszka: {amount}/mies. na konto oszczędnościowe. ETF później (przykład {etf}/mies.).',
       'bank.kyc': 'W wersji produkcyjnej: test odpowiedniości, weryfikacja tożsamości (KYC), informacja o kosztach i ryzyku.',
       'bank.noTransfer': 'Symulacja edukacyjna — nic nie zostanie przelane.',
       'bank.simulate': 'Symuluj ten krok (demo, bez przelewu)',
-      'bank.success': 'Krok Dnia {d} zapisany. Do zobaczenia jutro.',
+      'bank.success': 'Krok Etapu {d} zapisany. Kontynuuj, kiedy chcesz.',
       'bank.successNote': 'Symulacja: {what}. W wersji demo nic nie zostało wykonane.',
       'bank.nextGen': 'Przetestuj inne pokolenie (demo)',
       'bank.whatA': 'przelew {amount} na {account}',
@@ -1169,7 +1171,7 @@
 
       'cp.srTitle': 'Checkpoint #1',
       'cp.title': 'Checkpoint #1',
-      'cp.sub': 'Cztery szybkie pytania z Dni 1–4. Zdobądź 75%, a odblokujesz odznakę Fundamenty Opanowane.',
+      'cp.sub': 'Cztery szybkie pytania z Etapów 1–4. Zdobądź 75%, a odblokujesz odznakę Fundamenty Opanowane.',
       'cp.q': 'Pytanie {i} z {n}',
       'cp.next': 'Następne pytanie',
       'cp.submit': 'Sprawdź odpowiedzi',
@@ -1202,11 +1204,11 @@
       'cora.topic.diversification': 'Dywersyfikacja',
       'cora.topic.fees': 'Opłaty (TER)',
 
-      'judges.title': 'Jak działa Finance Quest',
-      'judges.sub': 'Wyzwanie Commerzbanku: od wiedzy finansowej do pierwszego realnego kroku.',
+      'judges.title': 'Jak działa Investly',
+      'judges.sub': 'Wyzwanie Collabothonu: od wiedzy finansowej do pierwszego realnego kroku.',
       'judges.jumpDay4': 'Skocz do Etapu 4',
       'judges.openCp': 'Otwórz Checkpoint #1',
-      'judges.noMultiDay': 'Ten serwer nie ma jeszcze Dni 2–4.',
+      'judges.noMultiDay': 'Ten serwer nie ma jeszcze Etapów 2–4.',
       'judges.demoHint': 'Przykładowe etapy życia i skróty dla prowadzącego są w Ustawieniach (zębatka w prawym górnym rogu).',
       'demo.stages': 'Przykładowy etap życia',
       'demo.shortcuts': 'Skróty dla prowadzącego',
@@ -1247,7 +1249,7 @@
       'pvd.disciplineHold': 'Wartość na papierze w dołku',
       'pvd.disciplineNote': 'Bez sprzedaży nie ma straty',
       'pvd.disciplineRest': 'Wpłaty idą dalej zgodnie z planem',
-      'pvd.total': 'Po {years}, w dzisiejszych złotych',
+      'pvd.total': 'Za {years}, w dzisiejszych złotych',
       'pvd.gap': 'Dyscyplina: ok. {amount} więcej w dzisiejszych złotych',
       'pvd.note': 'Ilustracja przy tych samych założeniach co Wehikuł czasu (5,7% rocznie po kosztach, inflacja 3,5%, dzisiejsze złote). Spadek to scenariusz edukacyjny; historia nie gwarantuje przyszłości.',
 
@@ -1269,7 +1271,7 @@
         { icon: 'users', tone: 'yellow', title: 'Target learner',
           text: 'Self-directed beginners of every age who keep savings in cash because investing feels risky, complex or "not for me yet". Four life stages adapt the horizon, tone and scenarios.' },
         { icon: 'target', tone: 'sky', title: 'Learning objective',
-          text: 'After Day 1 the learner can explain why cash loses real value, why a cushion comes before investing, why a broad ETF spreads risk, and why a -20% dip is not a loss unless you sell.' },
+          text: 'After Stage 1 the learner can explain why cash loses real value, why a cushion comes before investing, why a broad ETF spreads risk, and why a -20% dip is not a loss unless you sell.' },
         { icon: 'check', tone: 'green', title: 'How it proves understanding',
           list: ['Every free-text answer is graded optimal, partial or invalid. Gibberish earns 0 XP and the step repeats.',
             'Mixed formats: scenario decisions, a cash-split slider, myth vs reality, spotting the fee that matters.',
@@ -1283,10 +1285,10 @@
           text: 'Gen Z starts with a 200 PLN/mo practice plan and a 15-year horizon. From age 45 the app switches to larger text and a calm layout, shows the cost of waiting in PLN and, for 55+, uses a 7-year horizon and the "is it too late?" scenario. Anyone can toggle "Larger text / Calm UI".' },
         { icon: 'shield', tone: 'paper', title: 'Honest by design',
           text: 'No promised returns and no tickers. Every number shows its assumptions (5.7% after costs, 3.5% inflation, today\'s PLN). Atlas is labelled as an AI guide that can make mistakes.' },
-        { icon: 'landmark', tone: 'yellow', title: 'Value for Commerzbank', wide: true,
-          text: 'Day 1 ends with a first deposit, Day 2 opens a brokerage or demo account, Day 3 sets up a standing order. That means deposits, assets under management and retention through a channel outside apps cannot reach.' },
+        { icon: 'landmark', tone: 'yellow', title: 'Value for Collabothon', wide: true,
+          text: 'Stage 1 ends with a first deposit, Stage 2 opens a brokerage or demo account, Stage 3 sets up a standing order. That means deposits, assets under management and retention through a channel outside apps cannot reach.' },
         { icon: 'play', tone: 'sky', title: 'Try it in 60 seconds', wide: true,
-          text: 'Tap "First paycheck", pass the three lesson checks and start the Day 1 simulation. Type "asdf" in step 1 and watch Atlas reject it with 0 XP. Switch EN | PL in the header at any time.' },
+          text: 'Tap "First paycheck", pass the three lesson checks and start the Stage 1 simulation. Type "asdf" in step 1 and watch Atlas reject it with 0 XP. Switch EN | PL in the header at any time.' },
       ],
       after14: [
         { id: 'rebalancing', icon: 'scale', title: 'Portfolio & rebalancing', description: 'Once a quarter, check your proportions and calmly return to your plan.', cadence: 'Quarterly, ~10 min' },
@@ -1300,7 +1302,7 @@
         { icon: 'users', tone: 'yellow', title: 'Odbiorca',
           text: 'Początkujący, samodzielni inwestorzy w każdym wieku, którzy trzymają oszczędności w gotówce, bo inwestowanie wydaje się ryzykowne, skomplikowane albo „jeszcze nie dla mnie”. Cztery etapy życia dopasowują horyzont, ton i scenariusze.' },
         { icon: 'target', tone: 'sky', title: 'Cel nauki',
-          text: 'Po Dniu 1 użytkownik potrafi wyjaśnić, dlaczego gotówka traci realną wartość, dlaczego poduszka jest przed inwestowaniem, dlaczego szeroki ETF rozkłada ryzyko i dlaczego spadek -20% nie jest stratą, dopóki nie sprzedajesz.' },
+          text: 'Po Etapie 1 użytkownik potrafi wyjaśnić, dlaczego gotówka traci realną wartość, dlaczego poduszka jest przed inwestowaniem, dlaczego szeroki ETF rozkłada ryzyko i dlaczego spadek -20% nie jest stratą, dopóki nie sprzedajesz.' },
         { icon: 'check', tone: 'green', title: 'Jak sprawdzamy zrozumienie',
           list: ['Każda własna odpowiedź dostaje ocenę: optymalna, częściowa albo nieważna. Bełkot daje 0 XP i krok się powtarza.',
             'Różne formaty: decyzje w scenariuszach, suwak podziału gotówki, mit czy fakt, wskazanie opłaty, która ma znaczenie.',
@@ -1314,10 +1316,10 @@
           text: 'Pokolenie Z zaczyna od treningu 200 zł/mies. i horyzontu 15 lat. Od 45. roku życia aplikacja przełącza się na większą czcionkę i spokojny układ, pokazuje koszt czekania w złotych, a dla 55+ używa horyzontu 7 lat i scenariusza „czy to nie za późno?”. Każdy może włączyć „Większa czcionka / Calm UI”.' },
         { icon: 'shield', tone: 'paper', title: 'Uczciwie od podstaw',
           text: 'Zero obietnic zysku i zero tickerów. Każda liczba pokazuje założenia (5,7% po kosztach, inflacja 3,5%, dzisiejsze złote). Atlas jest oznaczony jako przewodnik AI, który może się mylić.' },
-        { icon: 'landmark', tone: 'yellow', title: 'Wartość dla Commerzbanku', wide: true,
-          text: 'Dzień 1 kończy się pierwszą wpłatą, Dzień 2 otwiera konto maklerskie lub demo, Dzień 3 ustawia zlecenie stałe. To depozyty, aktywa w zarządzaniu i retencja w kanale niedostępnym dla zewnętrznych aplikacji.' },
+        { icon: 'landmark', tone: 'yellow', title: 'Wartość dla Collabothonu', wide: true,
+          text: 'Etap 1 kończy się pierwszą wpłatą, Etap 2 otwiera konto maklerskie lub demo, Etap 3 ustawia zlecenie stałe. To depozyty, aktywa w zarządzaniu i retencja w kanale niedostępnym dla zewnętrznych aplikacji.' },
         { icon: 'play', tone: 'sky', title: 'Sprawdź w 60 sekund', wide: true,
-          text: 'Kliknij „Pierwsza wypłata”, zalicz trzy mini-checki lekcji i zacznij symulację Dnia 1. W kroku 1 wpisz „asdf” i zobacz, jak Atlas odrzuca to za 0 XP. W nagłówku w każdej chwili przełączysz EN | PL.' },
+          text: 'Kliknij „Pierwsza wypłata”, zalicz trzy mini-checki lekcji i zacznij symulację Etapu 1. W kroku 1 wpisz „asdf” i zobacz, jak Atlas odrzuca to za 0 XP. W nagłówku w każdej chwili przełączysz EN | PL.' },
       ],
       after14: [
         { id: 'rebalancing', icon: 'scale', title: 'Portfel i rebalansowanie', description: 'Raz na kwartał sprawdzasz proporcje i spokojnie wracasz do planu.', cadence: 'Co kwartał, ~10 min' },
@@ -1515,7 +1517,7 @@
     });
   }
 
-  // --- Atlas: Commerzbank financial guide — a precise compass (viewBox 64×64) ---
+  // --- Atlas: Collabothon financial guide — a precise compass (viewBox 64×64) ---
   // Petrol case, white dial, 1.75px ticks, canary north needle. At rest nothing moves; the
   // needle turns only on purpose (moods in styles.css §8: thinking / celebrating / coaching).
   function coraSVG() {
@@ -1925,7 +1927,7 @@
       return await request(state.session.session_id);
     } catch (err) {
       if (!isSessionMissing(err) || !state.lastProfile) throw err;
-      console.info('[Finance Quest] Session missing on the server (404), restoring it silently.');
+      console.info('[Investly] Session missing on the server (404), restoring it silently.');
       const sid = await restoreSession();
       return request(sid);
     }
@@ -2378,7 +2380,7 @@
       const data = await api.personas(state.lang);
       if (Array.isArray(data)) state.personas = data;
     } catch (err) {
-      console.info('[Finance Quest] /api/demo-personas unavailable (' + err.message + '), using built-in profiles.');
+      console.info('[Investly] /api/demo-personas unavailable (' + err.message + '), using built-in profiles.');
     }
   }
 
@@ -4553,7 +4555,7 @@
         '<span class="tile"><span class="radio-dot" aria-hidden="true"></span><span><span class="strong">' + escapeHtml(title) + '</span> ' + badge +
         '<span class="small" style="display:block;margin-top:4px;font-weight:600;color:var(--ink-2)">' + body + '</span></span></span></label>';
     box.innerHTML =
-      '<div class="bank-head"><span><span class="bank-head__mark">' + icon('landmark', 'ic--sm') + '</span>Commerzbank</span><span class="chip chip--yellow" style="min-height:26px">DEMO</span></div>' +
+      '<div class="bank-head"><span><span class="bank-head__mark">' + icon('landmark', 'ic--sm') + '</span>Collabothon</span><span class="chip chip--yellow" style="min-height:26px">DEMO</span></div>' +
       '<p class="trust-note" style="margin-top:12px">' + icon('shield', 'ic--sm') + '<span>' + escapeHtml(t('bank.noTransfer')) + ' <span class="muted" style="font-weight:500">' + escapeHtml(t('bank.preview')) + '</span></span></p>' +
       '<fieldset style="margin-top:14px"><legend class="small strong">' + escapeHtml(t('bank.choose')) + '</legend><div class="tiles" style="margin-top:8px">' +
         option('a', t('bank.optA'), '<span class="chip chip--green" style="min-height:24px;padding:0 8px;font-size:.7rem">' + escapeHtml(t('bank.recommended')) + '</span>',
@@ -4770,7 +4772,7 @@
         if (validExplain(res) && !genericFallback) result = res;
       }
     } catch (err) {
-      if (!isRouteMissing(err)) console.info('[Finance Quest] /api/coach/explain failed (' + err.message + '), using the offline explanation.');
+      if (!isRouteMissing(err)) console.info('[Investly] /api/coach/explain failed (' + err.message + '), using the offline explanation.');
     }
     state.cora.busy = false;
     state.cora.result = result || localExplain(q, topicKey);
@@ -4949,10 +4951,47 @@
       if (state.screen === SCREENS.HUB) { renderHub(); renderGardenCard(); updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false }); }
       if (state.screen === SCREENS.MISSION && state.mission && state.mission.phase === 'answer') renderBeat();
       else if (state.screen === SCREENS.MISSION) renderMissionBar();
-      if (state.screen === SCREENS.DONE) renderDone({ animate: false });
+      if (state.screen === SCREENS.DONE) { renderDone({ animate: false }); refreshDoneContent(); }
       if (state.screen === SCREENS.CHECKPOINT) renderCheckpoint();
     }
     if (!els.coraSheet.hidden) renderCoraBody();
+  }
+
+  // Stage summary after a language switch: replaying mission/turn on a completed stage is
+  // idempotent on the server (no XP/step change) and returns the final copy in the new language,
+  // so the challenge, checklist, plan and leaderboard do not stay in the previous language.
+  async function refreshDoneContent() {
+    const tt = state.turn;
+    if (!tt || !tt.mission_completed) return;
+    const token = state.token;
+    const day = state.day;
+    const lang = state.lang;
+    try {
+      const res = await withSessionRecovery((sid) => api.turn({ session_id: sid, user_message: 'lang', day, lang }));
+      if (token !== state.token || day !== state.day || lang !== state.lang || state.turn !== tt) return;
+      if (!res || !res.mission_completed) return;
+      const meName = (rows) => {
+        const me = (rows || []).find((r) => r.is_current_user);
+        return me ? me.name : null;
+      };
+      const newMe = meName(res.leaderboard);
+      const relabel = (rows) => (Array.isArray(rows) && newMe
+        ? rows.map((r) => (r.is_current_user ? Object.assign({}, r, { name: /\(/.test(r.name) ? t('board.meLevelUp') : newMe }) : r))
+        : rows);
+      state.turn = Object.assign({}, tt, {
+        luna_message: res.luna_message,
+        real_world_challenge: res.real_world_challenge || tt.real_world_challenge,
+        final_checklist: res.final_checklist || tt.final_checklist,
+        bank_draft: res.bank_draft || tt.bank_draft,
+        post_14_paths: res.post_14_paths || tt.post_14_paths,
+        portfolio_status: res.portfolio_status || tt.portfolio_status,
+        leaderboard: relabel(tt.leaderboard),
+      });
+      if (state.summary) state.summary.leaderboard = relabel(state.summary.leaderboard);
+      if (state.screen === SCREENS.DONE) renderDone({ animate: false });
+    } catch (err) {
+      console.info('[Investly] Could not refresh the stage summary in the new language (' + err.message + ').');
+    }
   }
 
   async function refreshDayContent() {
@@ -4969,7 +5008,7 @@
       renderHub();
       renderHud({ animate: false });
     } catch (err) {
-      console.info('[Finance Quest] Could not refresh day content in the new language (' + err.message + ').');
+      console.info('[Investly] Could not refresh day content in the new language (' + err.message + ').');
     }
   }
 
@@ -5257,7 +5296,7 @@
     renderHud({ animate: false });
     loadPersonas();
     const missing = ['Chart', 'confetti'].filter((n) => !window[n]);
-    if (missing.length) console.warn('[Finance Quest] Missing local libraries in /static/vendor/: ' + missing.join(', '));
+    if (missing.length) console.warn('[Investly] Missing local libraries in /static/vendor/: ' + missing.join(', '));
   }
 
   // Debug handle for the console (no globals beyond this).
