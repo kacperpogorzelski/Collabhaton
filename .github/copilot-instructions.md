@@ -8,12 +8,13 @@ Ten plik jest wyłącznie lekkim wskaźnikiem. **Nie duplikuje dokumentacji** �
 3. Dokumenty SSOT dla Twojej roli w `docs/`:
    - `docs/01_PRODUCT_AND_GUI_SPEC.md` — produkt, grywalizacja, dopaminowe GUI (**Osoba 3**)
    - `docs/02_TECH_API_AND_MATH.md` — PostgreSQL w Dockerze, matematyka, kontrakt Pydantic/API (**wszyscy**)
-   - `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md` — AI Coach Luna, mapa 14 dni, fallbacki (**Osoba 2 i Osoba 1**)
+   - `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md` — AI Coach **Cora** (`luna_service.py`), fazy 14-dniowego sprintu, Dni 1–4, Checkpoint #1, fallbacki (**Osoba 2 i Osoba 1**)
 
 
 ## 2. Twarde reguły pracy (zobacz szczegóły w `AGENTS.md`)
-- **Out of Scope (`AGENTS.md` §3):** ZERO autoryzacji/JWT/logowania, ZERO Alembica/migracji, ZERO Node/npm/React/TS. W pełni interaktywny jest wyłącznie Dzień 1 z 14.
+- **Out of Scope (`AGENTS.md` §3):** ZERO autoryzacji/JWT/logowania, ZERO Alembica/migracji, ZERO Node/npm/React/TS. W pełni interaktywne wyłącznie Dni 1–4 + Checkpoint #1.
 - **File Ownership (`AGENTS.md` §5 i §7):** Edytuj **WYŁĄCZNIE** pliki przypisane Twojej roli. Kanoniczne nazwy plików to `backend/database.py` (NIE `db.py`) oraz `static/styles.css` (NIE `style.css`).
 - **Zamrożenie kontraktu API:** Nie zmieniaj nazw pól JSON, modeli ani endpointów z `docs/02_TECH_API_AND_MATH.md` bez aktualizacji `backend/schemas.py`, wpisu w `WORKLOG.md` i powiadomienia zespołu.
-- **Dwujęzyczność PL / EN (obowiązkowa):** każda treść widoczna dla użytkownika (UI, `demo_data.py`, `finance_math.py`, prompt i fallback Luny) musi mieć wersję `pl` oraz `en` zgodnie z kontraktem `lang: Literal["pl", "en"] = "pl"` (`docs/01` §9, `docs/02` §9, `docs/03` §10, `WORKLOG.md` §3 pkt 10); kwoty pozostają w PLN.
+- **Dwujęzyczność EN / PL (obowiązkowa, domyślnie `en`):** każda treść widoczna dla użytkownika (UI, `demo_data.py`, `finance_math.py`, prompty i fallbacki Cory w `luna_service.py`) musi mieć wersję `en` (domyślną) oraz `pl` zgodnie z kontraktem `lang: Literal["en", "pl"] = "en"` (`docs/01` §9, `docs/02` §9, `docs/03` §10, `WORKLOG.md` §3 pkt 10–11); kwoty pozostają w PLN.
+- **Imię Coacha i maskotki:** **Cora** (plik `backend/luna_service.py` i pole JSON `luna_message` zostają bez zmian dla wstecznej kompatybilności).
 - **Git & Status (ZAKAZ pracy na `main`):** przed pierwszą edycją pliku sprawdź `git branch --show-current`; jeśli jesteś na `main`, załóż nowy branch `feat/issue-<nr>-<krotka-nazwa>` (1 Issue = 1 mały PR/commit). Zakaz edycji i commitów kodu aplikacji bezpośrednio na `main`. Nigdy nie commituj `.env` i po zamknięciu zadania zaktualizuj `WORKLOG.md`.
