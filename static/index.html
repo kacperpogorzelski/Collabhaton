@@ -29,10 +29,33 @@
         </span>
       </button>
 
+      <div class="hud__stats" id="hud-stats">
+        <div class="ready" id="hud-ready" hidden>
+          <span class="ready__label"><span data-ready-label data-i18n="hud.readiness">Readiness</span> <b id="hud-ready-val">0%</b></span>
+          <div class="meter" role="progressbar" data-i18n-aria="hud.readiness" aria-label="Readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="hud-ready-bar">
+            <div class="meter__fill" id="hud-ready-fill" style="width: 0%"></div>
+          </div>
+        </div>
+        <span class="stat stat--stage" id="hud-stage" data-i18n-title="hud.stageTitle" title="Competence stage">
+          <span data-icon="pillars"></span><span id="hud-level">Stage 1/5</span>
+        </span>
+        <span class="stat stat--day" id="hud-day" data-i18n-title="hud.dayTitle" title="Day of your 14-day sprint">
+          <span data-icon="calendar"></span><span class="stat__label" data-i18n="hud.day">Day</span>
+          <b class="num"><span id="hud-day-num">1</span>/<span id="hud-day-total">14</span></b>
+        </span>
+        <span class="stat stat--practice xp-detail" data-i18n-title="hud.streakTitle" title="Practice days">
+          <span data-i18n="hud.practiceLabel">Practice days:</span><b class="num" id="hud-streak">1</b>
+        </span>
+        <span class="stat stat--xp xp-detail" id="hud-xp-pill" data-i18n-title="hud.xpTitle" title="Practice points (XP)">
+          <b class="num" id="hud-xp">20</b><span class="stat__unit">XP</span>
+        </span>
+      </div>
+
       <div class="hud__tools">
         <button type="button" class="icon-btn icon-btn--gear" id="hud-settings-btn" data-action="toggle-settings" aria-expanded="false" aria-controls="settings-pop" aria-haspopup="dialog" data-i18n-aria="settings.title" aria-label="Settings"><span data-icon="gear"></span></button>
       </div>
     </div>
+    <div class="wrap hud__ready-row" id="hud-ready-row" hidden></div>
 
     <!-- Settings (gear): language, sound, calm mode, reset, About us, presenter shortcuts -->
     <div class="settings-pop" id="settings-pop" role="dialog" aria-labelledby="settings-title" hidden>

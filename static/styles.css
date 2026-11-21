@@ -284,7 +284,7 @@ main { padding: 24px 0 120px; }
 .trust-note .ic { color: var(--sky-strong); margin-top: 1px; }
 
 /* --------------------------------------------------------------------------
-   7. HUD — readiness & stage first; settings live behind the gear
+   7. HUD — readiness, stage, day, streak and XP stay visible; settings live behind the gear
    -------------------------------------------------------------------------- */
 .hud {
   position: sticky; top: 0; z-index: 40;
@@ -293,14 +293,15 @@ main { padding: 24px 0 120px; }
   backdrop-filter: saturate(140%) blur(8px);
   border-bottom: var(--line);
 }
-.hud__inner { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: var(--hud-h); padding-top: 10px; padding-bottom: 10px; }
-.hud__brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; border-radius: var(--r-md); padding-right: 4px; text-align: left; }
+.hud__inner { display: flex; align-items: center; gap: 14px; min-height: var(--hud-h); padding-top: 10px; padding-bottom: 10px; }
+.hud__brand { display: inline-flex; align-items: center; gap: 10px; min-width: 0; flex: 0 1 auto; min-height: 44px; border-radius: var(--r-md); padding-right: 4px; text-align: left; }
 .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 11px; background: var(--ink-surface); color: var(--yellow); box-shadow: 0 3px 8px rgba(28, 55, 69, .16); }
 .brand-mark .ic { width: 22px; height: 22px; }
 .brand-text { display: block; line-height: 1.15; }
 .brand-name { display: block; font-weight: 800; font-size: 1.12rem; letter-spacing: -0.02em; }
 .brand-sub { display: block; font-size: 0.75rem; font-weight: 600; color: var(--ink-2); margin-top: 3px; }
-.hud__stats { display: none; }
+.hud__stats { display: flex; align-items: center; gap: 10px; flex: 1 1 0; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.hud__stats::-webkit-scrollbar { display: none; }
 .stat {
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 38px; padding: 0 12px;
@@ -329,7 +330,7 @@ main { padding: 24px 0 120px; }
 .meter__fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, var(--green), #34D399); border-radius: 999px; transition: width .8s var(--ease-out); }
 .meter--lg { height: 12px; }
 
-.hud__tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.hud__tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
 .icon-btn {
   display: inline-grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0;
   border: 1.5px solid var(--rule); border-radius: var(--r-md); background: var(--card); color: var(--ink);
@@ -373,19 +374,19 @@ main { padding: 24px 0 120px; }
 .settings__title { font-weight: 800; font-size: 1.0625rem; }
 .settings__section { display: grid; gap: 8px; padding-top: 12px; border-top: 1.5px solid var(--rule-2); }
 .settings__label { font-size: 0.8125rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); }
-.settings__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-weight: 700; }
+.settings__row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 12px; font-weight: 700; }
 .settings__row .seg button { min-width: 58px; }
 .settings-pop .tool-btn { width: 100%; justify-content: flex-start; }
 .switch-row {
-  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px;
   width: 100%; min-height: 58px; padding: 8px 12px; text-align: left;
   border: 1.5px solid var(--rule); border-radius: var(--r-md); background: var(--card);
   transition: border-color var(--t), background-color var(--t);
 }
 .switch-row:hover { border-color: var(--ink-2); }
 .switch-row .tile-ic { width: 36px; height: 36px; border-radius: 10px; }
-.switch-row__title { display: block; font-weight: 800; font-size: 0.9375rem; line-height: 1.25; }
-.switch-row__sub { display: block; font-size: 0.8125rem; color: var(--ink-2); line-height: 1.35; }
+.switch-row__title { display: block; overflow-wrap: anywhere; font-weight: 800; font-size: 0.9375rem; line-height: 1.25; }
+.switch-row__sub { display: block; overflow-wrap: anywhere; font-size: 0.8125rem; color: var(--ink-2); line-height: 1.35; }
 .switch { position: relative; width: 44px; height: 26px; border-radius: 999px; background: var(--stone-2); transition: background-color var(--t); }
 .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(28, 55, 69, .3); transition: transform var(--t); }
 .switch-row[aria-checked="true"] { border-color: var(--green); background: var(--mint); }
@@ -405,6 +406,15 @@ main { padding: 24px 0 120px; }
   .hud__inner { gap: 8px; }
   .brand-mark { width: 40px; height: 40px; }
   .brand-sub { display: none; }
+  .hud__stats { gap: 5px; }
+  .stat { min-height: 36px; padding: 0 8px; font-size: 0.8125rem; gap: 4px; }
+  .stat .ic { width: 15px; height: 15px; }
+  .stat__unit { display: inline; }
+  .hud__stats .ready { display: none; }
+  .hud__ready-row { display: flex; padding-bottom: 10px; }
+  .hud__ready-row .ready { flex: 1; max-width: none; flex-direction: row; align-items: center; gap: 12px; }
+  .hud__ready-row .ready__label { flex: 0 1 auto; min-width: 0; white-space: normal; line-height: 1.25; }
+  .hud__ready-row .ready .meter { flex: 1; }
 }
 
 .xp-float {
@@ -1311,7 +1321,15 @@ body.is-senior-friendly .answers { gap: 14px; }
 body.is-senior-friendly .lessons { gap: 16px; }
 body.is-senior-friendly .scene__msg { line-height: 1.65; }
 body.is-senior-friendly .ready { flex-basis: 280px; }
+body.is-senior-friendly .hud__stats { gap: 6px; }
+body.is-senior-friendly .stat { white-space: normal; line-height: 1.2; }
 @media (min-width: 900px) { body.is-senior-friendly .hub { grid-template-columns: 300px minmax(0, 1fr); } }
+@media (max-width: 639px) {
+  body.is-senior-friendly .hud__inner { align-items: flex-start; }
+  body.is-senior-friendly .hud__brand,
+  body.is-senior-friendly .hud__tools { align-self: center; }
+  body.is-senior-friendly .stat { min-height: 42px; padding: 4px 7px; }
+}
 
 /* --------------------------------------------------------------------------
    19. Large screens & reduced motion
