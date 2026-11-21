@@ -99,36 +99,86 @@
     };
   }
 
-  // Five capital pillars, Private Banking style: pillars up to the current stage are filled in
-  // petrol, the current one carries a canary cap, a thin emerald trend line links their tops and
-  // stage 5 ends in a canary target mark. Precise 1px/1.75px lines, no cartoon outlines.
+  // A grown-up botanical plant in a petrol pot, five growth stages:
+  // 1 seed in soil · 2 sprout with two leaves · 3 stronger stem, more leaves ·
+  // 4 side shoots with canary buds · 5 full bloom, gold band on the pot.
+  // Flat fills, hairline midribs, no outlines or faces. With `plant--grow` the stem draws
+  // itself and leaves/buds/flowers unfold in sequence (CSS, respects reduced motion).
+  const PLANT_TONE = Object.freeze({
+    leaf: '#3DAA78', leafDeep: '#24775A', stem: '#2E6F57', rib: 'rgba(255,255,255,.55)',
+    soil: '#4A3B2F', seed: '#8A6A4F', petal: C.yellow, petalEdge: '#D9A43A',
+  });
+
   function plantSVG(stage, extraClass) {
     const s = clamp(Number(stage) || 1, 1, 5);
-    const xs = [10, 36, 62, 88, 114];
-    const hs = [18, 30, 42, 54, 66];
-    const base = 92;
-    const w = 16;
-    const tops = [];
-    const bars = xs.map((x, i) => {
-      const n = i + 1;
-      const y = base - hs[i];
-      if (n <= s) tops.push([x + w / 2, y - 7]);
-      if (n > s) {
-        return '<rect class="pl-bar" x="' + (x + 0.5) + '" y="' + (y + 0.5) + '" width="' + (w - 1) + '" height="' + (hs[i] - 1) + '" rx="2" fill="' + C.paper + '" stroke="' + C.rule + '" stroke-width="1" stroke-dasharray="3 2"/>';
+    const T = PLANT_TONE;
+    const r1 = (n) => Math.round(n * 100) / 100;
+    let delay = 0.25;
+    const nextDelay = (step) => { const d = delay; delay += step || 0.09; return d; };
+    const pop = (x, y, inner, d) =>
+      '<g class="pl-pop" style="--d:' + r1(d) + 's;transform-origin:' + r1(x) + 'px ' + r1(y) + 'px">' + inner + '</g>';
+
+    // Leaf drawn along +x from its base, then rotated into place.
+    const leaf = (x, y, len, angle, deep) => {
+      const w = len * 0.34;
+      const body = '<path d="M0 0C' + r1(len * 0.3) + ' ' + r1(-w) + ' ' + r1(len * 0.78) + ' ' + r1(-w) + ' ' + len + ' 0C' +
+        r1(len * 0.78) + ' ' + r1(w * 0.9) + ' ' + r1(len * 0.3) + ' ' + r1(w * 0.9) + ' 0 0Z" fill="' + (deep ? T.leafDeep : T.leaf) + '"/>' +
+        '<path d="M' + r1(len * 0.12) + ' 0L' + r1(len * 0.82) + ' 0" stroke="' + T.rib + '" stroke-width=".7" stroke-linecap="round"/>';
+      return pop(x, y, '<g transform="translate(' + x + ' ' + y + ') rotate(' + angle + ')">' + body + '</g>', nextDelay());
+    };
+    const bud = (x, y, k) => pop(x, y,
+      '<g transform="translate(' + x + ' ' + y + ') scale(' + k + ')">' +
+        '<path d="M-3.2 1.8C-2 4.6 2 4.6 3.2 1.8L0 3.4Z" fill="' + T.leafDeep + '"/>' +
+        '<ellipse cx="0" cy="-1.6" rx="3" ry="4.4" fill="' + T.petal + '" stroke="' + T.petalEdge + '" stroke-width=".75"/>' +
+      '</g>', nextDelay(0.12));
+    const flower = (x, y, k) => {
+      const petals = [0, 72, 144, 216, 288].map((a) =>
+        '<ellipse cx="0" cy="-5.2" rx="3.3" ry="5.4" transform="rotate(' + a + ')" fill="' + T.petal + '" stroke="' + T.petalEdge + '" stroke-width=".7"/>').join('');
+      return pop(x, y,
+        '<g transform="translate(' + x + ' ' + y + ') scale(' + k + ')">' + petals +
+          '<circle r="2.9" fill="' + C.ink + '"/><circle r="1" cx="-.8" cy="-.8" fill="' + C.yellow + '" opacity=".7"/>' +
+        '</g>', nextDelay(0.14));
+    };
+
+    const topY = { 1: 80, 2: 62, 3: 46, 4: 30, 5: 30 }[s];
+    let growth = '';
+    if (s === 1) {
+      growth = pop(60, 80,
+        '<ellipse cx="60" cy="79.6" rx="4.4" ry="2.9" transform="rotate(-18 60 79.6)" fill="' + T.seed + '"/>' +
+        '<path d="M58.6 78.4c.9-.9 2.2-1.3 3.4-1.1" stroke="#B8977A" stroke-width=".8" fill="none" stroke-linecap="round"/>' +
+        '<path d="M61.6 77.8c.6-2.4 2.2-4 4.4-4.6" stroke="' + T.leaf + '" stroke-width="1.4" fill="none" stroke-linecap="round"/>',
+        0.2);
+    } else {
+      const stem = '<path class="pl-stem" pathLength="1" d="M60 82C58.4 70 61.8 ' + r1(topY + (82 - topY) * 0.45) + ' 60 ' + topY + '" stroke="' + T.stem + '" stroke-width="' + (s >= 3 ? 2.4 : 1.8) + '" fill="none" stroke-linecap="round"/>';
+      const branches = s >= 4
+        ? '<path class="pl-stem" pathLength="1" d="M59.6 60C55 55 49 50 44 42" stroke="' + T.stem + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>' +
+          '<path class="pl-stem" pathLength="1" d="M60.4 54C65 50 71 45 76 38" stroke="' + T.stem + '" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
+        : '';
+      growth = stem + branches;
+      if (s === 2) {
+        growth += leaf(59.6, 72, 15, -152, false) + leaf(60.2, 67, 15, -28, true);
+      } else {
+        growth += leaf(59.4, 77, 17, -160, true) + leaf(60.4, 72, 17, -22, false) +
+          leaf(59.8, 63, 15, -148, false) + leaf(60.2, 57, 14, -32, true);
+        if (s === 3) growth += leaf(60, 47, 9, -96, false);
+        if (s >= 4) growth += leaf(52, 51, 10, -170, true) + leaf(68, 47, 10, -8, false) + leaf(60, 40, 9, -64, true);
       }
-      const cap = n === s ? '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="4" rx="1.5" fill="' + C.yellow + '"/>' : '';
-      return '<g class="pl-bar pl-bar--on" style="--i:' + i + '"><rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hs[i] + '" rx="2" fill="' + C.ink + '"/>' + cap + '</g>';
-    }).join('');
-    const pts = tops.map((p) => p[0] + ',' + p[1]).join(' ');
-    const trend = tops.length > 1
-      ? '<polyline class="pl-trend" points="' + pts + '" pathLength="1" fill="none" stroke="' + C.green + '" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>'
-      : '';
-    const dots = tops.map((p, i) => (s === 5 && i === 4)
-      ? '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="5.5" fill="' + C.yellow + '" stroke="' + C.ink + '" stroke-width="1.5"/><circle cx="' + p[0] + '" cy="' + p[1] + '" r="1.6" fill="' + C.ink + '"/>'
-      : '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.4" fill="#FFFFFF" stroke="' + C.green + '" stroke-width="1.5"/>').join('');
+      if (s === 4) growth += bud(60, 27, 1.05) + bud(44, 39, 0.85) + bud(76, 35, 0.85);
+      if (s === 5) growth += flower(60, 26, 1.12) + flower(43.5, 39, 0.82) + flower(76.5, 35, 0.82);
+    }
+
+    const band = s === 5
+      ? '<path d="M35.4 100.5h49.2" stroke="' + C.yellow + '" stroke-width="1.8" stroke-linecap="round"/>'
+      : '<path d="M35.4 100.5h49.2" stroke="' + C.ink3 + '" stroke-width="1" stroke-linecap="round" opacity=".7"/>';
+    const pot =
+      '<ellipse cx="60" cy="116.4" rx="27" ry="2.2" fill="' + C.ink + '" opacity=".1"/>' +
+      '<path d="M32.5 88h55l-5.6 25.2a3 3 0 0 1-2.9 2.3H41a3 3 0 0 1-2.9-2.3Z" fill="' + C.ink + '"/>' + band +
+      '<rect x="28.5" y="82" width="63" height="7.5" rx="2.2" fill="' + C.inkSurface + '"/>' +
+      '<ellipse cx="60" cy="82.4" rx="29" ry="2.4" fill="' + T.soil + '"/>';
     return '<div class="plant plant--stage-' + s + (extraClass ? ' ' + extraClass : '') + '">' +
-      '<svg viewBox="0 0 140 100" role="img" aria-label="' + escapeHtml(t('garden.svgLabel', { stage: s })) + '">' +
-      '<path d="M4 92.5h132" stroke="' + C.rule + '" stroke-width="1"/>' + bars + trend + dots + '</svg></div>';
+      '<svg viewBox="0 0 120 120" role="img" aria-label="' + escapeHtml(t('garden.svgLabel', { stage: s })) + '">' +
+      '<circle class="pl-halo" cx="60" cy="56" r="40" fill="' + (s === 5 ? C.yellow : T.leaf) + '" opacity="' + (s === 5 ? '.14' : '.08') + '"/>' +
+      pot + '<g class="pl-sway">' + growth + '</g></svg></div>';
   }
 
   // ------------------------------------------------------------------------
@@ -336,7 +386,7 @@
       'garden.quote3': 'A -20% dip is a fluctuation, not a loss, unless you sell.',
       'garden.quote4': 'You plan with an amount, a horizon and costs — not with guesses.',
       'garden.quote5': 'Foundations confirmed. You are ready for a first, small step.',
-      'garden.svgLabel': 'Capital pillars chart, Growth Level {stage} of 5',
+      'garden.svgLabel': 'Growing plant, Growth Level {stage} of 5',
 
       'plan.title': 'Your sample split',
       'plan.label': 'Illustrative target amount per month',
@@ -350,7 +400,8 @@
 
       'skip.badge': "Skipped {n} topics you don't need at the start",
       'skip.kept': 'Your 3 priorities today',
-      'skip.removed': 'You can ignore these for now',
+      'skip.removed': 'You can skip this for now',
+      'skip.later': 'Later',
 
       'lessons.title': '20-second lessons',
       'lessons.titleDay': 'Day {n} lessons',
@@ -873,7 +924,7 @@
       'garden.quote3': 'Spadek -20% to wahanie, nie strata — dopóki nie sprzedasz.',
       'garden.quote4': 'Planujesz kwotą, horyzontem i kosztami — a nie zgadywaniem.',
       'garden.quote5': 'Fundamenty potwierdzone. Możesz zrobić pierwszy, mały krok.',
-      'garden.svgLabel': 'Wykres filarów kapitału, poziom rozwoju {stage} z 5',
+      'garden.svgLabel': 'Rosnąca roślina, poziom rozwoju {stage} z 5',
 
       'plan.title': 'Twój przykładowy podział',
       'plan.label': 'Przykładowa kwota docelowa miesięcznie',
@@ -888,6 +939,7 @@
       'skip.badge': 'Pominęliśmy {n} tematów, których nie potrzebujesz na start',
       'skip.kept': 'Twoje 3 priorytety na dziś',
       'skip.removed': 'Na razie możesz to pominąć',
+      'skip.later': 'Później',
 
       'lessons.title': 'Lekcje na 20 sekund',
       'lessons.titleDay': 'Lekcje Etapu {n}',
@@ -2938,7 +2990,8 @@
         '<div><h4>' + escapeHtml(t('skip.kept')) + '</h4><ul class="kept">' +
           (f.kept_topics || []).map((k) => '<li>' + icon('check', 'ic--sm') + '<span>' + escapeHtml(k) + '</span></li>').join('') + '</ul></div>' +
         '<div><h4 class="muted">' + escapeHtml(t('skip.removed')) + '</h4><ul class="removed">' +
-          (f.removed_topics || []).map((r, i) => '<li><span class="topic-strike" style="--i:' + i + '">' + escapeHtml(r) + '</span></li>').join('') + '</ul></div>' +
+          (f.removed_topics || []).map((r, i) => '<li style="--i:' + i + '"><span class="topic-later">' + escapeHtml(r) + '</span>' +
+            '<span class="later-badge">' + escapeHtml(t('skip.later')) + '</span></li>').join('') + '</ul></div>' +
       '</div>';
   }
 
