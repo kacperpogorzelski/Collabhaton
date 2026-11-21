@@ -1,7 +1,7 @@
 /* ==========================================================================
-   Finance Quest — static/styles.css
+   Investly — static/styles.css
    Design system "Petrol & Canary": warm canvas, crisp 1.5px borders, layered
-   depth, Commerzbank deep-petrol anchors with canary accents and semantic
+   depth, Collabothon deep-petrol anchors with canary accents and semantic
    tints (emerald · sky · tangerine · coral). Readable by default: primary text
    Soft Petrol text tokens preserve WCAG AA contrast. Pure CSS, zero build tool,
    zero CDN (AGENTS.md §3).
@@ -438,7 +438,7 @@ main { padding: 24px 0 120px; }
 @keyframes attn { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 20% { box-shadow: 0 0 0 5px rgba(239, 68, 68, .25); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
 /* --------------------------------------------------------------------------
-   8. Atlas — Commerzbank financial guide (inline SVG compass)
+   8. Atlas — Collabothon financial guide (inline SVG compass)
    -------------------------------------------------------------------------- */
 .cora { position: relative; display: inline-block; flex-shrink: 0; width: var(--cora-size, 56px); line-height: 0; }
 .cora svg { width: 100%; height: auto; overflow: visible; }

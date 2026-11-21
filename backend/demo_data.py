@@ -260,7 +260,7 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             14,
             "Twoja pierwsza inwestycja",
-            "Finał ścieżki • Uruchomienie planu w Collabothonu",
+            "Finał ścieżki • Uruchomienie planu w Collabothonie",
             PHASE_3,
         ),
     ],
@@ -287,7 +287,7 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             14,
             "Start automatycznego planu ETF",
-            "Finał ścieżki • Konfiguracja w Collabothonu",
+            "Finał ścieżki • Konfiguracja w Collabothonie",
             PHASE_3,
         ),
     ],
@@ -313,7 +313,7 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         ),
         _roadmap_milestone(
             14,
-            "Świadomy start w Collabothonu",
+            "Świadomy start w Collabothonie",
             "Finał ścieżki • Bezstresowe uruchomienie planu",
             PHASE_3,
         ),
@@ -471,15 +471,15 @@ FINAL_MESSAGE_BY_DAY: dict[int, str] = {
     1: FINAL_MESSAGE,
     2: (
         "Etap 2 z 14 zaliczony! Wiesz już, na co patrzeć w tabeli opłat i po co jest tryb demo. "
-        "Jutro w Etapie 3 ustawimy pierwsze zlecenie stałe."
+        "W Etapie 3 ustawimy pierwsze zlecenie stałe."
     ),
     3: (
         "Etap 3 z 14 zaliczony! Stałe zlecenie i symboliczny test 10 zł to fundament "
-        "regularności. Jutro w Etapie 4 zobaczysz pierwsze mikro-zlecenie na szeroki ETF."
+        "regularności. W Etapie 4 zobaczysz pierwsze mikro-zlecenie na szeroki ETF."
     ),
     4: (
         "Etap 4 z 14 zaliczony! Fundamenty i praktyka pierwszego zlecenia masz za sobą. "
-        "Czas na Checkpoint #1 — krótki test wiedzy z Etapy 1–4."
+        "Czas na Checkpoint #1 — krótki test wiedzy z Etapów 1–4."
     ),
 }
 
@@ -595,7 +595,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Dlaczego nie trzymać całego kapitału wyłącznie na zwykłym koncie?",
         "luna_message": (
-            "Dzień dobry! Jestem Atlas, Twój codzienny AI Coach — zaczynamy spokojny, 14-etapową ścieżkę. "
+            "Dzień dobry! Jestem Atlas, Twój codzienny AI Coach — zaczynamy spokojną, 14-etapową ścieżkę. "
             "Inwestować można w każdym wieku, wystarczy dopasowany horyzont. {plan_sentence} "
             "Dlaczego lepiej nie trzymać całego kapitału wyłącznie na zwykłym koncie?"
         ),
@@ -2658,7 +2658,7 @@ FINAL_MESSAGE_BY_DAY_EN: dict[int, str] = {
     ),
     4: (
         "Stage 4 of 14 complete! The foundations and your first order practice are done. Time for "
-        "Checkpoint #1 — a short knowledge check from Days 1–4."
+        "Checkpoint #1 — a short knowledge check from Stages 1–4."
     ),
 }
 

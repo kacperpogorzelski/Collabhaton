@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "investly-offline",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set DEMO_OFFLINE=1&& set DATABASE_URL=sqlite://&& set PYTHONUTF8=1&& python -m uvicorn backend.main:app --host 127.0.0.1 --port 8010"],
+      "port": 8010
+    },
+    {
+      "name": "investly-live",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set DEMO_OFFLINE=0&& set DATABASE_URL=sqlite://&& set PYTHONUTF8=1&& python -m uvicorn backend.main:app --host 127.0.0.1 --port 8011"],
+      "port": 8011
+    }
+  ]
+}
