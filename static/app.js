@@ -63,6 +63,59 @@
   const NEXT_STAGE = Object.freeze({ first: 'pre', pre: 'home', home: 'peak', peak: 'first' });
   const DAY_ICONS = Object.freeze({ 1: 'sprout', 2: 'search', 3: 'repeat', 4: 'target' });
 
+  const PLANT_STAGES = Object.freeze([
+    { stage: 1, fromXp: 0, nextXp: 60, titleKey: 'garden.stage1', quoteKey: 'garden.quote1' },
+    { stage: 2, fromXp: 60, nextXp: 100, titleKey: 'garden.stage2', quoteKey: 'garden.quote2' },
+    { stage: 3, fromXp: 100, nextXp: 250, titleKey: 'garden.stage3', quoteKey: 'garden.quote3' },
+    { stage: 4, fromXp: 250, nextXp: 400, titleKey: 'garden.stage4', quoteKey: 'garden.quote4' },
+    { stage: 5, fromXp: 400, nextXp: null, titleKey: 'garden.stage5', quoteKey: 'garden.quote5' },
+  ]);
+
+  function plantState(xp, cpPassed) {
+    const value = clamp(Math.max(0, Number(xp) || 0), 0, 100000);
+    let stage = PLANT_STAGES[0];
+    if (cpPassed || value >= 400) stage = PLANT_STAGES[4];
+    else if (value >= 250) stage = PLANT_STAGES[3];
+    else if (value >= 100) stage = PLANT_STAGES[2];
+    else if (value >= 60) stage = PLANT_STAGES[1];
+
+    const next = stage.stage < 5 ? PLANT_STAGES[stage.stage] : null;
+    const nextXp = stage.nextXp;
+    const toNext = nextXp == null ? 0 : Math.max(0, nextXp - value);
+    const pct = nextXp == null ? 100 : clamp(((value - stage.fromXp) / (nextXp - stage.fromXp)) * 100, 0, 100);
+    return {
+      stage: stage.stage,
+      title: t(stage.titleKey),
+      nextTitle: next ? t(next.titleKey) : null,
+      nextXp,
+      toNext,
+      pct,
+      quote: t(stage.quoteKey),
+    };
+  }
+
+  function plantSVG(stage, extraClass) {
+    const s = clamp(Number(stage) || 1, 1, 5);
+    const st = 'stroke="' + C.ink + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"';
+    const base = s < 5
+      ? '<ellipse cx="70" cy="125" rx="28" ry="4" fill="' + C.paper2 + '"/><path d="M52 98q18-6 36 0" fill="' + C.furDark + '" ' + st + '/><path d="M49 98h42l-5 27H54z" fill="' + C.tangerine + '" ' + st + '/><path d="M45 96h50v8H45z" fill="' + C.yellow + '" ' + st + '/>'
+      : '<ellipse cx="70" cy="125" rx="46" ry="7" fill="' + C.paper2 + '"/><path d="M22 114q48-18 96 0z" fill="' + C.green + '" ' + st + '/>';
+    const stars = s >= 5
+      ? '<g fill="' + C.yellow + '" ' + st + '><path d="M24 28l3 6 6 1-4.5 4.3 1.2 6.2L24 42.2l-5.7 3.3 1.2-6.2L15 35l6-1z"/><path d="M116 24l2.5 5 5.5 1-4 3.7 1 5.3-5-2.7-5 2.7 1-5.3-4-3.7 5.5-1z"/></g>'
+      : '';
+    const stageParts = [
+      '<path d="M70 96c-5-6-3-14 2-17 4 4 5 12-2 17z" fill="' + C.yellow + '" ' + st + '/>',
+      '<path d="M70 98V80" ' + st + '/><ellipse cx="63" cy="79" rx="8" ry="5" fill="' + C.green + '" ' + st + ' transform="rotate(-18 63 79)"/><ellipse cx="77" cy="77" rx="8" ry="5" fill="' + C.green + '" ' + st + ' transform="rotate(18 77 77)"/>',
+      '<path d="M70 98V58" ' + st + '/><ellipse cx="55" cy="72" rx="14" ry="7" fill="' + C.green + '" ' + st + ' transform="rotate(28 55 72)"/><ellipse cx="85" cy="67" rx="15" ry="7" fill="' + C.green + '" ' + st + ' transform="rotate(-28 85 67)"/><ellipse cx="69" cy="50" rx="13" ry="7" fill="' + C.green + '" ' + st + ' transform="rotate(-6 69 50)"/>',
+      '<path d="M70 98V42" ' + st + '/><ellipse cx="48" cy="64" rx="18" ry="9" fill="' + C.green + '" ' + st + ' transform="rotate(32 48 64)"/><ellipse cx="92" cy="60" rx="19" ry="9" fill="' + C.green + '" ' + st + ' transform="rotate(-32 92 60)"/><ellipse cx="58" cy="43" rx="16" ry="8" fill="' + C.green + '" ' + st + ' transform="rotate(18 58 43)"/><ellipse cx="82" cy="38" rx="17" ry="8" fill="' + C.green + '" ' + st + ' transform="rotate(-18 82 38)"/><g class="plant__flower" fill="' + C.yellow + '" ' + st + '><circle cx="46" cy="42" r="7"/><circle cx="94" cy="38" r="7"/><circle cx="70" cy="25" r="7"/></g>',
+      '<path d="M70 106V43" ' + st + '/><path d="M70 68C58 52 43 48 32 55c7 12 21 18 38 13zM70 68c12-16 27-20 38-13-7 12-21 18-38 13z" fill="' + C.green + '" ' + st + '/><path d="M70 86c-15-13-32-12-43-3 10 10 27 12 43 3zM70 86c15-13 32-12 43-3-10 10-27 12-43 3z" fill="' + C.green + '" ' + st + '/><g fill="' + C.yellow + '" ' + st + '><circle cx="31" cy="38" r="9"/><circle cx="109" cy="34" r="9"/><circle cx="70" cy="22" r="10"/></g><g fill="' + C.tangerine + '" ' + st + '><circle cx="31" cy="38" r="3"/><circle cx="109" cy="34" r="3"/><circle cx="70" cy="22" r="3"/></g><path d="M25 106c-8-9-9-24-3-34 9 5 14 16 12 29zM115 106c8-9 9-24 3-34-9 5-14 16-12 29z" fill="' + C.green + '" ' + st + '/>',
+    ];
+
+    return '<div class="plant plant--stage-' + s + (extraClass ? ' ' + extraClass : '') + '">' +
+      '<svg viewBox="0 0 140 140" role="img" aria-label="' + escapeHtml(t('garden.svgLabel', { stage: s })) + '">' +
+      base + '<g class="plant__sway">' + stageParts[s - 1] + stars + '</g></svg></div>';
+  }
+
   // ------------------------------------------------------------------------
   // 2. i18n — EN is the default, PL fully supported (docs/01 §9). Amounts stay in PLN.
   // ------------------------------------------------------------------------
@@ -170,6 +223,26 @@
       'hub.pebble': 'Day {n}, part of the full 14-day sprint',
       'hub.checkpoint2Short': 'Checkpoint #2',
       'hub.finaleShort': 'Sprint finale',
+
+      'garden.title': "Kita's Growth",
+      'garden.stageLabel': 'Stage {stage}/5',
+      'garden.stage1': 'Seed in a pot',
+      'garden.stage2': 'First sprout',
+      'garden.stage3': 'Young sapling',
+      'garden.stage4': 'Blooming tree',
+      'garden.stage5': "Kita's Golden Orchard",
+      'garden.toNext': 'Only {xp} XP away from {title}!',
+      'garden.complete': "Kita's garden is complete — keep growing!",
+      'garden.progress': 'XP progress',
+      'garden.grew': 'Your plant grew! {from} → {to}',
+      'garden.noGrowth': 'Kita is tending your garden',
+      'garden.current': 'Current stage',
+      'garden.quote1': 'Every strong habit starts with a tiny seed.',
+      'garden.quote2': 'Small steps are already becoming visible.',
+      'garden.quote3': 'A steady routine is helping you grow.',
+      'garden.quote4': 'Your consistency is blooming beautifully.',
+      'garden.quote5': 'You built a garden of confidence — keep it thriving!',
+      'garden.svgLabel': 'Growing plant, stage {stage} of 5',
 
       'plan.title': 'Your sample split',
       'plan.label': 'Illustrative target amount per month',
@@ -523,6 +596,26 @@
       'hub.pebble': 'Dzień {n}, część pełnego 14-dniowego sprintu',
       'hub.checkpoint2Short': 'Checkpoint #2',
       'hub.finaleShort': 'Finał sprintu',
+
+      'garden.title': 'Sad Kity',
+      'garden.stageLabel': 'Etap {stage}/5',
+      'garden.stage1': 'Nasionko w doniczce',
+      'garden.stage2': 'Pierwszy kiełek',
+      'garden.stage3': 'Młode drzewko',
+      'garden.stage4': 'Kwitnące drzewo',
+      'garden.stage5': 'Złoty sad Kity',
+      'garden.toNext': 'Brakuje tylko {xp} XP do etapu {title}!',
+      'garden.complete': 'Sad Kity jest kompletny — pielęgnuj go dalej!',
+      'garden.progress': 'Postęp XP',
+      'garden.grew': 'Roślina urosła! {from} → {to}',
+      'garden.noGrowth': 'Kita pielęgnuje Twój ogród',
+      'garden.current': 'Obecny etap',
+      'garden.quote1': 'Każdy mocny nawyk zaczyna się od maleńkiego nasionka.',
+      'garden.quote2': 'Małe kroki zaczynają już być widoczne.',
+      'garden.quote3': 'Regularna praktyka pomaga Ci rosnąć.',
+      'garden.quote4': 'Twoja konsekwencja pięknie kwitnie.',
+      'garden.quote5': 'Wyhodowałeś sad pewności — dbaj o niego dalej!',
+      'garden.svgLabel': 'Rosnąca roślina, etap {stage} z 5',
 
       'plan.title': 'Twój przykładowy podział',
       'plan.label': 'Przykładowa kwota docelowa miesięcznie',
@@ -1361,6 +1454,7 @@
     cora: { busy: false, result: null, picked: null, question: '' },
     hubTab: 1,               // Quest Hub briefing step: 1 plan · 2 what-if simulator · 3 lessons
     tmAmount: null,          // what-if monthly amount; null = the sample plan amount
+    plantStageAtStart: 1,
   });
 
   const els = {};
@@ -1679,6 +1773,7 @@
       token: state.token, beats: [], index: 0, phase: 'answer', selected: null, ownText: '',
       pending: null, retry: false, quality: null, lastAnswer: '', started: false,
       xpAtStart: g().xp, practiceAtStart: state.practiceXp, practiceDone: new Set(),
+      plantStageAtStart: plantState(displayedXp(), state.checkpointPassed).stage,
       alloc: null, mythPick: null, spotPick: null, renderedValue: 0,
     };
   }
@@ -1742,6 +1837,7 @@
     state.tmAmount = null;
     state.hubTab = 1;
     state.mission = freshMissionState();
+    state.plantStageAtStart = state.mission.plantStageAtStart;
     state.summary = freshSummary();
     state.cp = null;
     closeModal();
@@ -1784,6 +1880,7 @@
     state.practiceXp = 0;
     state.log = [];
     state.mission = null;
+    state.plantStageAtStart = 1;
     state.summary = null;
     state.cp = null;
     closeModal();
@@ -1833,6 +1930,7 @@
     renderDemoMenus();
     renderPathColumn();
     renderPlanCard();
+    renderGardenCard();
     renderSkippedCard();
     renderLessonsCard();
     setupTimeMachine();
@@ -2054,6 +2152,34 @@
     els.cardPlan.querySelectorAll('[data-count]').forEach((el) => animateNumber(el, 0, Number(el.dataset.count), { duration: 900 }));
   }
 
+  function renderGardenCard(opts) {
+    if (!els.cardGarden) return;
+    if (!state.session) { els.cardGarden.hidden = true; return; }
+    els.cardGarden.hidden = false;
+    const xp = displayedXp();
+    const cur = plantState(xp, state.checkpointPassed);
+    const dots = [1, 2, 3, 4, 5].map((n) =>
+      '<span class="garden__dot' + (n < cur.stage ? ' is-past' : n === cur.stage ? ' is-current' : '') + '" aria-hidden="true"></span>'
+    ).join('');
+    const incentive = cur.stage === 5
+      ? t('garden.complete')
+      : t('garden.toNext', { xp: cur.toNext, title: cur.nextTitle });
+    const extra = opts && opts.grow ? ' plant--grow' : '';
+    els.cardGarden.innerHTML =
+      '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('garden.title')) + '</h3>' +
+        '<span class="chip chip--soft">' + escapeHtml(t('garden.stageLabel', { stage: cur.stage })) + '</span></div>' +
+      '<div class="garden__row">' +
+        plantSVG(cur.stage, extra) +
+        '<div class="garden__copy">' +
+          '<p class="garden__stage">' + escapeHtml(cur.title) + '</p>' +
+          '<div class="garden__dots" aria-label="' + escapeHtml(t('garden.progress')) + '">' + dots + '</div>' +
+          '<div class="garden__bar"><span style="width:' + cur.pct + '%"></span></div>' +
+          '<p class="garden__incentive">' + escapeHtml(incentive) + '</p>' +
+          '<p class="tiny muted">' + escapeHtml(cur.quote) + '</p>' +
+        '</div>' +
+      '</div>';
+  }
+
   function renderSkippedCard() {
     const f = state.session.speakly_filter || { kept_topics: [], removed_topics: [] };
     const n = (f.removed_topics || []).length;
@@ -2095,6 +2221,7 @@
     if (state.completedLessons.has(id)) return;
     const l = (state.dayLessons || []).find((x) => x.id === id);
     if (!l) return;
+    const stageBefore = plantState(displayedXp(), state.checkpointPassed).stage;
     state.completedLessons.add(id);
     const before = state.lessonsXp;
     state.lessonsXp = clamp(state.lessonsXp + (Number(l.xp_reward) || 0), 0, MICRO_LESSON_BONUS_CAP * PLAYABLE_DAYS);
@@ -2104,6 +2231,8 @@
     Sound.pop();
     xpFloat(gained, btn || els.hudXpPill);
     renderHud();
+    const stageAfter = plantState(displayedXp(), state.checkpointPassed).stage;
+    renderGardenCard({ grow: stageAfter > stageBefore });
   }
 
   // Time machine: slider 1–20 years + what-if monthly amount, 3 KPIs in today's money,
@@ -2897,6 +3026,20 @@
     const score = clamp(Number(tt.confidence_score) || 0, start, 100);
     const nextFloor = gs.level >= 3 ? null : LEVEL_FLOOR[gs.level + 1];
     const before = state.lastProfile ? state.lastProfile.self_confidence_start : null;
+    const startPlantXp = state.mission
+      ? state.mission.xpAtStart + state.mission.practiceAtStart
+      : (state.plantStageAtStart ? 0 : displayedXp());
+    const startPlant = plantState(startPlantXp, false);
+    const startStage = state.mission && state.mission.plantStageAtStart
+      ? state.mission.plantStageAtStart
+      : state.plantStageAtStart || startPlant.stage;
+    const curPlant = plantState(displayedXp(), state.checkpointPassed);
+    const grew = curPlant.stage > startStage;
+    const growthText = grew
+      ? t('garden.grew', { from: plantState(PLANT_STAGES[startStage - 1].fromXp, false).title, to: curPlant.title })
+      : curPlant.stage === 5
+        ? t('garden.complete')
+        : t('garden.toNext', { xp: curPlant.toNext, title: curPlant.nextTitle });
 
     let nextCta;
     if (state.day < PLAYABLE_DAYS) nextCta = '<button type="button" class="btn btn--primary btn--lg" data-action="start-day" data-day="' + (state.day + 1) + '">' + escapeHtml(t('done.next', { n: state.day + 1 })) + icon('arrow-right') + '</button>';
@@ -2911,6 +3054,12 @@
       '<div class="card card--raised win">' +
         coraHTML('celebrating') +
         '<h1 class="h1 win__title">' + escapeHtml(t('done.title', { d: state.day })) + '</h1>' +
+        '<div class="garden garden--done' + (grew ? ' garden--celebrate' : '') + '">' +
+          plantSVG(curPlant.stage, grew ? 'plant--grow' : '') +
+          '<div><p class="garden__label">' + escapeHtml(grew ? growthText : t('garden.current')) + '</p>' +
+          '<p class="garden__stage">' + escapeHtml(curPlant.title) + '</p>' +
+          '<p class="tiny muted">' + escapeHtml(grew ? curPlant.quote : growthText) + '</p></div>' +
+        '</div>' +
         '<div class="win__xp">' + icon('bolt', 'ic--lg') + '<span><span data-earned="' + earned + '">+' + (animate ? 0 : earned) + '</span> XP</span> <span class="small" style="font-family:var(--font-ui);font-weight:700">' + escapeHtml(t('done.earned')) + '</span></div>' +
         '<div>' + (leveled
           ? '<span class="levelup">' + icon('trophy', 'ic--sm') + escapeHtml(t('done.levelUp', { title: gs.level_title })) + '</span>'
@@ -3060,6 +3209,7 @@
       state.log.push({ kind: 'challenge', body });
       state.completedChallenges.add(state.day);
       const before = tt.gamification || DEFAULT_G;
+      const plantBefore = plantState(displayedXp(), state.checkpointPassed).stage;
       const lvl = levelFor(res.xp);
       const crossed = lvl.level > before.level;
       state.turn = Object.assign({}, tt, { gamification: Object.assign({}, before, lvl, { xp: res.xp, xp_gained: res.reward_xp }) });
@@ -3069,7 +3219,10 @@
       s.leaderboard = Array.isArray(res.leaderboard) ? res.leaderboard : s.leaderboard;
       if (crossed) s.leveledViaChallenge = true;
       renderHud();
-      if (crossed) renderDone({ animate: false });
+      const curPlant = plantState(displayedXp(), state.checkpointPassed);
+      const plantGrew = curPlant.stage > plantBefore;
+      renderGardenCard({ grow: plantGrew });
+      if (crossed || plantGrew) renderDone({ animate: false });
       else { renderFirstStep(); renderBoard(true); }
       const anchor = document.querySelector('#done-first .chip--green') || els.hudXpPill;
       xpFloat(res.reward_xp, anchor, 'green');
@@ -3276,6 +3429,7 @@
       '</div></div></div>';
     if (cp.result) {
       const r = cp.result;
+      const checkpointPlant = r.passed ? plantState(displayedXp(), true) : plantState(displayedXp(), state.checkpointPassed);
       const items = (r.results || []).map((x, i) => {
         const q = qs.find((qq) => qq.id === x.id) || qs[i] || { question: '' };
         return '<li class="quiz-item ' + (x.correct ? 'is-right' : 'is-wrong') + '">' + icon(x.correct ? 'check' : 'x') +
@@ -3287,6 +3441,7 @@
           coraHTML(r.passed ? 'celebrating' : 'coaching') +
           '<p class="quiz-score" style="margin-top:8px">' + escapeHtml(r.score_pct) + '%</p>' +
           '<p class="h2" style="margin-top:6px">' + escapeHtml(r.badge_title) + '</p>' +
+          (r.passed ? '<div class="garden garden--checkpoint"><div>' + plantSVG(checkpointPlant.stage, 'plant--grow') + '</div><div><p class="garden__stage">' + escapeHtml(t('garden.stageLabel', { stage: checkpointPlant.stage })) + '</p><p class="small">' + escapeHtml(checkpointPlant.title) + '</p></div></div>' : '') +
           (r.reward_xp ? '<p style="margin-top:10px"><span class="pill-xp">+' + escapeHtml(r.reward_xp) + ' XP</span></p>' : '') +
           (r.passed ? '<div class="badge-art badge-pop" style="margin-top:14px">' + badgeSVG(levelFor(r.xp).level) + '</div>' : '') +
           '<ul class="quiz-list">' + items + '</ul>' +
@@ -3332,6 +3487,7 @@
       state.log.push({ kind: 'checkpoint', body });
       cp.result = res;
       if (res.passed) state.checkpointPassed = true;
+      if (res.passed) renderGardenCard({ grow: true });
       const before = g();
       if (state.turn && typeof res.xp === 'number') {
         state.turn = Object.assign({}, state.turn, { gamification: Object.assign({}, before, levelFor(res.xp), { xp: res.xp, xp_gained: res.reward_xp || 0, leveled_up: !!res.leveled_up }) });
@@ -3553,7 +3709,7 @@
       return;
     }
     if (state.session) {
-      if (state.screen === SCREENS.HUB) { renderHub(); updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false }); }
+      if (state.screen === SCREENS.HUB) { renderHub(); renderGardenCard(); updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false }); }
       if (state.screen === SCREENS.MISSION && state.mission && state.mission.phase === 'answer') renderBeat();
       else if (state.screen === SCREENS.MISSION) renderMissionBar();
       if (state.screen === SCREENS.DONE) renderDone({ animate: false });
@@ -3724,6 +3880,7 @@
     els.tmAmountNote = $('tm-amount-note');
     els.tmReset = $('tm-reset');
     els.cardPlan = $('card-plan');
+    els.cardGarden = $('card-garden');
     els.cardSkipped = $('card-skipped');
     els.cardLessons = $('card-lessons');
     els.hubMobileCta = $('hub-mobile-cta');
