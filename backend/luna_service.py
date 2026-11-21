@@ -32,9 +32,11 @@ from backend.demo_data import (
     get_final_checklist,
     get_final_message,
     get_level_state,
+    get_post_14_paths,
     get_real_world_challenge,
     get_step_block,
     shuffle_options,
+    total_steps_for_day,
 )
 from backend.schemas import (
     GamificationState,
@@ -74,6 +76,7 @@ __all__ = [
     "assess_free_text",
     "apply_progress",
     "process_mission_turn",
+    "total_steps_for_day",
 ]
 
 # --------------------------------------------------------------------------- #
@@ -92,6 +95,15 @@ READINESS_OPTIMAL: Final[int] = 10
 READINESS_SUBOPTIMAL: Final[int] = 2
 XP_OPTIMAL: Final[dict[int, int]] = {1: 40, 2: 35, 3: 60}
 TOTAL_STEPS: Final[int] = 3
+
+# Dni 1–4: Dzień 1 ma 3 kroki, Dni 2–4 po 2 kroki (docs/03 §2).
+XP_BY_DAY: Final[dict[int, dict[int, int]]] = {
+    1: {1: 40, 2: 35, 3: 60},
+    2: {1: 40, 2: 50},
+    3: {1: 40, 2: 50},
+    4: {1: 40, 2: 50},
+}
+MAX_DAY: Final[int] = 4
 
 _OFFLINE_VALUES: Final[frozenset[str]] = frozenset({"1", "true", "yes", "on"})
 _BILLING_CODES: Final[frozenset[str]] = frozenset(
@@ -552,6 +564,7 @@ def assess_free_text(
     answered_step: int = 1,
     age_group: str = "20+",
     active_day: int = 1,
+    total_steps: int = TOTAL_STEPS,
     lang: Language = "en",
 ) -> LunaAssessment:
     """Ocenia WYŁĄCZNIE wolną odpowiedź użytkownika (LLM albo fallback).
@@ -581,7 +594,7 @@ def assess_free_text(
         prompt = _ASSESS_PROMPTS[active].format(
             active_day=max(1, _as_int(active_day, 1)),
             answered_step=answered_step,
-            total_steps=TOTAL_STEPS,
+            total_steps=max(1, _as_int(total_steps, TOTAL_STEPS)),
             step_question=step_question,
             optimal_criterion=optimal_criterion,
             age_group=age_group,
@@ -603,6 +616,7 @@ def apply_progress(
     answered_step: int,
     is_optimal: bool,
     answer_quality: AnswerQuality = "optimal",
+    day: int = 1,
 ) -> dict:
     """Podnosi gotowość i XP zgodnie z tabelą SSOT (modyfikuje ``session``).
 
@@ -624,16 +638,19 @@ def apply_progress(
 
     raw = READINESS_OPTIMAL if quality == "optimal" else READINESS_SUBOPTIMAL
     confidence_delta = max(0, min(raw, 100 - prev_conf))
-    base_xp = XP_OPTIMAL.get(answered_step, XP_OPTIMAL[TOTAL_STEPS])
+    day_xp = XP_BY_DAY[_normalize_day(day)]
+    base_xp = day_xp.get(answered_step, day_xp[max(day_xp)])
     xp_gained = base_xp if quality == "optimal" else base_xp // 2
 
     session["confidence_score"] = prev_conf + confidence_delta
     session["xp"] = prev_xp + xp_gained
+    prev_level, _, _ = get_level_state(prev_xp)
+    new_level, _, _ = get_level_state(session["xp"])
 
     return {
         "confidence_delta": confidence_delta,
         "xp_gained": xp_gained,
-        "leveled_up": prev_xp < 100 <= session["xp"],
+        "leveled_up": new_level > prev_level,
         "trigger_confetti": quality == "optimal",
     }
 
@@ -656,9 +673,28 @@ def _session_key(session_data: dict) -> str:
     return str(session_data.get("session_id") or session_data.get("id") or "demo-session")
 
 
-def _current_step(session_data: dict) -> int:
-    """``current_step`` zawsze w zakresie 1..3 (SSOT: nigdy 4)."""
-    return max(1, min(TOTAL_STEPS, _as_int(session_data.get("current_step"), 1)))
+def _normalize_day(day: object) -> int:
+    """Dzień w zakresie 1..4; każda inna wartość wraca do Dnia 1."""
+    value = _as_int(day, 1)
+    return value if 1 <= value <= MAX_DAY else 1
+
+
+def _shuffle_step(day: int, step: int) -> int:
+    """Ziarno tasowania: Dzień 1 bez zmian (``step``), Dni 2–4 unikalne (``day*10+step``)."""
+    return step if _normalize_day(day) == 1 else _normalize_day(day) * 10 + step
+
+
+def _active_day(session_data: dict, day: int | None = None) -> int:
+    """Dzień tury: jawny ``day`` (1..4) albo ``session_data["current_day"]``."""
+    if isinstance(day, int) and not isinstance(day, bool) and 1 <= day <= MAX_DAY:
+        session_data["current_day"] = day
+        return day
+    return _normalize_day(session_data.get("current_day"))
+
+
+def _current_step(session_data: dict, total_steps: int = TOTAL_STEPS) -> int:
+    """``current_step`` zawsze w zakresie 1..``total_steps`` danego dnia."""
+    return max(1, min(total_steps, _as_int(session_data.get("current_step"), 1)))
 
 
 def _confidence_start(session_data: dict) -> int:
@@ -711,8 +747,14 @@ def _leaderboard_rows(leaderboard_rows: list[dict] | None) -> list[dict]:
     return [dict(row) for row in SEED_LEADERBOARD]
 
 
-def _simulated_value(session_data: dict, step: int) -> int:
-    """Nominalna wartość portfela pokazywana w danym kroku (docs/03 §2)."""
+def _simulated_value(session_data: dict, step: int, day: int = 1) -> int:
+    """Nominalna wartość portfela pokazywana w danym kroku (docs/03 §2).
+
+    Symulacja portfela dotyczy Dnia 1; Dni 2–4 są praktyczne (konto, opłaty,
+    zlecenie), więc nie pokazują wartości portfela.
+    """
+    if _normalize_day(day) != 1:
+        return 0
     if step == 2:
         return _as_int(session_data.get("half_year_value"), 0)
     if step == 3:
@@ -729,7 +771,7 @@ def _evaluate_answer(
     active_day: int = 1,
 ) -> tuple[AnswerQuality, str]:
     """Klik karty = ocena deterministyczna (0 ms, bez LLM); inaczej wolny tekst."""
-    block = get_step_block(answered_step, session_data, lang)
+    block = get_step_block(answered_step, session_data, lang, active_day)
     if quick_reply_id:
         for option in _options(session_data):
             if option.get("id") == quick_reply_id:
@@ -749,6 +791,7 @@ def _evaluate_answer(
         answered_step=answered_step,
         age_group=str(session_data.get("age_group") or "20+"),
         active_day=active_day,
+        total_steps=total_steps_for_day(active_day),
         lang=lang,
     )
     return assessment.answer_quality, assessment.understanding_feedback
@@ -765,11 +808,46 @@ def _response_extras(answer_quality: AnswerQuality, allow_retry: bool) -> dict:
     return extras
 
 
+def _completed_days(session_data: dict) -> list[int]:
+    """Posortowana, unikalna lista ukończonych dni (1..4)."""
+    days = {
+        _as_int(value, 0)
+        for value in (session_data.get("completed_days") or [])
+        if 1 <= _as_int(value, 0) <= MAX_DAY
+    }
+    return sorted(days)
+
+
+def _mark_day_completed(session_data: dict, day: int) -> list[int]:
+    """Dopisuje dzień do ``completed_days`` (nowa posortowana lista bez duplikatów)."""
+    days = _completed_days(session_data)
+    if day not in days:
+        days = sorted([*days, day])
+    session_data["completed_days"] = days
+    return days
+
+
+def _day_extras(
+    session_data: dict, day: int, lang: Language, include_paths: bool = False
+) -> dict:
+    """Pola ``day``/``completed_days``/``post_14_paths`` — po merge'u schematu (#27)."""
+    fields = getattr(MissionTurnResponse, "model_fields", None) or {}
+    extras: dict = {}
+    if "day" in fields:
+        extras["day"] = day
+    if "completed_days" in fields:
+        extras["completed_days"] = _completed_days(session_data)
+    if include_paths and "post_14_paths" in fields:
+        extras["post_14_paths"] = get_post_14_paths(lang)
+    return extras
+
+
 def _final_payload(
     session_data: dict,
     leaderboard_rows: list[dict] | None,
     leveled_up: bool,
     lang: Language = "en",
+    day: int = 1,
 ) -> dict:
     """Elementy doklejane wyłącznie w turze finałowej."""
     xp = _as_int(session_data.get("xp"), 20)
@@ -778,7 +856,8 @@ def _final_payload(
         "real_world_challenge": get_real_world_challenge(
             bool(session_data.get("has_emergency_fund", False)),
             str(session_data.get("age_group") or "20+"),
-            lang,
+            lang=lang,
+            day=day,
         ),
         "leaderboard": build_leaderboard(
             _leaderboard_rows(leaderboard_rows), xp, level_title, leveled_up, lang
@@ -813,25 +892,28 @@ def process_mission_turn(
     ``current_options`` ani XP/gotowości — zwraca ten sam krok z prośbą o poprawę.
     """
     lang = _session_lang(session_data)
-    active_day = (
-        day if isinstance(day, int) and day > 0 else _as_int(session_data.get("current_day"), 1)
-    )
-    if day is not None:
-        session_data["current_day"] = active_day
+    active_day = _active_day(session_data, day)
+    total_steps = total_steps_for_day(active_day)
 
     if _is_completed(session_data.get("mission_completed")):
-        return _replay_final_turn(session_data, leaderboard_rows, lang)
+        return _replay_final_turn(
+            session_data, leaderboard_rows, lang, active_day, total_steps
+        )
 
-    answered_step = _current_step(session_data)
+    answered_step = _current_step(session_data, total_steps)
     answer_quality, feedback = _evaluate_answer(
         session_data, answered_step, user_message, quick_reply_id, lang, active_day
     )
     is_optimal = answer_quality == "optimal"
-    progress = apply_progress(session_data, answered_step, is_optimal, answer_quality)
+    progress = apply_progress(
+        session_data, answered_step, is_optimal, answer_quality, active_day
+    )
 
     if answer_quality == "invalid":
-        response = _invalid_turn(session_data, answered_step, feedback, lang)
-    elif answered_step < TOTAL_STEPS:
+        response = _invalid_turn(
+            session_data, answered_step, feedback, lang, active_day, total_steps
+        )
+    elif answered_step < total_steps:
         response = _advance_turn(
             session_data,
             answered_step,
@@ -840,6 +922,8 @@ def process_mission_turn(
             progress,
             lang,
             answer_quality,
+            active_day,
+            total_steps,
         )
     else:
         response = _complete_mission(
@@ -850,6 +934,8 @@ def process_mission_turn(
             leaderboard_rows,
             lang,
             answer_quality,
+            active_day,
+            total_steps,
         )
 
     # Nowa lista — SQLAlchemy wykryje zmianę kolumny JSON (docs/02 §2D).
@@ -862,13 +948,20 @@ def process_mission_turn(
 
 
 def _invalid_turn(
-    session_data: dict, answered_step: int, feedback: str, lang: Language = "en"
+    session_data: dict,
+    answered_step: int,
+    feedback: str,
+    lang: Language = "en",
+    day: int = 1,
+    total_steps: int = TOTAL_STEPS,
 ) -> MissionTurnResponse:
     """Śmieciowy wpis: ten sam krok i karty, 0 XP, 0 gotowości, prośba o poprawę."""
-    block = get_step_block(answered_step, session_data, lang)
+    block = get_step_block(answered_step, session_data, lang, day)
     options = _options(session_data)
     if not options:
-        options = shuffle_options(block["options"], _session_key(session_data), answered_step)
+        options = shuffle_options(
+            block["options"], _session_key(session_data), _shuffle_step(day, answered_step)
+        )
     localized_by_id = {
         opt["id"]: opt for opt in block["options"] if isinstance(opt, dict) and "id" in opt
     }
@@ -876,7 +969,7 @@ def _invalid_turn(
 
     return MissionTurnResponse(
         step_number=answered_step,
-        total_steps=TOTAL_STEPS,
+        total_steps=total_steps,
         confidence_score=_as_int(session_data.get("confidence_score"), 10),
         confidence_delta=0,
         confidence_start=_confidence_start(session_data),
@@ -887,12 +980,13 @@ def _invalid_turn(
             QuickReply(id=option["id"], text=option["text"]) for option in localized_options
         ],
         portfolio_status=PortfolioStatus(
-            simulated_value=_simulated_value(session_data, answered_step),
+            simulated_value=_simulated_value(session_data, answered_step, day),
             event_badge=block["badge"],
         ),
         gamification=_gamification(session_data, 0, False, lang),
         trigger_confetti=False,
         mission_completed=False,
+        **_day_extras(session_data, day, lang),
         **_response_extras("invalid", True),
     )
 
@@ -905,18 +999,22 @@ def _advance_turn(
     progress: dict,
     lang: Language = "en",
     answer_quality: AnswerQuality = "optimal",
+    day: int = 1,
+    total_steps: int = TOTAL_STEPS,
 ) -> MissionTurnResponse:
-    """Kroki 1–2: przejście do następnego kroku z nowymi opcjami."""
+    """Przejście do następnego kroku dnia z nowymi opcjami."""
     next_step = answered_step + 1
-    block = get_step_block(next_step, session_data, lang)
-    options = shuffle_options(block["options"], _session_key(session_data), next_step)
+    block = get_step_block(next_step, session_data, lang, day)
+    options = shuffle_options(
+        block["options"], _session_key(session_data), _shuffle_step(day, next_step)
+    )
 
     session_data["current_step"] = next_step
     session_data["current_options"] = options
 
     return MissionTurnResponse(
         step_number=next_step,
-        total_steps=TOTAL_STEPS,
+        total_steps=total_steps,
         confidence_score=_as_int(session_data.get("confidence_score"), 10),
         confidence_delta=progress["confidence_delta"],
         confidence_start=_confidence_start(session_data),
@@ -925,12 +1023,13 @@ def _advance_turn(
         luna_message=block["luna_message"],
         quick_replies=[QuickReply(id=option["id"], text=option["text"]) for option in options],
         portfolio_status=PortfolioStatus(
-            simulated_value=_simulated_value(session_data, next_step),
+            simulated_value=_simulated_value(session_data, next_step, day),
             event_badge=block["badge"],
         ),
         gamification=_gamification(session_data, progress["xp_gained"], progress["leveled_up"], lang),
         trigger_confetti=is_optimal,
         mission_completed=False,
+        **_day_extras(session_data, day, lang),
         **_response_extras(answer_quality, False),
     )
 
@@ -943,58 +1042,73 @@ def _complete_mission(
     leaderboard_rows: list[dict] | None,
     lang: Language = "en",
     answer_quality: AnswerQuality = "optimal",
+    day: int = 1,
+    total_steps: int = TOTAL_STEPS,
 ) -> MissionTurnResponse:
-    """Krok 3: domknięcie Dnia 1 (checklista, wyzwanie, ranking, plan bankowy)."""
-    session_data["current_step"] = TOTAL_STEPS
+    """Ostatni krok dnia: domknięcie, dopisanie dnia i pełny finałowy payload."""
+    session_data["current_step"] = total_steps
     session_data["mission_completed"] = True
     session_data["current_options"] = []
+    _mark_day_completed(session_data, day)
+
+    simulated = (
+        _as_int(session_data.get("etf_nominal_value"), 0) if day == 1 else 0
+    )
 
     return MissionTurnResponse(
-        step_number=TOTAL_STEPS,
-        total_steps=TOTAL_STEPS,
+        step_number=total_steps,
+        total_steps=total_steps,
         confidence_score=_as_int(session_data.get("confidence_score"), 10),
         confidence_delta=progress["confidence_delta"],
         confidence_start=_confidence_start(session_data),
         understanding_feedback=feedback,
         is_optimal_choice=is_optimal,
-        luna_message=get_final_message(session_data, lang),
+        luna_message=get_final_message(session_data, lang, day),
         quick_replies=[],
         portfolio_status=PortfolioStatus(
-            simulated_value=_as_int(session_data.get("etf_nominal_value"), 0),
-            event_badge=get_final_badge(session_data, lang),
+            simulated_value=simulated,
+            event_badge=get_final_badge(session_data, lang, day),
         ),
         gamification=_gamification(session_data, progress["xp_gained"], progress["leveled_up"], lang),
         trigger_confetti=is_optimal,
         mission_completed=True,
-        **_final_payload(session_data, leaderboard_rows, progress["leveled_up"], lang),
+        **_final_payload(session_data, leaderboard_rows, progress["leveled_up"], lang, day),
+        **_day_extras(session_data, day, lang, include_paths=True),
         **_response_extras(answer_quality, False),
     )
 
 
 def _replay_final_turn(
-    session_data: dict, leaderboard_rows: list[dict] | None, lang: Language = "en"
+    session_data: dict,
+    leaderboard_rows: list[dict] | None,
+    lang: Language = "en",
+    day: int = 1,
+    total_steps: int = TOTAL_STEPS,
 ) -> MissionTurnResponse:
     """Idempotencja: powtórka tury finałowej bez zmiany XP, gotowości i historii.
 
     ``leveled_up=False`` wg kontraktu, więc wiersz rankingu w powtórce nazywa
     się „Ty” (sam awans został już pokazany w pierwszej odpowiedzi finałowej).
     """
+    simulated = _as_int(session_data.get("etf_nominal_value"), 0) if day == 1 else 0
+
     return MissionTurnResponse(
-        step_number=TOTAL_STEPS,
-        total_steps=TOTAL_STEPS,
+        step_number=total_steps,
+        total_steps=total_steps,
         confidence_score=_as_int(session_data.get("confidence_score"), 10),
         confidence_delta=0,
         confidence_start=_confidence_start(session_data),
         understanding_feedback=None,
         is_optimal_choice=None,
-        luna_message=get_final_message(session_data, lang),
+        luna_message=get_final_message(session_data, lang, day),
         quick_replies=[],
         portfolio_status=PortfolioStatus(
-            simulated_value=_as_int(session_data.get("etf_nominal_value"), 0),
-            event_badge=get_final_badge(session_data, lang),
+            simulated_value=simulated,
+            event_badge=get_final_badge(session_data, lang, day),
         ),
         gamification=_gamification(session_data, 0, False, lang),
         trigger_confetti=False,
         mission_completed=True,
-        **_final_payload(session_data, leaderboard_rows, False, lang),
+        **_final_payload(session_data, leaderboard_rows, False, lang, day),
+        **_day_extras(session_data, day, lang, include_paths=True),
     )
