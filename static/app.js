@@ -1,1044 +1,1240 @@
 /* ==========================================================================
    Finance Quest — static/app.js
-   Czysty JS bez build-toola. Biblioteki globalne z /static/vendor/:
-   tailwind, Chart, confetti, lucide (zero CDN w runtime).
-   Kontrakt API: docs/02_TECH_API_AND_MATH.md §4–§5.
+   Vanilla JS, no build tool. Local globals from /static/vendor/: Chart, confetti.
+   API contract: docs/02_TECH_API_AND_MATH.md §4–§5 (field names are binding).
 
-   Zawartość:
-   - Issue #4: konfiguracja API, stan, router ekranów, stały nagłówek
-     (dzień, poziom/XP, streak, Gotowość), Demo Mode, toasty, modal, konfetti.
-   - Issue #8: Ekran 1 (ankieta 6 pytań) i Ekran 2 (mapa 14 dni, filtr Speakly,
-     mikro-lekcje, przykładowy podział środków, Wehikuł Czasu z Chart.js).
-   - Issue #9: Ekran 3 (symulacja wyborów z Corą: karty quick_replies, własna
-     odpowiedź, feedback, konfetti) i ciche odtworzenie sesji po 404.
-   - Issue #10: Ekran 4 (baner awansu, Gotowość, samoocena „po", wyzwanie,
-     checklista, przykładowy plan, ranking, stopka MiFID II) i modal bankowy.
-   - Issue #31: domyślny EN + przełącznik EN | PL (pełny słownik I18N),
-     Reset / Profile, imię Cora i AI Disclaimer.
+   Sections
+    1. Config & constants          9. Router
+    2. i18n (EN default + PL)      10. Screen 1 — life stage & profile form
+    3. Icons, Kita mascot, badge   11. Screen 2 — Quest Hub
+    4. Sound (Web Audio, 0 assets) 12. Screen 3 — mission engine
+    5. Utilities                   13. Screen 4 — mission complete
+    6. API + silent session        14. Checkpoint #1
+       recovery                    15. Ask Kita (explain + mini drill)
+    7. State                       16. Modals, toasts, confetti
+    8. HUD                         17. Events & init
    ========================================================================== */
 (function () {
   'use strict';
 
   // ------------------------------------------------------------------------
-  // 1. Konfiguracja
+  // 1. Config & constants
   // ------------------------------------------------------------------------
-
-  // Ścieżki względne /api/... ; przy otwarciu z file:// fallback na lokalny backend.
   const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:8000' : '';
   const API_TIMEOUT_MS = 8000;
-  const ANALYZE_MIN_ANIMATION_MS = 800; // docs/01 §7 Ekran 1: 0,8 s „Filtruję zbędną teorię..."
-  const MICRO_LESSON_BONUS_CAP = 45;    // docs/01 §2: maks. +45 XP z 3 mikro-lekcji
-  const FREE_CASH_CAP = 10000;          // docs/01 §7 Ekran 1: maks. wolnych środków = min(10 000, net_income)
-  const WIN_RATE_DISPLAY_CAP = 97;      // docs/02 §3B: nigdy > 97%
-  const MISSION_MESSAGE_MAX = 600;      // docs/02 §4 MissionTurnRequest.user_message: 1–600 znaków
-  const ANSWER_PREVIEW_MAX = 140;       // skrót własnej odpowiedzi w karcie feedbacku
-  const REPLY_KEYS = ['A', 'B', 'C', 'D'];
-
-  // docs/02 §3B: Osoba 2 uzupełni źródło/okres/walutę (np. '; źródło: …'). Pusty = brak dopisku.
-  const WIN_RATE_SOURCE_NOTE = '';
-
-  // Domyślny język aplikacji to EN (docs/01 §9); PL tylko po jawnym wyborze.
-  const LANG_STORAGE_KEY = 'fq_lang';
-  const SUPPORTED_LANGS = Object.freeze(['en', 'pl']);
+  const ANALYZE_MIN_ANIMATION_MS = 700;
+  const MICRO_LESSON_BONUS_CAP = 45;   // docs/01 §2: max +45 XP from 3 micro lessons
+  const PRACTICE_XP = 15;              // frontend-only practice beats (slider, myth, spot)
+  const FREE_CASH_CAP = 10000;
+  const WIN_RATE_DISPLAY_CAP = 97;     // docs/02 §3B: never above 97%
+  const MISSION_MESSAGE_MAX = 600;
+  const TOTAL_DAYS = 14;
+  const PLAYABLE_DAYS = 4;
+  const LS_LANG = 'fq_lang';
+  const LS_MUTED = 'fq_muted';
 
   const SCREENS = Object.freeze({
     ONBOARDING: 'screen_onboarding',
-    FILTER: 'screen_filter_and_timemachine',
+    HUB: 'screen_filter_and_timemachine',
     MISSION: 'screen_mission_live',
+    DONE: 'screen_checklist',
     CHECKPOINT: 'screen_checkpoint',
-    CHECKLIST: 'screen_checklist',
   });
 
-  // Dni 1–4 to jedyne grywalne dni sprintu (docs/01 §2); 14 dni to sprint startowy.
-  const PLAYABLE_DAYS = 4;
-  const SPRINT_DAYS = 14;
-
-  // Te same wartości co tailwind.config w index.html i :root w styles.css (np. dla Chart.js).
-  const COLORS = Object.freeze({
-    brandDark: '#002E3C',
-    brandYellow: '#FFCC00',
-    brandYellowDark: '#D9A900',
-    etfGreen: '#10B981',
-    inflationRed: '#F43F5E',
-    streakOrange: '#F97316',
-    stressAmber: '#F59E0B',
-    surfaceBg: '#F8FAFC',
-    cardBg: '#FFFFFF',
+  const C = Object.freeze({
+    ink: '#082933', ink3: '#5A6F75', paper: '#F7F5EE', paper2: '#EEEADF', stone: '#E6E0D2', stone2: '#CBC3B0',
+    yellow: '#FFCC00', yellowPress: '#E0B200', green: '#12B76A', greenPress: '#0B874D',
+    tangerine: '#FF8A00', sky: '#29A9F5', coral: '#F0544F', fur: '#A86B38', furDark: '#8D5524', cream: '#FCEAD2',
   });
 
-  // Domyślny GamificationState (docs/02 §4) — pokazywany przed pierwszą analizą.
-  function defaultGamification() {
-    return {
-      level: 1,
-      level_title: t('levelObserver'),
-      xp: 20,
-      next_level_xp: 100,
-      xp_gained: 0,
-      leveled_up: false,
-      streak_days: 1,
-    };
-  }
-
-  // Dolny próg XP danego poziomu (docs/02 §3G: poziom 2 od 100 XP, poziom 3 od 250 XP).
-  const LEVEL_FLOOR_XP = Object.freeze({ 1: 0, 2: 100, 3: 250 });
+  // Life stages ("Innovations for all generations"). Three map 1:1 to the backend
+  // demo personas (docs/03 §6.0); "peak" is a frontend profile sent to the same API.
+  const STAGES = [
+    { id: 'first', personaId: 'young_20', icon: 'banknote',
+      profile: { age: 22, net_income: 4500, free_cash: 1000, has_emergency_fund: false, main_concern: 'freeze_money', self_confidence_start: 2 } },
+    { id: 'home', personaId: 'mid_38', icon: 'house',
+      profile: { age: 38, net_income: 11000, free_cash: 2500, has_emergency_fund: true, main_concern: 'no_time', self_confidence_start: 2 } },
+    { id: 'peak', personaId: null, icon: 'peak',
+      profile: { age: 47, net_income: 14000, free_cash: 3500, has_emergency_fund: true, main_concern: 'lose_money', self_confidence_start: 3 } },
+    { id: 'pre', personaId: 'senior_56', icon: 'sunset',
+      profile: { age: 56, net_income: 9500, free_cash: 3000, has_emergency_fund: true, main_concern: 'too_late', self_confidence_start: 2 } },
+  ];
+  // "Try another generation": 22 -> 56 (Golden Path), 56 -> 38, 38 -> 47, 47 -> 22.
+  const NEXT_STAGE = Object.freeze({ first: 'pre', pre: 'home', home: 'peak', peak: 'first' });
+  const DAY_ICONS = Object.freeze({ 1: 'sprout', 2: 'search', 3: 'repeat', 4: 'target' });
 
   // ------------------------------------------------------------------------
-  // Słownik EN | PL (docs/01 §9). Klucze z atrybutów data-i18n* w index.html
-  // oraz teksty budowane w JS. Kwoty zawsze w PLN (bez przeliczania kursów).
+  // 2. i18n — EN is the default, PL fully supported (docs/01 §9). Amounts stay in PLN.
   // ------------------------------------------------------------------------
   const I18N = {
     en: {
-      pageTitle: 'Finance Quest — by Commerzbank',
-      metaDescription:
-        'Finance Quest by Commerzbank — build investing confidence in 14 days, 5 minutes a day.',
-      skipToContent: 'Skip to content',
-      headerSubtitle: 'by Commerzbank • 14-Day Confidence Sprint',
-      langGroupAria: 'Language',
-      resetBtn: 'Reset / Profile',
-      resetBtnTitle: 'Return to profile selection',
-      logoResetAria: 'Finance Quest — return to profile selection',
-      demoModeAria: 'Demo Mode — sample profiles',
-      hdrDayWord: 'Day',
-      hdrDayOf: 'of',
-      hdrLvlWord: 'Lvl',
-      hdrReadinessLabel: 'Readiness',
-      hdrReadinessAria: 'Readiness',
-      onbTitle: 'Build investing confidence in 14 days. 5 minutes a day.',
-      onbSubtitle: '6 quick questions cut out the noise Speakly-style and build your plan.',
-      onbQuickStartPre: 'Quick start: pick a profile in',
-      onbQuickStartPost: 'at the top.',
-      qAge: 'Age',
-      qNetIncome: 'Net income',
-      qNetIncomeHint: 'monthly, take-home',
-      qFreeCash: 'Monthly free cash',
-      qFreeCashMaxPrefix: 'max.',
-      qFreeCashMaxSuffix: 'no more than net income',
-      qBuffer: 'Emergency buffer (min. 3 months of expenses)',
-      qBufferYes: 'Yes, I have a buffer',
-      qBufferNo: 'Still building it',
-      qConcern: 'What is your biggest concern?',
-      concernFreeze: "I'm afraid I'll freeze my money",
-      concernNoTime: "I don't have time for the market",
-      concernLose: "I'm afraid I'll lose money",
-      concernTooLate: "Maybe it's too late to start",
-      qConfidence: 'How confident do you feel about investing your first money?',
-      qConfMin: '1 — not at all',
-      qConfMax: '5 — very confident',
-      ctaOnboarding: 'Build my 14-day Speakly plan',
-      ctaBusy: 'Filtering out the noise...',
-      screenFilterTitle: 'Your Day 1 plan: 14-day map, Speakly filter and Time Machine',
-      tmTitle: 'Time Machine: cash vs broad ETF',
-      tmSubtitlePrefix: "in today's PLN • example:",
-      tmSliderLabel: 'Rewind time',
-      tmMinYear: '1 year',
-      tmMaxYear: '20 years',
-      kpiCashLabel: "Contributions in 0% account (real, today's PLN)",
-      kpiPaidPrefix: 'paid in total',
-      kpiEtfLabel: 'Broad ETF (real, assumptions below)',
-      kpiNominalPrefix: 'nominal approx.',
-      kpiWinTitle: 'Historical windows (illustrative)',
-      kpiWinPrefix: 'In illustrative historical windows',
-      kpiWinSuffix: 'ended with a positive real return',
-      kpiWinNote: 'illustrative educational data',
-      legendEtf: 'Broad ETF (real)',
-      legendCash: 'Contributions in 0% account (real)',
-      legendStress: '-20% dip scenario in year 3 (educational)',
-      tmSimNote: 'Historical simulation; results vary and do not guarantee future profits.',
-      tmChartAria:
-        "Chart: value of 0% account contributions and broad ETF in today's PLN, with a -20% dip scenario in year 3",
-      currencyUnit: 'PLN',
-      ctaStartMission: 'Start Day 1 Simulation with AI Coach',
-      screenMissionTitle: 'Day 1 of 14 — decision simulation with Cora',
-      screenMissionTitleDynamic: 'Day {day} of 14 — decision simulation with Cora',
-      screenChecklistTitleDynamic: 'Day {day} of 14 summary',
-      msDayWord: 'Day',
-      msSimLabel: 'Decision Simulation',
-      msStepWord: 'Step',
-      msPortfolioLabel: 'Simulated portfolio (nominal)',
-      coachRole: 'Your daily AI Coach',
-      coachAnalyzing: 'Cora is analyzing your answer...',
-      msPromptHeading: 'What do you do?',
-      msPromptHint: 'Pick a card or answer in your own words',
-      msInputLabel: 'Your own answer for AI Coach',
-      msInputPlaceholder: 'Or tell AI Coach Cora in your own words what you do and why...',
-      msSend: 'Send',
-      msSending: 'Sending...',
-      msEnterHint: 'Enter — send, Shift+Enter — new line',
-      aiDisclaimer:
-        'AI Coach Cora can make mistakes. Educational simulation only — not financial advice (MiFID II).',
-      ctaFinishDay: 'Finish Day 1 and get summary',
-      screenChecklistTitle: 'Day 1 of 14 summary',
-      modalBankTitle: 'Sample plan at Commerzbank',
-      closeModalAria: 'Close',
-      complianceText:
-        'Finance Quest is an educational and simulation-only app. Calculations use simplified assumptions and ' +
-        'historical data; they ignore capital-gains tax, fees and currency risk, do not guarantee future ' +
-        'results and are not investment advice or a recommendation within the meaning of MiFID II. Investing ' +
-        'involves the risk of losing part or all of your capital.',
-      levelObserver: 'Observer',
-      levelConfident: 'Confident Start',
-      levelSteady: 'Steady Builder',
-      ageGroupYoung: 'Young Start (20+)',
-      ageGroupMid: 'Career & Family (30–50)',
-      ageGroupSenior: 'Capital Protection (50+)',
-      fieldAge: 'Age must be between 18 and 70.',
-      fieldNetIncome: 'Net income: from 2,500 to 25,000 PLN.',
-      fieldFreeCash: 'Free cash: from 200 to 10,000 PLN and no more than net income.',
-      fieldEmergencyFund: 'Tell us whether you already have a buffer.',
-      fieldMainConcern: 'Pick what you are most concerned about.',
-      fieldSelfConfidence: 'Pick a score from 1 to 5.',
-      errorGeneric: 'Something went wrong. Please try again.',
-      errorNetwork: 'No connection to the server. Start the backend: uvicorn backend.main:app --port 8000',
-      errorTimeout: 'The server did not answer in time. Please try again.',
-      error422: 'Check your survey answers — some values are out of range.',
-      error404: 'The requested resource was not found on the server (404).',
-      errorServer: 'Server error ({status}). Please try again.',
-      toastFixFields: 'Fix the highlighted survey fields.',
-      toastFillFields: 'Complete the highlighted survey questions.',
-      toastPersonasFailed:
-        'Could not load the demo profiles. Start the backend: uvicorn backend.main:app --port 8000',
-      planIntroHorizon: 'Horizon:',
-      planIntroConcern: 'Concern:',
-      lessonDone: 'Done • +{xp} XP',
-      lessonUnderstood: 'Got it! (+{xp} XP)',
-      lessonSeconds: '{seconds} sec.',
-      speaklyTitle: 'Speakly filter and Day 1 micro-lessons',
-      speaklySkipped: '⚡ We skipped {n} topics you do not need to start',
-      lessonsTitle: 'Day 1 micro-lessons',
-      lessonsOptional: 'optional • max. +{xp} XP',
-      prioritiesTitle: 'Your 3 priorities for today',
-      skippedTitle: 'You do not need this at the start',
-      splitLabel: 'Sample target amount (monthly)',
-      splitCushion: 'Buffer',
-      splitEtf: 'Training in a broad ETF',
-      splitShare: 'about {cushion}% to the buffer • about {etf}% to training in a broad ETF',
-      splitSim: 'In the simulation below:',
-      splitSimEtf: 'in a broad ETF.',
-      splitPerMonth: '/mo.',
-      splitLater: 'ETF later — example below at {amount} PLN/mo.',
-      splitTitle: 'Sample split of your free cash',
-      chartYearZero: 'Year 0',
-      chartYear: 'Year {year}',
-      chartEtf: 'Broad ETF (real)',
-      chartCash: 'Contributions in 0% account (real)',
-      chartStress: '-20% dip in year 3 (educational)',
-      chartAxis: "PLN (in today's PLN)",
-      feedbackGood: 'Good decision',
-      feedbackTip: 'Tip from Cora',
-      feedbackAnswer: 'Your answer: “{answer}”',
-      feedbackReadiness: 'Readiness +{delta} pts',
-      feedbackLevel: '🏆 Level up: Level {level} {title}',
-      toastWriteMore: 'Write a few words or pick one of the cards.',
-      errorMessageLength: 'The answer must be between 1 and {max} characters.',
-      errorRestoreSession: 'Could not restore the session. Go back to the survey and try again.',
-      levelBannerLeveled: '🏆 DAY {day} OF {total} COMPLETE! LEVEL UP: {title}',
-      levelBannerDone: 'DAY {day} OF {total} COMPLETE',
-      streakNextDay: '🔥 Streak started! See you tomorrow for Day {day}.',
-      streakCheckpoint: '🔥 Day 4 done — take Checkpoint #1 to lock in the foundations.',
-      streakContinuous: '🔥 Foundations locked in — continuous learning starts right after the sprint.',
-      pillLevel: 'Level {level}',
-      pillMicroXp: '+{xp} XP from micro-lessons',
-      pillStreak: '🔥 Streak: {days} {dayWord}',
-      missingXp: 'You need <span class="tabular-nums">{xp} XP</span> to reach Level 2 — come back tomorrow!',
-      readiness: 'Readiness',
-      readinessTo: 'to',
-      readinessNote: 'Full readiness comes only on Day 14.',
-      selfQuestion: 'How confident do you feel now? (1–5)',
-      selfBeforeHint: 'Before: {before}/5 — mark how it feels now.',
-      selfMarkNow: 'Mark how it feels now.',
-      selfBefore: 'Before: {before}/5',
-      selfAfter: 'After: {after}/5',
-      challengeAccepted: '✅ Challenge accepted!',
-      challengeAccept: 'I accept the challenge (+{xp} XP)',
-      challengeBadge: 'Real micro-challenge • Zero fear',
-      checklistTitleDynamic: 'Day {day} checklist',
-      checklistDone: '🎉 Complete! Now take the first step at the bank.',
-      bankMicroMove: 'Micro-move:',
-      bankOn: 'to',
-      bankBuffer: 'Buffer:',
-      bankSavingsAccount: 'to a savings account',
-      bankEtfLater: 'ETF later — example {amount}/mo.',
-      bankHorizon: 'horizon',
-      bankParallelBuffer: 'In parallel, buffer:',
-      bankTitle: 'Sample plan at Commerzbank',
-      bankToday: 'Today',
-      bankTarget: 'Day 14 — target plan',
-      bankLaterPrefix: 'Example for later — ',
-      bankEstimate: 'educational estimate in today’s PLN •',
-      bankEtfReal: 'Broad ETF (real)',
-      bankCashReal: 'Contributions in 0% account (real)',
-      bankNominal: 'nominal ETF: approx.',
-      bankCtaDynamic: 'Take the Day {day} step or preview the sample plan at Commerzbank',
-      leaderboardTitle: 'Friends leaderboard',
-      leaderboardDemo: 'Sample friends (demo)',
-      leaderboardStreakTitle: 'Day streak',
-      leaderboardLeveled: '⬆️ Level Up!',
-      leaderboardMissing:
-        'You need <span class="tabular-nums">{xp} XP</span> to reach 1st place — keep the streak tomorrow!',
-      leaderboardLeading: 'You lead the leaderboard — keep the streak tomorrow!',
-      leaderboardChallenge: '⚔️ Challenge a friend',
-      friendText:
-        'I challenge you in Finance Quest! I finished Day 1 of 14 and have {xp} XP. Will you join and try to catch me? 🔥',
-      friendCopied: '⚔️ Invitation copied to the clipboard — send it to a friend!',
-      friendCopyFailed: 'Could not copy. Invitation text: {text}',
-      modalBankPreview: 'Preview of the bank app screen — in demo mode nothing will be executed.',
-      modalChooseStep: 'Choose a step',
-      modalOptionA: 'Option A — Step for today',
-      modalRecommended: 'Recommended',
-      modalOptionB: 'Option B — Sample plan for Day 14',
-      modalBuffer: 'Buffer:',
-      modalSavings: 'to a savings account; ETF later (example {amount}/mo.)',
-      modalKyc:
-        'In the production version: suitability test, identity verification (KYC), information about costs and risk.',
-      modalSimulate: 'Simulate executing the step at the bank (Demo)',
-      modalDone: 'Well done! Day 1 step complete — your streak continues, see you tomorrow for Day 2!',
-      modalDoneNote: 'Simulation: {summary} • In demo mode nothing was executed.',
-      modalNextGeneration: 'Try another generation (Demo)',
-      modalClose: 'Close',
-      modalTodayStep: 'Step for today',
-      modalTargetPlan: 'Sample plan for Day 14:',
-      modalTransfer: 'Transfer {amount} to {account}',
+      'meta.title': 'Finance Quest by Commerzbank',
+      'meta.description': 'Finance Quest by Commerzbank: build investing confidence in a 14-day sprint, five minutes a day.',
+      'a11y.skip': 'Skip to content',
+      'brand.sub': 'by Commerzbank, 14-Day Confidence Sprint',
+      'common.close': 'Close',
 
-      // --- Issue #32: phased timeline, Days 1–4, Checkpoint #1, After Day 14 ---
-      demoShortcutTitle: 'Demo shortcut — jump straight to Day 4 or Checkpoint #1',
-      demoJumpDay4: 'Jump to Day 4',
-      demoCheckpoint: 'Checkpoint #1',
-      roadmapTitlePhases: '14-Day Confidence Sprint — 3 phases',
-      roadmapSprintNote:
-        '14 days is the starter sprint that builds confidence for your first deposits (~5 min/day). After Day 14 continuous learning begins — not a finish line.',
-      roadmapPhase1: 'Phase 1: Days 1–4 · Foundations & First Step',
-      roadmapPhase2: 'Phase 2: Days 5–9 · Risk, Safety & Emotions',
-      roadmapPhase3: 'Phase 3: Days 10–14 · Your Real Plan',
-      roadmapCheckpoint1: 'Checkpoint #1',
-      roadmapCheckpoint2: 'Checkpoint #2',
-      roadmapSprintFinale: 'Sprint finale',
-      roadmapAvailableNow: 'Available now',
-      roadmapCompletedDays: '{done} of 4 days completed',
-      roadmapDayAria: 'Go to Day {day}',
-      roadmapLockedDayAria: 'Day {day} is locked',
-      roadmapDayLabel: 'Day {day}',
-      roadmapPhaseLocked: 'Locked',
-      roadmapAfter14Title: 'After Day 14 — Continuous Learning',
-      roadmapAfter14Note:
-        'The sprint ends on Day 14, but the learning continues: rebalancing, IKE/IKZE, bonds and monthly AI check-ins with Cora.',
-      nextStepTitle: 'Your next step',
-      nextStepDayDone: 'Day {day} completed',
-      nextStepContinue: 'Continue to Day {day}',
-      nextStepContinueHint: 'Day {day} takes ~5 min: new micro-lessons and 2 decisions with Cora.',
-      nextStepCheckpoint: 'Take Checkpoint #1 Quiz',
-      nextStepCheckpointReview: 'Review Checkpoint #1',
-      nextStepCheckpointHint:
-        'A 4-question knowledge check from Days 1–4. Pass at 75% to earn +100 XP and the Foundation Ready badge.',
-      nextStepProgress: 'Days completed: {done} of 4',
-      nextStepReviewMap: 'Review the 14-day map',
-      screenCheckpointTitle: 'Checkpoint #1 — knowledge check',
-      cpIntroTitle: 'Checkpoint #1 — knowledge check',
-      cpIntroBody:
-        'Four quick questions from Days 1–4: inflation, buffer, costs and volatility. It takes about 2 minutes.',
-      cpThreshold: 'Pass threshold: 75% • reward: +100 XP',
-      cpProgress: 'Answered {answered} of {total}',
-      cpQuestion: 'Question {n}',
-      cpSubmit: 'Submit answers',
-      cpSubmitting: 'Checking...',
-      cpIncomplete: 'Answer every question before submitting.',
-      cpEmpty: 'Checkpoint questions are not available yet. Complete Day 4 first.',
-      cpErrorMessage: 'Could not submit the checkpoint. Please try again.',
-      cpCorrectCount: '{correct} of {total} correct',
-      cpPassed: 'Checkpoint #1 passed!',
-      cpFailed: 'Not passed yet — review the explanations and try again.',
-      cpBadgeEarned: 'Badge earned: {badge}',
-      cpReward: 'Bonus: +{xp} XP',
-      cpResultsTitle: 'Answer explanations',
-      cpCorrectAnswer: 'Correct answer: {answer}',
-      cpCorrect: 'Correct',
-      cpIncorrect: 'Not this time',
-      cpRetry: 'Try again',
-      cpBackToSummary: 'Back to the day summary',
-      feedbackRetryTitle: "Let's try again",
-      feedbackZeroXp: '0 XP',
-      ctaFinishDayDynamic: 'Finish Day {day} and get summary',
-      ctaStartMissionDynamic: 'Start Day {day} simulation with AI Coach',
-      dayStartedToast: 'Day {day} unlocked — ~5 min, let’s go!',
-      errorDayStart: 'Could not load that day. Please try again.',
+      'hud.home': 'Finance Quest home',
+      'hud.day': 'Day',
+      'hud.dayTitle': 'Day of your 14-day sprint',
+      'hud.streakTitle': 'Day streak',
+      'hud.readiness': 'Readiness',
+      'hud.sound': 'Sound effects',
+      'hud.language': 'Language',
+      'hud.reset': 'Reset / Profile',
+      'hud.judges': 'For judges',
+      'hud.menu': 'More options',
+      'hud.lvl': 'Lv {n}',
+      'hud.soundOn': 'Sound is on',
+      'hud.soundOff': 'Sound is off',
+
+      'onb.title': 'Build investing confidence in 14 days.',
+      'onb.lead': "Five minutes a day. Pick where you are in life and Kita cuts every bit of theory you don't need yet.",
+      'onb.bubble': "Hi, I'm Kita, your daily AI coach. Tap the life stage that sounds most like you.",
+      'onb.stagesTitle': 'Where are you in life?',
+      'onb.stagesHint': 'One tap builds your plan.',
+      'onb.tailorToggle': 'Not quite you? Answer 6 quick questions instead',
+      'onb.building': 'Cutting the theory you don\'t need…',
+
+      'stage.first.name': 'First paycheck', 'stage.first.meta': 'Gen Z, 22', 'stage.first.desc': 'Starting from zero, cushion still growing',
+      'stage.home.name': 'Building a home', 'stage.home.meta': 'Millennial, 38', 'stage.home.desc': 'Family budget, little time for markets',
+      'stage.peak.name': 'Peak career', 'stage.peak.meta': 'Gen X, 47', 'stage.peak.desc': 'Good income, afraid of losing it',
+      'stage.pre.name': 'Pre-retirement', 'stage.pre.meta': '55+, 56', 'stage.pre.desc': "Protecting what you've built",
+      'stage.go': 'Start here',
+      'stage.custom': 'Your own profile',
+
+      'form.age': 'Your age',
+      'form.net': 'Net monthly income',
+      'form.netHint': 'What lands in your account each month.',
+      'form.free': 'Free cash each month',
+      'form.freeHint': 'Up to {max}. Never more than your income.',
+      'form.fund': 'Emergency cushion (3+ months of costs)',
+      'form.fundYes': 'I have one',
+      'form.fundNo': 'Still building it',
+      'form.concern': 'What worries you most?',
+      'form.confidence': 'How confident do you feel about investing your first money?',
+      'form.scaleLow': '1, not at all',
+      'form.scaleHigh': '5, very confident',
+      'form.cta': 'Build my 14-day plan',
+      'form.ctaBusy': 'Building your plan…',
+      'err.age': 'Age must be between 18 and 70.',
+      'err.net': 'Net income: 2,500 to 25,000 PLN.',
+      'err.free': 'Free cash: 200 to 10,000 PLN and not more than your income.',
+      'err.fund': 'Tell us whether you have a cushion.',
+      'err.concern': 'Pick what worries you most.',
+      'err.conf': 'Pick a number from 1 to 5.',
+      'err.fixForm': 'Check the highlighted questions.',
+      'group.20+': 'Young Start (20+)',
+      'group.30-50': 'Career & Family (30–50)',
+      'group.50+': 'Capital Protection (50+)',
+      'concern.freeze_money': 'Freezing my money',
+      'concern.no_time': 'No time to watch markets',
+      'concern.lose_money': 'Losing my money',
+      'concern.too_late': "It's probably too late for me",
+
+      'hub.srTitle': 'Your quest map',
+      'hub.stagebar': 'Life stage',
+      'hub.horizon': '{n}-year horizon',
+      'hub.worry': 'Worry: {x}',
+      'hub.phase': 'Phase {n}',
+      'hub.phase1.range': 'Days 1–4', 'hub.phase1.title': 'Foundations & first step',
+      'hub.phase2.range': 'Days 5–9', 'hub.phase2.title': 'Risk, safety & emotions',
+      'hub.phase3.range': 'Days 10–14', 'hub.phase3.title': 'Your real plan',
+      'hub.perDay': '~5 min a day',
+      'hub.day': 'Day {n}',
+      'hub.day2Title': 'Brokerage account & fees',
+      'hub.day3Title': 'Automate it: standing order',
+      'hub.checkpoint': 'Checkpoint #1',
+      'hub.checkpointSub': 'A quick knowledge check',
+      'hub.checkpoint2': 'ends with Checkpoint #2',
+      'hub.finale': 'ends with the sprint finale',
+      'hub.start': 'START',
+      'hub.resume': 'RESUME',
+      'hub.startMission': 'Start Day {n} mission',
+      'hub.resumeMission': 'Continue Day {n}',
+      'hub.nextDay': 'Start Day {n}',
+      'hub.openCheckpoint': 'Start Checkpoint #1',
+      'hub.reviewDay': 'See Day {n} results',
+      'hub.locked': 'Unlocks after Day {n}',
+      'hub.lockedCp': 'Unlocks after Day 4',
+      'hub.tomorrow': 'Day {n} opens tomorrow. Come back to keep your streak!',
+      'hub.after14.title': 'After Day 14: keep learning',
+      'hub.after14.sub': 'The sprint gets you started. Short monthly sessions keep you going.',
+      'hub.done': 'Done',
+
+      'plan.title': 'Your sample split',
+      'plan.label': 'Illustrative target amount per month',
+      'plan.cushion': 'Safety cushion',
+      'plan.etf': 'Broad ETF practice',
+      'plan.mo': '/mo',
+      'plan.shares': 'about {a}% cushion, {b}% ETF practice',
+      'plan.range': 'Sample range in a broad ETF',
+      'plan.sim': 'The time machine uses {amount}/mo.',
+      'plan.etfLater': 'ETF later. The time machine shows {amount}/mo as an example.',
+
+      'skip.badge': "Skipped {n} topics you don't need at the start",
+      'skip.kept': 'Your 3 priorities today',
+      'skip.removed': 'You can ignore these for now',
+
+      'lessons.title': '20-second lessons',
+      'lessons.titleDay': 'Day {n} lessons',
+      'lessons.sub': 'Optional, up to +{n} XP',
+      'lessons.got': 'Got it (+{n} XP)',
+      'lessons.done': 'Done, +{n} XP',
+      'lessons.explain': 'Explain simpler',
+      'lessons.sec': '{n} sec',
+
+      'tm.title': 'Time machine: cash vs a broad ETF',
+      'tm.sub': "All values in today's money, so both lines compare fairly.",
+      'tm.slider': 'Years invested',
+      'tm.monthly': 'Example: {amount}/mo',
+      'tm.kpiCash': 'Contributions in a 0% account (real)',
+      'tm.kpiEtf': 'Broad ETF (real, assumptions below)',
+      'tm.kpiWin': 'Illustrative historical windows',
+      'tm.paid': 'Paid in: {amount}',
+      'tm.nominal': 'Nominal: about {amount}',
+      'tm.winText': 'ended with a positive real return (illustrative data, capped at 97%)',
+      'tm.legendEtf': 'Broad ETF (real)',
+      'tm.legendCash': '0% account (real)',
+      'tm.legendStress': '-20% dip in year 3 (educational)',
+      'tm.chartAria': "Chart of contributions in a 0% account versus a broad ETF in today's money, with an educational -20% dip in year 3",
+      'tm.history': 'Historical simulation. Results vary and future returns are not guaranteed.',
+      'tm.yAxis': "today's PLN",
+      'tm.year': 'Year {n}',
+
+      'compliance.mifid': 'Finance Quest is strictly an educational and simulation tool. Calculations are based on simplified assumptions and historical data, exclude capital gains tax, brokerage fees, and currency risk, do not guarantee future returns, and do not constitute investment advice or a recommendation under MiFID II. Investing involves the risk of losing part or all of your capital.',
+      'ai.disclaimer': 'AI Coach Kita can make mistakes. Always verify key details. Educational simulation only, not financial advice.',
+
+      'mission.srTitle': 'Mission',
+      'mission.close': 'Close mission',
+      'mission.progress': 'Mission progress',
+      'mission.explain': 'Explain simpler',
+      'mission.check': 'Check',
+      'mission.checking': 'Checking…',
+      'mission.continue': 'Continue',
+      'mission.tryAgain': 'Try again',
+      'mission.finish': 'See my results',
+      'mission.dayChip': 'Day {d} of 14',
+      'mission.stepChip': 'Step {s} of {t}',
+      'mission.portfolio': 'Simulated portfolio {amount}',
+      'mission.coraWho': 'Kita, your daily AI coach',
+      'mission.ownLabel': 'Or answer in your own words',
+      'mission.ownPlaceholder': "Tell Kita what you'd do and why…",
+      'mission.ownHint': 'Enter to check, Shift+Enter for a new line',
+      'mission.thinking': 'Kita is reading your answer',
+      'mission.right': 'Spot on!|Nailed it!|Exactly right!',
+      'mission.partial': "Good thinking, here's the catch",
+      'mission.invalid': 'Give it one more go',
+      'mission.fallback': 'Thanks, let\'s look at the numbers',
+      'mission.yourAnswer': 'Your answer: "{a}"',
+      'mission.readinessPill': 'Readiness +{n}',
+      'mission.levelPill': 'Level up: {title}',
+      'mission.zeroXp': '0 XP',
+      'mission.pickOrType': 'Pick a card or type a few words first.',
+      'mission.practice': 'Practice',
+
+      'alloc.q': 'How would you split your free cash?',
+      'alloc.msgNoCushion': "You have {free} free each month and no cushion yet. Slide to choose how much goes to a broad-ETF practice plan. The rest builds your cushion.",
+      'alloc.msgCushion': 'Your cushion is already in place. Slide to choose how much of your {free} free each month goes to a broad ETF. The rest stays in easy-to-reach savings.',
+      'alloc.slider': 'Monthly amount for a broad ETF',
+      'alloc.pill': '{amount} to ETF',
+      'alloc.safe': 'Safety cushion',
+      'alloc.safeAlt': 'Easy-to-reach savings',
+      'alloc.grow': 'Growth potential',
+      'alloc.swing': 'Short-term swings',
+      'alloc.note': 'In {years} the ETF part could be about {amount} in today\'s money (illustrative).',
+      'alloc.okNoCushion': "Cushion first. With most of it in the cushion, one broken laptop won't force you to sell during a dip.",
+      'alloc.tooMuchNoCushion': 'Bold, but without a cushion one surprise bill could force you to sell at a bad moment. Keep most of it in the cushion for now.',
+      'alloc.okCushion': 'Balanced. Part works long-term in a broad ETF, part stays easy to reach.',
+      'alloc.tooLowCushion': 'Your cushion is covered, so keeping it all in cash lets inflation (3.5% a year in our assumptions) nibble at it. Try a bigger share.',
+      'alloc.tooHighCushion': "That's most of your free cash. Keeping some in easy-to-reach savings makes dips easier to sit through. Try a little less.",
+      'alloc.okTitle': 'Smart split!',
+      'alloc.tryTitle': 'Almost, adjust the slider',
+
+      'myth.tag': 'Myth or reality?',
+      'myth.intro': 'Plenty of beginners believe this one. Myth or reality? Tap your answer.',
+      'myth.myth': 'Myth',
+      'myth.reality': 'Reality',
+      'myth.rightTitle': "Right, it's a {v}!",
+      'myth.wrongTitle': "Not quite, it's a {v}",
+      'myth.vMyth': 'myth',
+      'myth.vReality': 'reality',
+      'myth.freeze_money.s': 'Money in a broad ETF is locked away for years.',
+      'myth.freeze_money.e': 'You can sell on any trading day, and the payout usually lands within a few business days. Your cushion just means you rarely need to.',
+      'myth.no_time.s': 'To invest well, you have to watch the market every day.',
+      'myth.no_time.e': 'A standing order into a broad ETF runs in the background. Checking daily usually adds stress, not results.',
+      'myth.lose_money.s': 'Even a broad ETF can drop in value for a while.',
+      'myth.lose_money.e': "True. It can fall, sometimes sharply. Spreading money across hundreds of companies softens the hit from any one of them, but market risk stays. That's why the cushion sits separately.",
+      'myth.too_late.s': 'After 50, investing no longer makes sense.',
+      'myth.too_late.e': 'A 5–10 year horizon is still time for money to work. What matters is matching the horizon and the mix, with your cushion kept separate.',
+
+      'spot.q': 'These two funds look almost the same. Tap the line that quietly costs you every single year.',
+      'spot.fundA': 'Broad Global Fund A',
+      'spot.fundB': 'Broad Global Fund B',
+      'spot.companies': 'Companies inside',
+      'spot.region': 'Region',
+      'spot.regionVal': 'Global',
+      'spot.ter': 'Annual fee (TER)',
+      'spot.div': 'Dividends',
+      'spot.divVal': 'Reinvested',
+      'spot.rightTitle': "That's the one!",
+      'spot.right': 'The TER is taken every year, so a lower fee leaves more of the growth with you. Compare it before you buy.',
+      'spot.wrongTitle': 'Good eye, but look again',
+      'spot.wrong': 'That line barely changes your result. The annual fee (TER) is charged every year, so it is the one to compare.',
+
+      'done.srTitle': 'Mission complete',
+      'done.title': 'Day {d} complete!',
+      'done.earned': 'earned today',
+      'done.levelUp': 'Level up: {title}',
+      'done.toNext': '{n} XP to Level {l}',
+      'done.readiness': 'Readiness',
+      'done.readinessNote': 'Full readiness comes on Day 14.',
+      'done.selfQ': 'How confident do you feel now?',
+      'done.selfBefore': 'Before {n}/5. Tap how you feel now.',
+      'done.selfCompare': 'Before {a}/5, now {b}/5',
+      'done.next': 'Continue to Day {n}',
+      'done.checkpoint': 'Start Checkpoint #1',
+      'done.toMap': 'Back to the quest map',
+      'done.streak': 'Streak started. See you tomorrow!',
+      'done.badgeLabel': 'Badge unlocked',
+
+      'first.title': 'Take your first real step',
+      'first.sub': "Small, safe and today. That's how confidence turns into action.",
+      'first.challenge': "Today's real-world challenge",
+      'first.accept': "I'll do it (+{n} XP)",
+      'first.accepted': 'Challenge accepted!',
+      'first.checklist': 'Your starter checklist',
+      'first.allDone': 'All set. Now try the first step in the bank.',
+      'first.toBank': 'Open my sample plan at Commerzbank',
+
+      'bankcard.title': 'Sample plan at Commerzbank',
+      'bankcard.demo': 'Demo',
+      'bankcard.today': 'Today',
+      'bankcard.day14': 'Day 14 target plan',
+      'bankcard.micro': 'Micro step: {amount} to {account}',
+      'bankcard.cushion': 'Cushion: {amount}/mo to a savings account',
+      'bankcard.etfLater': 'ETF later, example {amount}/mo',
+      'bankcard.monthly': '{amount}/mo for {years}',
+      'bankcard.parallel': 'Alongside: cushion {amount}/mo to a savings account',
+      'bankcard.estimate': "Educational estimate in today's money over {years}",
+      'bankcard.estimateLater': "Example for later: educational estimate in today's money over {years}",
+      'bankcard.etfReal': 'Broad ETF (real)',
+      'bankcard.cashReal': '0% account (real)',
+      'bankcard.nominal': 'ETF nominal: about {amount}',
+
+      'board.title': 'Friends leaderboard',
+      'board.demo': 'Sample friends (demo)',
+      'board.levelUp': 'Level up!',
+      'board.gap': '{n} XP behind first place. Tomorrow can close the gap!',
+      'board.lead': "You're leading. Keep the streak going tomorrow!",
+      'board.challenge': 'Challenge a friend',
+      'board.copied': 'Invite copied. Send it to a friend!',
+      'board.copyFail': "Couldn't copy. Here's the invite: {text}",
+      'board.invite': "I'm on Day {d} of the 14-day Finance Quest sprint with {xp} XP. Can you catch me?",
+
+      'bank.title': 'Your sample plan at Commerzbank',
+      'bank.preview': 'Preview of the banking app. Nothing is executed in the demo.',
+      'bank.choose': 'Choose a step',
+      'bank.optA': "Option A: today's step",
+      'bank.recommended': 'Recommended',
+      'bank.transfer': 'Transfer {amount} to {account}',
+      'bank.optB': 'Option B: sample plan for Day 14',
+      'bank.optBSavings': 'Cushion: {amount}/mo to a savings account. ETF later (example {etf}/mo).',
+      'bank.kyc': 'In production: suitability test, identity check (KYC), cost and risk information.',
+      'bank.simulate': 'Simulate this step in the bank (demo)',
+      'bank.success': 'Nice! Your Day {d} step is done. Your streak continues, see you tomorrow!',
+      'bank.successNote': 'Simulated: {what}. Nothing was executed in the demo.',
+      'bank.nextGen': 'Try another generation (demo)',
+      'bank.whatA': 'transfer of {amount} to {account}',
+      'bank.whatB': 'sample plan of {amount}/mo',
+
+      'cp.title': 'Checkpoint #1',
+      'cp.sub': 'Four quick questions on Days 1–4. Score 75% to earn the Foundation Ready badge.',
+      'cp.q': 'Question {i} of {n}',
+      'cp.next': 'Next question',
+      'cp.submit': 'Check my answers',
+      'cp.score': '{n}% correct',
+      'cp.retry': 'Try the quiz again',
+      'cp.back': 'Back to the quest map',
+      'cp.unavailable': "Checkpoint #1 isn't available on this server yet.",
+      'cp.correct': 'Correct',
+      'cp.incorrect': 'Not quite',
+
+      'cora.ask': 'Ask Kita',
+      'cora.title': 'Ask Kita',
+      'cora.sub': 'Plain words, a real-life example and a 10-second check.',
+      'cora.label': 'What feels unclear?',
+      'cora.placeholder': 'For example: why does cash lose value?',
+      'cora.send': 'Explain',
+      'cora.topics': 'Quick topics',
+      'cora.simple': 'In plain words',
+      'cora.example': 'Real-life example',
+      'cora.drill': 'Quick check',
+      'cora.right': 'Correct!',
+      'cora.wrong': 'Not quite.',
+      'cora.offline': 'Offline explanation',
+      'cora.thinking': 'Kita is thinking',
+      'cora.again': 'Ask something else',
+      'cora.topic.inflation': 'Inflation',
+      'cora.topic.etf': "What's an ETF?",
+      'cora.topic.cushion': 'Emergency cushion',
+      'cora.topic.dip': 'A -20% dip',
+      'cora.topic.diversification': 'Diversification',
+      'cora.topic.fees': 'Fees (TER)',
+
+      'judges.title': 'How Finance Quest works',
+      'judges.sub': 'Commerzbank challenge: from financial knowledge to a first real step.',
+      'judges.shortcuts': 'Demo shortcuts',
+      'judges.jumpDay4': 'Jump to Day 4',
+      'judges.openCp': 'Open Checkpoint #1',
+      'judges.noMultiDay': "This server doesn't have Days 2–4 yet.",
+
+      'toast.network': "Can't reach the server. Start the backend: uvicorn backend.main:app --port 8000",
+      'toast.timeout': 'The server took too long. Try again.',
+      'toast.server': 'Server error ({n}). Try again.',
+      'toast.generic': 'Something went wrong. Try again.',
+      'toast.answerLength': 'Answers can be 1 to 600 characters.',
+      'toast.sessionLost': "Couldn't restore your session. Pick a life stage again.",
+      'toast.lessonDone': '+{n} XP for a lesson',
+    },
+
+    pl: {
+      'meta.title': 'Finance Quest od Commerzbanku',
+      'meta.description': 'Finance Quest od Commerzbanku: pewność inwestycyjna w 14-dniowym sprincie, po 5 minut dziennie.',
+      'a11y.skip': 'Przejdź do treści',
+      'brand.sub': 'od Commerzbanku, 14-dniowy Sprint Pewności',
+      'common.close': 'Zamknij',
+
+      'hud.home': 'Finance Quest, strona główna',
+      'hud.day': 'Dzień',
+      'hud.dayTitle': 'Dzień Twojego 14-dniowego sprintu',
+      'hud.streakTitle': 'Seria dni',
+      'hud.readiness': 'Gotowość',
+      'hud.sound': 'Efekty dźwiękowe',
+      'hud.language': 'Język',
+      'hud.reset': 'Reset / Profil',
+      'hud.judges': 'Dla jury',
+      'hud.menu': 'Więcej opcji',
+      'hud.lvl': 'Poz. {n}',
+      'hud.soundOn': 'Dźwięk włączony',
+      'hud.soundOff': 'Dźwięk wyłączony',
+
+      'onb.title': 'Zbuduj pewność inwestycyjną w 14 dni.',
+      'onb.lead': 'Po 5 minut dziennie. Wybierz etap życia, a Kita wytnie całą teorię, której jeszcze nie potrzebujesz.',
+      'onb.bubble': 'Cześć, jestem Kita, Twój codzienny AI Coach. Kliknij etap życia, który najbardziej do Ciebie pasuje.',
+      'onb.stagesTitle': 'Na jakim etapie życia jesteś?',
+      'onb.stagesHint': 'Jedno kliknięcie układa Twój plan.',
+      'onb.tailorToggle': 'To nie do końca Ty? Odpowiedz na 6 szybkich pytań',
+      'onb.building': 'Wycinam zbędną teorię…',
+
+      'stage.first.name': 'Pierwsza wypłata', 'stage.first.meta': 'Pokolenie Z, 22 l.', 'stage.first.desc': 'Start od zera, poduszka dopiero rośnie',
+      'stage.home.name': 'Własny dom', 'stage.home.meta': 'Pokolenie Y, 38 l.', 'stage.home.desc': 'Budżet rodzinny, mało czasu na giełdę',
+      'stage.peak.name': 'Szczyt kariery', 'stage.peak.meta': 'Pokolenie X, 47 l.', 'stage.peak.desc': 'Dobre zarobki i strach przed stratą',
+      'stage.pre.name': 'Przed emeryturą', 'stage.pre.meta': '55+, 56 l.', 'stage.pre.desc': 'Chronisz to, co udało się zbudować',
+      'stage.go': 'Zaczynam',
+      'stage.custom': 'Twój profil',
+
+      'form.age': 'Twój wiek',
+      'form.net': 'Zarobki netto miesięcznie',
+      'form.netHint': 'Tyle, ile co miesiąc wpływa na konto.',
+      'form.free': 'Wolne środki miesięcznie',
+      'form.freeHint': 'Maks. {max}, nigdy więcej niż zarobki.',
+      'form.fund': 'Poduszka finansowa (min. 3 mies. wydatków)',
+      'form.fundYes': 'Mam ją',
+      'form.fundNo': 'Dopiero ją buduję',
+      'form.concern': 'Czego najbardziej się obawiasz?',
+      'form.confidence': 'Jak pewnie czujesz się na myśl o zainwestowaniu pierwszych pieniędzy?',
+      'form.scaleLow': '1, wcale',
+      'form.scaleHigh': '5, bardzo pewnie',
+      'form.cta': 'Ułóż mój 14-dniowy plan',
+      'form.ctaBusy': 'Układam Twój plan…',
+      'err.age': 'Wiek musi mieścić się w przedziale 18–70 lat.',
+      'err.net': 'Zarobki netto: od 2 500 do 25 000 zł.',
+      'err.free': 'Wolne środki: od 200 do 10 000 zł i nie więcej niż zarobki netto.',
+      'err.fund': 'Zaznacz, czy masz już poduszkę.',
+      'err.concern': 'Wybierz, czego najbardziej się obawiasz.',
+      'err.conf': 'Wybierz ocenę od 1 do 5.',
+      'err.fixForm': 'Popraw zaznaczone pytania.',
+      'group.20+': 'Młody Start (20+)',
+      'group.30-50': 'Kariera i Rodzina (30–50)',
+      'group.50+': 'Ochrona Kapitału (50+)',
+      'concern.freeze_money': 'Boję się, że zamrożę pieniądze',
+      'concern.no_time': 'Nie mam czasu na giełdę',
+      'concern.lose_money': 'Boję się, że stracę pieniądze',
+      'concern.too_late': 'Chyba za późno na start',
+
+      'hub.srTitle': 'Twoja mapa misji',
+      'hub.stagebar': 'Etap życia',
+      'hub.horizon': 'Horyzont: {n}',
+      'hub.worry': 'Obawa: {x}',
+      'hub.phase': 'Faza {n}',
+      'hub.phase1.range': 'Dni 1–4', 'hub.phase1.title': 'Fundamenty i pierwszy krok',
+      'hub.phase2.range': 'Dni 5–9', 'hub.phase2.title': 'Ryzyko, bezpieczeństwo i emocje',
+      'hub.phase3.range': 'Dni 10–14', 'hub.phase3.title': 'Twój prawdziwy plan',
+      'hub.perDay': '~5 min dziennie',
+      'hub.day': 'Dzień {n}',
+      'hub.day2Title': 'Konto maklerskie i opłaty',
+      'hub.day3Title': 'Automat: zlecenie stałe',
+      'hub.checkpoint': 'Checkpoint #1',
+      'hub.checkpointSub': 'Szybki test wiedzy',
+      'hub.checkpoint2': 'kończy się Checkpointem #2',
+      'hub.finale': 'kończy się finałem sprintu',
+      'hub.start': 'START',
+      'hub.resume': 'WRACAM',
+      'hub.startMission': 'Zacznij misję Dnia {n}',
+      'hub.resumeMission': 'Kontynuuj Dzień {n}',
+      'hub.nextDay': 'Zacznij Dzień {n}',
+      'hub.openCheckpoint': 'Zacznij Checkpoint #1',
+      'hub.reviewDay': 'Wyniki Dnia {n}',
+      'hub.locked': 'Odblokujesz po Dniu {n}',
+      'hub.lockedCp': 'Odblokujesz po Dniu 4',
+      'hub.tomorrow': 'Dzień {n} otworzy się jutro. Wróć, żeby utrzymać serię!',
+      'hub.after14.title': 'Po Dniu 14: ucz się dalej',
+      'hub.after14.sub': 'Sprint daje start. Krótkie comiesięczne sesje utrzymują nawyk.',
+      'hub.done': 'Zaliczone',
+
+      'plan.title': 'Twój przykładowy podział',
+      'plan.label': 'Przykładowa kwota docelowa miesięcznie',
+      'plan.cushion': 'Poduszka',
+      'plan.etf': 'Trening w szeroki ETF',
+      'plan.mo': '/mies.',
+      'plan.shares': 'ok. {a}% na poduszkę, {b}% na trening w ETF',
+      'plan.range': 'Przykładowy zakres w szerokim ETF',
+      'plan.sim': 'Wehikuł czasu liczy dla {amount}/mies.',
+      'plan.etfLater': 'ETF później. Wehikuł czasu pokazuje przykład {amount}/mies.',
+
+      'skip.badge': 'Pominęliśmy {n} tematów, których nie potrzebujesz na start',
+      'skip.kept': 'Twoje 3 priorytety na dziś',
+      'skip.removed': 'Na razie możesz to pominąć',
+
+      'lessons.title': 'Lekcje na 20 sekund',
+      'lessons.titleDay': 'Lekcje Dnia {n}',
+      'lessons.sub': 'Opcjonalnie, do +{n} XP',
+      'lessons.got': 'Rozumiem (+{n} XP)',
+      'lessons.done': 'Zaliczone, +{n} XP',
+      'lessons.explain': 'Wyjaśnij prościej',
+      'lessons.sec': '{n} sek.',
+
+      'tm.title': 'Wehikuł czasu: gotówka vs szeroki ETF',
+      'tm.sub': 'Wszystko w dzisiejszych złotych, więc obie linie porównujemy uczciwie.',
+      'tm.slider': 'Lata inwestowania',
+      'tm.monthly': 'Przykład: {amount}/mies.',
+      'tm.kpiCash': 'Wpłaty na koncie 0% (realnie)',
+      'tm.kpiEtf': 'Szeroki ETF (realnie, założenia niżej)',
+      'tm.kpiWin': 'Ilustracyjne okna historyczne',
+      'tm.paid': 'Wpłacono łącznie: {amount}',
+      'tm.nominal': 'Nominalnie: ok. {amount}',
+      'tm.winText': 'kończyło się dodatnim wynikiem realnym (dane ilustracyjne, maks. 97%)',
+      'tm.legendEtf': 'Szeroki ETF (realnie)',
+      'tm.legendCash': 'Konto 0% (realnie)',
+      'tm.legendStress': 'Wahanie -20% w roku 3 (edukacyjnie)',
+      'tm.chartAria': 'Wykres: wpłaty na koncie 0% i w szerokim ETF w dzisiejszych złotych, ze scenariuszem wahania -20% w roku 3',
+      'tm.history': 'Symulacja historyczna; wyniki są zmienne i nie gwarantują przyszłych zysków.',
+      'tm.yAxis': 'zł (dzisiejsze)',
+      'tm.year': 'Rok {n}',
+
+      'compliance.mifid': 'Aplikacja Finance Quest ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.',
+      'ai.disclaimer': 'AI Coach Kita może popełniać błędy. Symulacja wyłącznie edukacyjna — to nie jest porada inwestycyjna.',
+
+      'mission.srTitle': 'Misja',
+      'mission.close': 'Zamknij misję',
+      'mission.progress': 'Postęp misji',
+      'mission.explain': 'Wyjaśnij prościej',
+      'mission.check': 'Sprawdź',
+      'mission.checking': 'Sprawdzam…',
+      'mission.continue': 'Dalej',
+      'mission.tryAgain': 'Spróbuj jeszcze raz',
+      'mission.finish': 'Zobacz wyniki',
+      'mission.dayChip': 'Dzień {d} z 14',
+      'mission.stepChip': 'Krok {s} z {t}',
+      'mission.portfolio': 'Portfel w symulacji: {amount}',
+      'mission.coraWho': 'Kita, Twój codzienny AI Coach',
+      'mission.ownLabel': 'Albo odpowiedz własnymi słowami',
+      'mission.ownPlaceholder': 'Napisz Kicie, co robisz i dlaczego…',
+      'mission.ownHint': 'Enter sprawdza, Shift+Enter to nowa linia',
+      'mission.thinking': 'Kita czyta Twoją odpowiedź',
+      'mission.right': 'Trafione!|Brawo!|Dokładnie tak!',
+      'mission.partial': 'Dobry trop, ale jest haczyk',
+      'mission.invalid': 'Spróbuj jeszcze raz',
+      'mission.fallback': 'Dzięki, spójrzmy na liczby',
+      'mission.yourAnswer': 'Twoja odpowiedź: „{a}”',
+      'mission.readinessPill': 'Gotowość +{n}',
+      'mission.levelPill': 'Awans: {title}',
+      'mission.zeroXp': '0 XP',
+      'mission.pickOrType': 'Wybierz kartę albo napisz kilka słów.',
+      'mission.practice': 'Ćwiczenie',
+
+      'alloc.q': 'Jak podzielisz wolne środki?',
+      'alloc.msgNoCushion': 'Masz {free} wolnych środków miesięcznie i jeszcze bez poduszki. Przesuń suwak i wybierz, ile idzie na trening w szeroki ETF. Reszta buduje poduszkę.',
+      'alloc.msgCushion': 'Poduszkę już masz. Przesuń suwak i wybierz, ile z {free} wolnych środków miesięcznie idzie do szerokiego ETF. Reszta zostaje w łatwo dostępnych oszczędnościach.',
+      'alloc.slider': 'Miesięczna kwota na szeroki ETF',
+      'alloc.pill': '{amount} na ETF',
+      'alloc.safe': 'Poduszka',
+      'alloc.safeAlt': 'Dostępne oszczędności',
+      'alloc.grow': 'Potencjał wzrostu',
+      'alloc.swing': 'Krótkie wahania',
+      'alloc.note': 'Po {years} część w ETF mogłaby być warta ok. {amount} w dzisiejszych złotych (ilustracyjnie).',
+      'alloc.okNoCushion': 'Najpierw poduszka. Gdy większość trafia do niej, zepsuty laptop nie zmusi Cię do sprzedaży w czasie spadku.',
+      'alloc.tooMuchNoCushion': 'Odważnie, ale bez poduszki jeden nagły rachunek może zmusić Cię do sprzedaży w złym momencie. Na razie większość daj do poduszki.',
+      'alloc.okCushion': 'Wyważone. Część pracuje długo w szerokim ETF, część zostaje pod ręką.',
+      'alloc.tooLowCushion': 'Poduszkę masz, więc trzymanie wszystkiego w gotówce oddaje pole inflacji (3,5% rocznie w naszych założeniach). Spróbuj większej części.',
+      'alloc.tooHighCushion': 'To większość wolnych środków. Gdy część zostaje pod ręką, łatwiej przetrwać spadki. Spróbuj trochę mniej.',
+      'alloc.okTitle': 'Mądry podział!',
+      'alloc.tryTitle': 'Prawie, popraw suwak',
+
+      'myth.tag': 'Mit czy fakt?',
+      'myth.intro': 'Wielu początkujących w to wierzy. Mit czy fakt? Kliknij odpowiedź.',
+      'myth.myth': 'Mit',
+      'myth.reality': 'Fakt',
+      'myth.rightTitle': 'Tak, to {v}!',
+      'myth.wrongTitle': 'Nie do końca, to {v}',
+      'myth.vMyth': 'mit',
+      'myth.vReality': 'fakt',
+      'myth.freeze_money.s': 'Pieniądze w szerokim ETF są zamrożone na lata.',
+      'myth.freeze_money.e': 'Jednostki sprzedasz w każdy dzień sesji, a wypłata trafia zwykle w kilka dni roboczych. Poduszka sprawia tylko, że rzadko musisz to robić.',
+      'myth.no_time.s': 'Żeby dobrze inwestować, trzeba codziennie patrzeć na giełdę.',
+      'myth.no_time.e': 'Zlecenie stałe na szeroki ETF działa w tle. Codzienne zaglądanie zwykle dokłada stresu, a nie wyników.',
+      'myth.lose_money.s': 'Nawet szeroki ETF może przez jakiś czas tracić na wartości.',
+      'myth.lose_money.e': 'Prawda. Może spadać, czasem mocno. Rozłożenie pieniędzy na setki firm łagodzi wpadkę jednej z nich, ale ryzyko rynku zostaje. Dlatego poduszka leży osobno.',
+      'myth.too_late.s': 'Po pięćdziesiątce inwestowanie nie ma już sensu.',
+      'myth.too_late.e': 'Horyzont 5–10 lat to nadal czas, żeby pieniądze pracowały. Liczy się dopasowanie horyzontu i proporcji oraz osobna poduszka.',
+
+      'spot.q': 'Te dwa fundusze wyglądają prawie tak samo. Kliknij wiersz, który po cichu kosztuje Cię co roku.',
+      'spot.fundA': 'Szeroki Fundusz Globalny A',
+      'spot.fundB': 'Szeroki Fundusz Globalny B',
+      'spot.companies': 'Liczba spółek',
+      'spot.region': 'Region',
+      'spot.regionVal': 'Cały świat',
+      'spot.ter': 'Roczna opłata (TER)',
+      'spot.div': 'Dywidendy',
+      'spot.divVal': 'Reinwestowane',
+      'spot.rightTitle': 'To ten!',
+      'spot.right': 'TER pobierany jest co roku, więc niższa opłata zostawia Ci więcej wzrostu. Porównuj go przed zakupem.',
+      'spot.wrongTitle': 'Dobre oko, ale spójrz jeszcze raz',
+      'spot.wrong': 'Ten wiersz prawie nie zmienia wyniku. Roczna opłata (TER) pobierana jest co roku, więc to ją warto porównać.',
+
+      'done.srTitle': 'Misja ukończona',
+      'done.title': 'Dzień {d} zaliczony!',
+      'done.earned': 'zdobyte dziś',
+      'done.levelUp': 'Awans: {title}',
+      'done.toNext': 'Do Poziomu {l} brakuje {n} XP',
+      'done.readiness': 'Gotowość',
+      'done.readinessNote': 'Pełną gotowość da dopiero Dzień 14.',
+      'done.selfQ': 'Jak pewnie czujesz się teraz?',
+      'done.selfBefore': 'Przed: {n}/5. Zaznacz, jak jest teraz.',
+      'done.selfCompare': 'Przed: {a}/5, teraz: {b}/5',
+      'done.next': 'Przejdź do Dnia {n}',
+      'done.checkpoint': 'Zacznij Checkpoint #1',
+      'done.toMap': 'Wróć do mapy',
+      'done.streak': 'Seria rozpoczęta. Do jutra!',
+      'done.badgeLabel': 'Odznaka odblokowana',
+
+      'first.title': 'Zrób pierwszy prawdziwy krok',
+      'first.sub': 'Mały, bezpieczny i dziś. Tak pewność zamienia się w działanie.',
+      'first.challenge': 'Dzisiejsze realne wyzwanie',
+      'first.accept': 'Podejmuję wyzwanie (+{n} XP)',
+      'first.accepted': 'Wyzwanie przyjęte!',
+      'first.checklist': 'Twoja checklista na start',
+      'first.allDone': 'Komplet. Teraz zrób pierwszy krok w banku.',
+      'first.toBank': 'Otwórz przykładowy plan w Commerzbanku',
+
+      'bankcard.title': 'Przykładowy plan w Commerzbanku',
+      'bankcard.demo': 'Demo',
+      'bankcard.today': 'Dziś',
+      'bankcard.day14': 'Dzień 14: plan docelowy',
+      'bankcard.micro': 'Mikro-ruch: {amount} na {account}',
+      'bankcard.cushion': 'Poduszka: {amount}/mies. na konto oszczędnościowe',
+      'bankcard.etfLater': 'ETF później, przykład {amount}/mies.',
+      'bankcard.monthly': '{amount}/mies. przez {years}',
+      'bankcard.parallel': 'Równolegle: poduszka {amount}/mies. na konto oszczędnościowe',
+      'bankcard.estimate': 'Szacunek edukacyjny w dzisiejszych złotych, horyzont {years}',
+      'bankcard.estimateLater': 'Przykład na później: szacunek edukacyjny w dzisiejszych złotych, horyzont {years}',
+      'bankcard.etfReal': 'Szeroki ETF (realnie)',
+      'bankcard.cashReal': 'Konto 0% (realnie)',
+      'bankcard.nominal': 'ETF nominalnie: ok. {amount}',
+
+      'board.title': 'Ranking znajomych',
+      'board.demo': 'Przykładowi znajomi (demo)',
+      'board.levelUp': 'Awans!',
+      'board.gap': 'Do 1. miejsca brakuje Ci {n} XP. Jutro możesz to nadrobić!',
+      'board.lead': 'Prowadzisz w rankingu. Utrzymaj serię jutro!',
+      'board.challenge': 'Wyzwij znajomego',
+      'board.copied': 'Zaproszenie skopiowane. Wyślij je znajomemu!',
+      'board.copyFail': 'Nie udało się skopiować. Treść zaproszenia: {text}',
+      'board.invite': 'Jestem na Dniu {d} z 14 w Finance Quest i mam {xp} XP. Dogonisz mnie?',
+
+      'bank.title': 'Przykładowy plan w Commerzbanku',
+      'bank.preview': 'Podgląd aplikacji bankowej. W wersji demo nic nie zostanie wykonane.',
+      'bank.choose': 'Wybierz krok',
+      'bank.optA': 'Opcja A: krok na dziś',
+      'bank.recommended': 'Polecana',
+      'bank.transfer': 'Przelew {amount} na {account}',
+      'bank.optB': 'Opcja B: przykładowy plan na Dzień 14',
+      'bank.optBSavings': 'Poduszka: {amount}/mies. na konto oszczędnościowe. ETF później (przykład {etf}/mies.).',
+      'bank.kyc': 'W wersji produkcyjnej: test odpowiedniości, weryfikacja tożsamości (KYC), informacja o kosztach i ryzyku.',
+      'bank.simulate': 'Symuluj wykonanie kroku w banku (demo)',
+      'bank.success': 'Brawo! Krok Dnia {d} zaliczony. Twoja seria trwa, widzimy się jutro!',
+      'bank.successNote': 'Symulacja: {what}. W wersji demo nic nie zostało wykonane.',
+      'bank.nextGen': 'Przetestuj inne pokolenie (demo)',
+      'bank.whatA': 'przelew {amount} na {account}',
+      'bank.whatB': 'przykładowy plan {amount}/mies.',
+
+      'cp.title': 'Checkpoint #1',
+      'cp.sub': 'Cztery szybkie pytania z Dni 1–4. Zdobądź 75%, a odblokujesz odznakę Fundamenty Opanowane.',
+      'cp.q': 'Pytanie {i} z {n}',
+      'cp.next': 'Następne pytanie',
+      'cp.submit': 'Sprawdź odpowiedzi',
+      'cp.score': '{n}% poprawnych',
+      'cp.retry': 'Spróbuj quizu jeszcze raz',
+      'cp.back': 'Wróć do mapy',
+      'cp.unavailable': 'Checkpoint #1 nie jest jeszcze dostępny na tym serwerze.',
+      'cp.correct': 'Dobrze',
+      'cp.incorrect': 'Nie do końca',
+
+      'cora.ask': 'Zapytaj Kitę',
+      'cora.title': 'Zapytaj Kitę',
+      'cora.sub': 'Prosto, na przykładzie z życia i z 10-sekundowym sprawdzianem.',
+      'cora.label': 'Co jest niejasne?',
+      'cora.placeholder': 'Na przykład: dlaczego gotówka traci wartość?',
+      'cora.send': 'Wyjaśnij',
+      'cora.topics': 'Szybkie tematy',
+      'cora.simple': 'Najprościej',
+      'cora.example': 'Przykład z życia',
+      'cora.drill': 'Szybki sprawdzian',
+      'cora.right': 'Dobrze!',
+      'cora.wrong': 'Nie do końca.',
+      'cora.offline': 'Wyjaśnienie offline',
+      'cora.thinking': 'Kita myśli',
+      'cora.again': 'Zapytaj o coś innego',
+      'cora.topic.inflation': 'Inflacja',
+      'cora.topic.etf': 'Co to ETF?',
+      'cora.topic.cushion': 'Poduszka finansowa',
+      'cora.topic.dip': 'Spadek -20%',
+      'cora.topic.diversification': 'Dywersyfikacja',
+      'cora.topic.fees': 'Opłaty (TER)',
+
+      'judges.title': 'Jak działa Finance Quest',
+      'judges.sub': 'Wyzwanie Commerzbanku: od wiedzy finansowej do pierwszego realnego kroku.',
+      'judges.shortcuts': 'Skróty demo',
+      'judges.jumpDay4': 'Skocz do Dnia 4',
+      'judges.openCp': 'Otwórz Checkpoint #1',
+      'judges.noMultiDay': 'Ten serwer nie ma jeszcze Dni 2–4.',
+
+      'toast.network': 'Brak połączenia z serwerem. Uruchom backend: uvicorn backend.main:app --port 8000',
+      'toast.timeout': 'Serwer nie odpowiedział na czas. Spróbuj ponownie.',
+      'toast.server': 'Błąd serwera ({n}). Spróbuj ponownie.',
+      'toast.generic': 'Coś poszło nie tak. Spróbuj ponownie.',
+      'toast.answerLength': 'Odpowiedź może mieć od 1 do 600 znaków.',
+      'toast.sessionLost': 'Nie udało się odtworzyć sesji. Wybierz etap życia jeszcze raz.',
+      'toast.lessonDone': '+{n} XP za lekcję',
+    },
+  };
+
+  // Structured copy (lists) for the For Judges modal and the "After Day 14" fallback.
+  const I18N_BLOCKS = {
+    en: {
+      judges: [
+        { icon: 'users', tone: 'yellow', title: 'Target learner',
+          text: 'Self-directed beginners of every age who keep savings in cash because investing feels risky, complex or "not for me yet". Four life stages adapt the horizon, tone and scenarios.' },
+        { icon: 'target', tone: 'sky', title: 'Learning objective',
+          text: 'After Day 1 the learner can explain why cash loses real value, why a cushion comes before investing, why a broad ETF spreads risk, and why a -20% dip is not a loss unless you sell.' },
+        { icon: 'check', tone: 'green', title: 'How it proves understanding',
+          list: ['Every free-text answer is graded optimal, partial or invalid. Gibberish earns 0 XP and the step repeats.',
+            'Mixed formats: scenario decisions, a cash-split slider, myth vs reality, spotting the fee that matters.',
+            '"Explain simpler" gives a real-life analogy plus a 3-option check.',
+            'Readiness and a before/after confidence score make progress visible.'] },
+        { icon: 'flame', tone: 'paper', title: 'How it keeps people coming back',
+          list: ['XP, levels, a streak and a friends leaderboard.', 'A real-world micro challenge every day, starting at 5 PLN.',
+            'Kita reacts to every answer, with sound and confetti on wins.', '~5 minutes a day for 14 days, then monthly check-ins.'] },
+        { icon: 'peak', tone: 'paper', title: 'Innovations for all generations',
+          text: 'Gen Z starts with a 200 PLN/mo practice plan and a 15-year horizon; 55+ gets a calmer tone, a 7-year horizon and the "is it too late?" scenario. One engine, four framings.' },
+        { icon: 'shield', tone: 'paper', title: 'Honest by design',
+          text: 'No promised returns and no tickers. Every number shows its assumptions (5.7% after costs, 3.5% inflation, today\'s PLN). Kita is labelled as an AI that can make mistakes.' },
+        { icon: 'landmark', tone: 'yellow', title: 'Value for Commerzbank', wide: true,
+          text: 'Day 1 ends with a first deposit, Day 2 opens a brokerage or demo account, Day 3 sets up a standing order. That means deposits, assets under management and retention through a channel outside apps cannot reach.' },
+        { icon: 'play', tone: 'sky', title: 'Try it in 60 seconds', wide: true,
+          text: 'Tap "First paycheck", then START. Type "asdf" in step 1 and watch Kita reject it with 0 XP. Switch EN | PL in the header at any time.' },
+      ],
+      after14: [
+        { id: 'rebalancing', icon: 'scale', title: 'Portfolio & rebalancing', description: 'Once a quarter, check your proportions and calmly return to your plan.', cadence: 'Quarterly, ~10 min' },
+        { id: 'tax_accounts', icon: 'shield', title: 'Tax-advantaged accounts (IKE / IKZE)', description: 'Learn the rules and check whether they fit you. Educational only.', cadence: 'Yearly, ~15 min' },
+        { id: 'bonds', icon: 'coins', title: 'Bonds & diversification', description: 'How bonds can steady part of a portfolio.', cadence: 'Yearly, ~10 min' },
+        { id: 'checkins', icon: 'chat', title: 'Monthly AI check-ins with Kita', description: 'A short talk about progress, emotions and your plan.', cadence: 'Monthly, ~5 min' },
+      ],
     },
     pl: {
-      pageTitle: 'Finance Quest — Commerzbank',
-      metaDescription:
-        'Finance Quest od Commerzbank — zbuduj pewność inwestowania w 14 dni, 5 minut dziennie.',
-      skipToContent: 'Przejdź do treści',
-      headerSubtitle: 'Commerzbank • 14-dniowy Sprint Pewności',
-      langGroupAria: 'Język',
-      resetBtn: 'Reset / Profil',
-      resetBtnTitle: 'Powrót do wyboru profilu',
-      logoResetAria: 'Finance Quest — powrót do wyboru profilu',
-      demoModeAria: 'Demo Mode — przykładowe profile',
-      hdrDayWord: 'Dzień',
-      hdrDayOf: 'z',
-      hdrLvlWord: 'Poz.',
-      hdrReadinessLabel: 'Gotowość',
-      hdrReadinessAria: 'Gotowość',
-      onbTitle: 'Zbuduj pewność inwestowania w 14 dni. 5 minut dziennie.',
-      onbSubtitle: '6 szybkich pytań odcina zbędny szum w stylu Speakly i buduje Twój plan.',
-      onbQuickStartPre: 'Szybki start: wybierz profil w',
-      onbQuickStartPost: 'na górze.',
-      qAge: 'Wiek',
-      qNetIncome: 'Zarobki netto',
-      qNetIncomeHint: 'miesięcznie, na rękę',
-      qFreeCash: 'Wolne środki miesięcznie',
-      qFreeCashMaxPrefix: 'maks.',
-      qFreeCashMaxSuffix: 'nie więcej niż zarobki netto',
-      qBuffer: 'Poduszka finansowa (min. 3 miesiące wydatków)',
-      qBufferYes: 'Tak, mam poduszkę',
-      qBufferNo: 'Dopiero ją buduję',
-      qConcern: 'Czego najbardziej się obawiasz?',
-      concernFreeze: 'Boję się, że zamrożę pieniądze',
-      concernNoTime: 'Nie mam czasu na giełdę',
-      concernLose: 'Boję się, że stracę pieniądze',
-      concernTooLate: 'Chyba za późno na start',
-      qConfidence: 'Jak pewnie czujesz się z inwestowaniem pierwszych pieniędzy?',
-      qConfMin: '1 — wcale',
-      qConfMax: '5 — bardzo pewnie',
-      ctaOnboarding: 'Zbuduj mój 14-dniowy plan Speakly',
-      ctaBusy: 'Filtruję zbędną teorię...',
-      screenFilterTitle: 'Twój plan na Dzień 1: mapa 14 dni, filtr Speakly i Wehikuł Czasu',
-      tmTitle: 'Wehikuł Czasu: gotówka vs szeroki ETF',
-      tmSubtitlePrefix: 'w dzisiejszych złotych • przykład:',
-      tmSliderLabel: 'Przewiń czas',
-      tmMinYear: '1 rok',
-      tmMaxYear: '20 lat',
-      kpiCashLabel: 'Wpłaty na koncie 0% (realnie, dzisiejsze złote)',
-      kpiPaidPrefix: 'wpłacono łącznie',
-      kpiEtfLabel: 'Szeroki ETF (realnie, założenia poniżej)',
-      kpiNominalPrefix: 'nominalnie ok.',
-      kpiWinTitle: 'Okresy historyczne (ilustracyjnie)',
-      kpiWinPrefix: 'W ilustracyjnych okresach historycznych',
-      kpiWinSuffix: 'zakończyło się dodatnim wynikiem realnym',
-      kpiWinNote: 'dane ilustracyjne, edukacyjne',
-      legendEtf: 'Szeroki ETF (realnie)',
-      legendCash: 'Wpłaty na koncie 0% (realnie)',
-      legendStress: 'Scenariusz wahania -20% w roku 3 (edukacyjny)',
-      tmSimNote: 'Symulacja historyczna; wyniki się różnią i nie gwarantują przyszłych zysków.',
-      tmChartAria:
-        'Wykres: wartość wpłat na koncie 0% i szerokiego ETF w dzisiejszych złotych, ze scenariuszem -20% w roku 3',
-      currencyUnit: 'zł',
-      ctaStartMission: 'Rozpocznij symulację Dnia 1 z AI Coachem',
-      screenMissionTitle: 'Dzień 1 z 14 — symulacja decyzji z Corą',
-      screenMissionTitleDynamic: 'Dzień {day} z 14 — symulacja decyzji z Corą',
-      screenChecklistTitleDynamic: 'Podsumowanie Dnia {day} z 14',
-      msDayWord: 'Dzień',
-      msSimLabel: 'Symulacja wyborów',
-      msStepWord: 'Krok',
-      msPortfolioLabel: 'Portfel symulowany (nominalnie)',
-      coachRole: 'Twój codzienny AI Coach',
-      coachAnalyzing: 'Cora analizuje Twoją odpowiedź...',
-      msPromptHeading: 'Co robisz?',
-      msPromptHint: 'Wybierz kartę albo odpowiedz własnymi słowami',
-      msInputLabel: 'Twoja własna odpowiedź dla AI Coacha',
-      msInputPlaceholder: 'Albo powiedz AI Coachowi Corze własnymi słowami, co robisz i dlaczego...',
-      msSend: 'Wyślij',
-      msSending: 'Wysyłam...',
-      msEnterHint: 'Enter — wyślij, Shift+Enter — nowa linia',
-      aiDisclaimer:
-        'AI Coach Cora może popełniać błędy. Wyłącznie symulacja edukacyjna — to nie porada inwestycyjna (MiFID II).',
-      ctaFinishDay: 'Zakończ Dzień 1 i zobacz podsumowanie',
-      screenChecklistTitle: 'Podsumowanie Dnia 1 z 14',
-      modalBankTitle: 'Przykładowy plan w Commerzbanku',
-      closeModalAria: 'Zamknij',
-      complianceText:
-        'Aplikacja Finance Quest ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na ' +
-        'uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka ' +
-        'walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji ' +
-        'w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.',
-      levelObserver: 'Obserwator',
-      levelConfident: 'Świadomy Start',
-      levelSteady: 'Konsekwentny Start',
-      ageGroupYoung: 'Młody Start (20+)',
-      ageGroupMid: 'Kariera i Rodzina (30–50)',
-      ageGroupSenior: 'Ochrona Kapitału (50+)',
-      fieldAge: 'Wiek musi mieścić się w przedziale 18–70 lat.',
-      fieldNetIncome: 'Zarobki netto: od 2 500 do 25 000 zł.',
-      fieldFreeCash: 'Wolne środki: od 200 do 10 000 zł i nie więcej niż zarobki netto.',
-      fieldEmergencyFund: 'Zaznacz, czy masz już poduszkę.',
-      fieldMainConcern: 'Wybierz, czego najbardziej się obawiasz.',
-      fieldSelfConfidence: 'Wybierz ocenę od 1 do 5.',
-      errorGeneric: 'Coś poszło nie tak. Spróbuj ponownie.',
-      errorNetwork: 'Brak połączenia z serwerem. Uruchom backend: uvicorn backend.main:app --port 8000',
-      errorTimeout: 'Serwer nie odpowiedział na czas. Spróbuj ponownie.',
-      error422: 'Sprawdź odpowiedzi w ankiecie — część wartości jest poza zakresem.',
-      error404: 'Nie znaleziono zasobu na serwerze (404).',
-      errorServer: 'Błąd serwera ({status}). Spróbuj ponownie.',
-      toastFixFields: 'Popraw zaznaczone pola ankiety.',
-      toastFillFields: 'Uzupełnij zaznaczone pytania ankiety.',
-      toastPersonasFailed:
-        'Nie udało się pobrać profili demo. Uruchom backend: uvicorn backend.main:app --port 8000',
-      planIntroHorizon: 'Horyzont:',
-      planIntroConcern: 'Obawa:',
-      lessonDone: 'Zaliczone • +{xp} XP',
-      lessonUnderstood: 'Rozumiem! (+{xp} XP)',
-      lessonSeconds: '{seconds} sek.',
-      speaklyTitle: 'Filtr Speakly i mikro-lekcje Dnia 1',
-      speaklySkipped: '⚡ Pominęliśmy {n} {word}, których nie potrzebujesz na start',
-      lessonsTitle: 'Mikro-lekcje Dnia 1',
-      lessonsOptional: 'opcjonalnie • maks. +{xp} XP',
-      prioritiesTitle: 'Twoje 3 priorytety na dziś',
-      skippedTitle: 'Nie musisz tego robić na starcie',
-      splitLabel: 'Przykładowa kwota docelowa (miesięcznie)',
-      splitCushion: 'Poduszka',
-      splitEtf: 'Trening w szeroki ETF',
-      splitShare: 'ok. {cushion}% na poduszkę • ok. {etf}% na trening w szeroki ETF',
-      splitSim: 'W symulacji poniżej:',
-      splitSimEtf: 'w szerokim ETF.',
-      splitPerMonth: '/mies.',
-      splitLater: 'ETF później — poniżej przykład na {amount} zł/mies.',
-      splitTitle: 'Przykładowy podział wolnych środków',
-      chartYearZero: 'Rok 0',
-      chartYear: 'Rok {year}',
-      chartEtf: 'Szeroki ETF (realnie)',
-      chartCash: 'Wpłaty na koncie 0% (realnie)',
-      chartStress: 'Scenariusz wahania -20% w roku 3 (edukacyjny)',
-      chartAxis: 'zł (w dzisiejszych złotych)',
-      feedbackGood: 'Trafna decyzja',
-      feedbackTip: 'Wskazówka od Cory',
-      feedbackAnswer: 'Twoja odpowiedź: „{answer}”',
-      feedbackReadiness: 'Gotowość +{delta} pkt',
-      feedbackLevel: '🏆 Awans: Poziom {level} {title}',
-      toastWriteMore: 'Napisz kilka słów albo wybierz jedną z kart.',
-      errorMessageLength: 'Odpowiedź musi mieć od 1 do {max} znaków.',
-      errorRestoreSession: 'Nie udało się odtworzyć sesji. Wróć do ankiety i spróbuj ponownie.',
-      levelBannerLeveled: '🏆 DZIEŃ {day} Z {total} UKOŃCZONY! AWANS: {title}',
-      levelBannerDone: 'DZIEŃ {day} Z {total} UKOŃCZONY',
-      streakNextDay: '🔥 Seria rozpoczęta! Wróć jutro po Dzień {day}.',
-      streakCheckpoint: '🔥 Dzień 4 gotowy — rozwiąż Checkpoint #1, żeby domknąć fundamenty.',
-      streakContinuous: '🔥 Fundamenty domknięte — ciągła nauka zaczyna się zaraz po sprincie.',
-      pillLevel: 'Poziom {level}',
-      pillMicroXp: '+{xp} XP z mikro-lekcji',
-      pillStreak: '🔥 Seria: {days} {dayWord}',
-      missingXp: 'Do Poziomu 2 brakuje <span class="tabular-nums">{xp} XP</span> — wróć jutro i nadrób!',
-      readiness: 'Gotowość',
-      readinessTo: 'do',
-      readinessNote: 'Pełną gotowość da dopiero Dzień 14.',
-      selfQuestion: 'Jak pewnie czujesz się teraz? (1–5)',
-      selfBeforeHint: 'Przed: {before}/5 — zaznacz, jak jest teraz.',
-      selfMarkNow: 'Zaznacz, jak jest teraz.',
-      selfBefore: 'Przed: {before}/5',
-      selfAfter: 'Po: {after}/5',
-      challengeAccepted: '✅ Wyzwanie przyjęte!',
-      challengeAccept: 'Podejmuję wyzwanie (+{xp} XP)',
-      challengeBadge: 'Realne mikro-wyzwanie • Zero strachu',
-      checklistTitleDynamic: 'Checklista Dnia {day}',
-      checklistDone: '🎉 Komplet! Teraz zrób pierwszy krok w banku.',
-      bankMicroMove: 'Mikro-ruch:',
-      bankOn: 'na',
-      bankBuffer: 'Poduszka:',
-      bankSavingsAccount: 'na konto oszczędnościowe',
-      bankEtfLater: 'ETF na później — przykład {amount}/mies.',
-      bankHorizon: 'horyzont',
-      bankParallelBuffer: 'Równolegle poduszka:',
-      bankTitle: 'Przykładowy plan w Commerzbanku',
-      bankToday: 'Dziś',
-      bankTarget: 'Dzień 14 — plan docelowy',
-      bankLaterPrefix: 'Przykład na później — ',
-      bankEstimate: 'szacunek edukacyjny w dzisiejszych złotych •',
-      bankEtfReal: 'Szeroki ETF (realnie)',
-      bankCashReal: 'Wpłaty na koncie 0% (realnie)',
-      bankNominal: 'nominalnie ETF: ok.',
-      bankCtaDynamic: 'Wykonaj krok Dnia {day} lub zobacz przykładowy plan w Commerzbanku',
-      leaderboardTitle: 'Ranking znajomych',
-      leaderboardDemo: 'Przykładowi znajomi (demo)',
-      leaderboardStreakTitle: 'Seria dni',
-      leaderboardLeveled: '⬆️ Awans!',
-      leaderboardMissing:
-        'Do 1. miejsca brakuje Ci <span class="tabular-nums">{xp} XP</span> — utrzymaj serię jutro!',
-      leaderboardLeading: 'Prowadzisz w rankingu — utrzymaj serię jutro!',
-      leaderboardChallenge: '⚔️ Wyzwij znajomego',
-      friendText:
-        'Rzucam Ci wyzwanie w Finance Quest! Mam za sobą Dzień 1 z 14 planu i {xp} XP. Dołączysz i spróbujesz mnie dogonić? 🔥',
-      friendCopied: '⚔️ Zaproszenie skopiowane do schowka — wyślij je znajomemu!',
-      friendCopyFailed: 'Nie udało się skopiować. Treść zaproszenia: {text}',
-      modalBankPreview: 'Podgląd ekranu aplikacji bankowej — w wersji demo nic nie zostanie wykonane.',
-      modalChooseStep: 'Wybierz krok',
-      modalOptionA: 'Opcja A — Krok na dziś',
-      modalRecommended: 'Polecana',
-      modalOptionB: 'Opcja B — Przykładowy plan na Dzień 14',
-      modalBuffer: 'Poduszka:',
-      modalSavings: 'na konto oszczędnościowe; ETF później (przykład {amount}/mies.)',
-      modalKyc:
-        'W wersji produkcyjnej: test odpowiedniości, weryfikacja tożsamości (KYC), informacja o kosztach i ryzyku.',
-      modalSimulate: 'Symuluj wykonanie kroku w banku (Demo)',
-      modalDone: 'Brawo! Krok Dnia 1 zaliczony — Twoja seria trwa, widzimy się jutro na Dniu 2!',
-      modalDoneNote: 'Symulacja: {summary} • W wersji demo nic nie zostało wykonane.',
-      modalNextGeneration: 'Przetestuj inne pokolenie (Demo)',
-      modalClose: 'Zamknij',
-      modalTodayStep: 'Krok na dziś',
-      modalTargetPlan: 'Przykładowy plan na Dzień 14:',
-      modalTransfer: 'Przelew {amount} na {account}',
-
-      // --- Issue #32: fazy, Dni 1–4, Checkpoint #1, After Day 14 ---
-      demoShortcutTitle: 'Skrót demo — przejdź prosto do Dnia 4 lub Checkpointu #1',
-      demoJumpDay4: 'Skok do Dnia 4',
-      demoCheckpoint: 'Checkpoint #1',
-      roadmapTitlePhases: '14-dniowy Sprint Pewności — 3 fazy',
-      roadmapSprintNote:
-        '14 dni to sprint startowy budujący pewność do pierwszych wpłat (~5 min/dzień). Po Dniu 14 zaczyna się ciągła nauka — to nie meta.',
-      roadmapPhase1: 'Faza 1: Dni 1–4 · Fundamenty i pierwszy krok',
-      roadmapPhase2: 'Faza 2: Dni 5–9 · Ryzyko, bezpieczeństwo i emocje',
-      roadmapPhase3: 'Faza 3: Dni 10–14 · Twój prawdziwy plan',
-      roadmapCheckpoint1: 'Checkpoint #1',
-      roadmapCheckpoint2: 'Checkpoint #2',
-      roadmapSprintFinale: 'Finał sprintu',
-      roadmapAvailableNow: 'Dostępne teraz',
-      roadmapCompletedDays: '{done} z 4 dni ukończonych',
-      roadmapDayAria: 'Przejdź do Dnia {day}',
-      roadmapLockedDayAria: 'Dzień {day} jest zablokowany',
-      roadmapDayLabel: 'Dzień {day}',
-      roadmapPhaseLocked: 'Zablokowane',
-      roadmapAfter14Title: 'After Day 14 — Continuous Learning',
-      roadmapAfter14Note:
-        'Sprint kończy się w Dniu 14, ale nauka trwa dalej: rebalansowanie, IKE/IKZE, obligacje i miesięczne check-iny z Corą.',
-      nextStepTitle: 'Twój następny krok',
-      nextStepDayDone: 'Dzień {day} ukończony',
-      nextStepContinue: 'Przejdź do Dnia {day}',
-      nextStepContinueHint: 'Dzień {day} zajmuje ~5 min: nowe mikro-lekcje i 2 decyzje z Corą.',
-      nextStepCheckpoint: 'Rozwiąż quiz Checkpoint #1',
-      nextStepCheckpointReview: 'Zobacz wynik Checkpointu #1',
-      nextStepCheckpointHint:
-        'Test wiedzy z 4 pytań z Dni 1–4. Próg 75%, +100 XP i odznaka Foundation Ready.',
-      nextStepProgress: 'Ukończone dni: {done} z 4',
-      nextStepReviewMap: 'Zobacz mapę 14 dni',
-      screenCheckpointTitle: 'Checkpoint #1 — test wiedzy',
-      cpIntroTitle: 'Checkpoint #1 — test wiedzy',
-      cpIntroBody:
-        'Cztery szybkie pytania z Dni 1–4: inflacja, poduszka, koszty i wahania. Zajmie około 2 minut.',
-      cpThreshold: 'Próg zaliczenia: 75% • nagroda: +100 XP',
-      cpProgress: 'Odpowiedziano {answered} z {total}',
-      cpQuestion: 'Pytanie {n}',
-      cpSubmit: 'Wyślij odpowiedzi',
-      cpSubmitting: 'Sprawdzam...',
-      cpIncomplete: 'Odpowiedz na wszystkie pytania przed wysłaniem.',
-      cpEmpty: 'Pytania Checkpointu nie są jeszcze dostępne. Najpierw ukończ Dzień 4.',
-      cpErrorMessage: 'Nie udało się wysłać Checkpointu. Spróbuj ponownie.',
-      cpCorrectCount: '{correct} z {total} poprawnych',
-      cpPassed: 'Checkpoint #1 zaliczony!',
-      cpFailed: 'Jeszcze niezaliczony — przejrzyj wyjaśnienia i spróbuj ponownie.',
-      cpBadgeEarned: 'Odznaka: {badge}',
-      cpReward: 'Bonus: +{xp} XP',
-      cpResultsTitle: 'Wyjaśnienia odpowiedzi',
-      cpCorrectAnswer: 'Poprawna odpowiedź: {answer}',
-      cpCorrect: 'Poprawnie',
-      cpIncorrect: 'Tym razem nie',
-      cpRetry: 'Spróbuj ponownie',
-      cpBackToSummary: 'Wróć do podsumowania dnia',
-      feedbackRetryTitle: 'Spróbujmy jeszcze raz',
-      feedbackZeroXp: '0 XP',
-      ctaFinishDayDynamic: 'Zakończ Dzień {day} i zobacz podsumowanie',
-      ctaStartMissionDynamic: 'Rozpocznij symulację Dnia {day} z AI Coachem',
-      dayStartedToast: 'Dzień {day} odblokowany — ~5 min, zaczynamy!',
-      errorDayStart: 'Nie udało się wczytać tego dnia. Spróbuj ponownie.',
+      judges: [
+        { icon: 'users', tone: 'yellow', title: 'Odbiorca',
+          text: 'Początkujący, samodzielni inwestorzy w każdym wieku, którzy trzymają oszczędności w gotówce, bo inwestowanie wydaje się ryzykowne, skomplikowane albo „jeszcze nie dla mnie”. Cztery etapy życia dopasowują horyzont, ton i scenariusze.' },
+        { icon: 'target', tone: 'sky', title: 'Cel nauki',
+          text: 'Po Dniu 1 użytkownik potrafi wyjaśnić, dlaczego gotówka traci realną wartość, dlaczego poduszka jest przed inwestowaniem, dlaczego szeroki ETF rozkłada ryzyko i dlaczego spadek -20% nie jest stratą, dopóki nie sprzedajesz.' },
+        { icon: 'check', tone: 'green', title: 'Jak sprawdzamy zrozumienie',
+          list: ['Każda własna odpowiedź dostaje ocenę: optymalna, częściowa albo nieważna. Bełkot daje 0 XP i krok się powtarza.',
+            'Różne formaty: decyzje w scenariuszach, suwak podziału gotówki, mit czy fakt, wskazanie opłaty, która ma znaczenie.',
+            '„Wyjaśnij prościej” daje analogię z życia i 3-opcyjny sprawdzian.',
+            'Gotowość i samoocena pewności przed/po pokazują postęp.'] },
+        { icon: 'flame', tone: 'paper', title: 'Co sprawia, że się wraca',
+          list: ['XP, poziomy, seria dni i ranking znajomych.', 'Codzienne realne mikro-wyzwanie, od 5 zł.',
+            'Kita reaguje na każdą odpowiedź, a sukcesom towarzyszy dźwięk i konfetti.', '~5 minut dziennie przez 14 dni, potem comiesięczne check-iny.'] },
+        { icon: 'peak', tone: 'paper', title: 'Innowacje dla wszystkich pokoleń',
+          text: 'Pokolenie Z zaczyna od treningu 200 zł/mies. i horyzontu 15 lat; 55+ dostaje spokojniejszy ton, horyzont 7 lat i scenariusz „czy to nie za późno?”. Jeden silnik, cztery historie.' },
+        { icon: 'shield', tone: 'paper', title: 'Uczciwie od podstaw',
+          text: 'Zero obietnic zysku i zero tickerów. Każda liczba pokazuje założenia (5,7% po kosztach, inflacja 3,5%, dzisiejsze złote). Kita jest oznaczona jako AI, które może się mylić.' },
+        { icon: 'landmark', tone: 'yellow', title: 'Wartość dla Commerzbanku', wide: true,
+          text: 'Dzień 1 kończy się pierwszą wpłatą, Dzień 2 otwiera konto maklerskie lub demo, Dzień 3 ustawia zlecenie stałe. To depozyty, aktywa w zarządzaniu i retencja w kanale niedostępnym dla zewnętrznych aplikacji.' },
+        { icon: 'play', tone: 'sky', title: 'Sprawdź w 60 sekund', wide: true,
+          text: 'Kliknij „Pierwsza wypłata”, potem START. W kroku 1 wpisz „asdf” i zobacz, jak Kita odrzuca to za 0 XP. W nagłówku w każdej chwili przełączysz EN | PL.' },
+      ],
+      after14: [
+        { id: 'rebalancing', icon: 'scale', title: 'Portfel i rebalansowanie', description: 'Raz na kwartał sprawdzasz proporcje i spokojnie wracasz do planu.', cadence: 'Co kwartał, ~10 min' },
+        { id: 'tax_accounts', icon: 'shield', title: 'Konta z ulgą podatkową (IKE / IKZE)', description: 'Poznaj zasady i sprawdź, czy pasują do Ciebie. Wyłącznie edukacyjnie.', cadence: 'Raz w roku, ~15 min' },
+        { id: 'bonds', icon: 'coins', title: 'Obligacje i dywersyfikacja', description: 'Jak obligacje mogą stabilizować część portfela.', cadence: 'Raz w roku, ~10 min' },
+        { id: 'checkins', icon: 'chat', title: 'Comiesięczne check-iny z Kitą', description: 'Krótka rozmowa o postępach, emocjach i planie.', cadence: 'Co miesiąc, ~5 min' },
+      ],
     },
   };
 
-  function normalizeLang(lang) {
-    return String(lang || '').toLowerCase() === 'pl' ? 'pl' : 'en';
-  }
-
-  function readStoredLang() {
-    try {
-      return normalizeLang(window.localStorage.getItem(LANG_STORAGE_KEY));
-    } catch (err) {
-      return 'en';
-    }
-  }
-
-  // Tłumaczenie klucza z podstawianiem {placeholderów}; brak klucza -> EN -> klucz.
-  function t(key, params) {
-    const dict = I18N[state.lang] || I18N.en;
-    let value = Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : I18N.en[key];
-    if (typeof value !== 'string') return key;
-    if (params) {
-      value = value.replace(/\{(\w+)\}/g, (match, name) =>
-        Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match
-      );
-    }
-    return value;
-  }
-
-  function concernLabels() {
-    return {
-      freeze_money: t('concernFreeze'),
-      no_time: t('concernNoTime'),
-      lose_money: t('concernLose'),
-      too_late: t('concernTooLate'),
-    };
-  }
-
-  function fieldMessages() {
-    return {
-      age: t('fieldAge'),
-      net_income: t('fieldNetIncome'),
-      free_cash: t('fieldFreeCash'),
-      has_emergency_fund: t('fieldEmergencyFund'),
-      main_concern: t('fieldMainConcern'),
-      self_confidence_start: t('fieldSelfConfidence'),
-    };
-  }
-
-  const FORM_FIELDS = Object.freeze([
-    'age',
-    'net_income',
-    'free_cash',
-    'has_emergency_fund',
-    'main_concern',
-    'self_confidence_start',
-  ]);
-
-  // ------------------------------------------------------------------------
-  // 2. Stan aplikacji
-  // ------------------------------------------------------------------------
-
-  const state = {
-    lang: readStoredLang(),   // 'en' (domyślnie) | 'pl' — patrz I18N
-    currentScreen: SCREENS.ONBOARDING,
-    busy: false,
-    dayBusy: false,          // trwa POST /api/day/start (blokada podwójnego kliku)
-    personas: [],            // list[DemoPersona] z GET /api/demo-personas
-    activePersonaId: null,
-    lastProfile: null,       // ostatni OnboardingRequest (do cichego ponowienia analyze po 404)
-    session: null,           // OnboardingResponse
-    turn: null,              // ostatni MissionTurnResponse (initial_mission_turn lub tura)
-    microLessonBonusXp: 0,   // lokalny bonus z mikro-lekcji (reguła monotonicznego XP)
-    completedLessons: new Set(),
-    completedDays: new Set(), // ukończone dni sprintu 1–4 (z turn.completed_days)
-    challenges: { acceptedDays: new Set(), rewards: {} }, // mini-wyzwania per dzień (1–4)
-    checkpoint: { answers: {}, busy: false, result: null, passed: false },
-    timeMachine: { year: null, point: null },
-    rendered: { xp: null, level: null, readiness: null }, // ostatnio narysowane wartości nagłówka
-    mission: {
-      busy: false,           // trwa POST /api/mission/turn (blokada podwójnego kliku)
-      token: 0,              // rośnie przy nowej analizie — odpowiedzi starej sesji są ignorowane
-      log: [],               // wysłane odpowiedzi {user_message, quick_reply_id?} (odtworzenie po 404)
-      lastAnswer: null,      // tekst ostatniej odpowiedzi (w karcie feedbacku)
-      renderedValue: 0,      // ostatnio narysowane portfolio_status.simulated_value
-      restoring: null,       // Promise trwającego odtwarzania sesji
+  // Offline bank for "Ask Kita" — used only when /api/coach/explain is unreachable
+  // (route not deployed yet, no network). The backend has its own, richer fallback bank.
+  const EXPLAIN_LOCAL = {
+    en: {
+      inflation: { s: "Inflation means prices rise over time, so the same money buys a bit less each year. Cash in a 0% account doesn't keep up.",
+        e: 'A shopping basket costs 200 PLN today. With 3.5% inflation it costs about 207 PLN a year later, while your 200 PLN in a 0% account is still just 200 PLN.',
+        q: 'What happens to 1,000 PLN left for a year in a 0% account if inflation is 3.5%?',
+        o: ['It buys less than before', 'It buys exactly the same', 'It grows by 3.5%'], c: 0,
+        f: 'Right: the number stays the same, but it buys less. That is a real loss of purchasing power.' },
+      etf: { s: 'An ETF is a basket of many companies you buy in one go, like a ready-made fruit basket instead of picking single fruits.',
+        e: 'Instead of betting on one café, you own a tiny slice of hundreds of businesses worldwide. If one café closes, the basket barely notices.',
+        q: "What's the main advantage of a broad ETF over one company's shares?",
+        o: ['It can never lose value', 'Risk is spread across many companies', 'It always beats a bank account'], c: 1,
+        f: 'Exactly. Spreading money softens the hit from any one company, but the whole market can still fall.' },
+      cushion: { s: 'An emergency cushion is money set aside for surprises, usually 3–6 months of costs, kept somewhere easy to reach.',
+        e: 'Your washing machine breaks. With a cushion you pay from savings, and your long-term investments stay untouched.',
+        q: 'Your laptop breaks next week. Where should the money come from first?',
+        o: ['The emergency cushion', 'Selling ETF units in a hurry', 'A high-interest loan'], c: 0,
+        f: 'Yes. The cushion is there so long-term money never has to be sold at a bad moment.' },
+      dip: { s: 'A -20% dip means the portfolio is worth less on paper for a while. It only becomes a real loss if you sell.',
+        e: "Your flat's market price drops for a year, but you keep living in it. You haven't lost anything unless you sell at the low price.",
+        q: 'Your ETF shows -20% on paper and your horizon is 15 years. What usually protects you best?',
+        o: ['Selling everything today', 'Checking prices every hour', 'Sticking to the plan'], c: 2,
+        f: "Right. Selling turns a paper drop into a real loss. History doesn't guarantee the future, but panic rarely helps." },
+      diversification: { s: "Diversification means not putting all your eggs in one basket: your money is spread across many companies, sectors and countries.",
+        e: 'If you only grow strawberries, one storm ruins the harvest. Grow ten crops and one bad season hurts much less.',
+        q: 'Which choice is the most diversified?',
+        o: ['Shares of one popular company', 'A broad global ETF with hundreds of companies', 'Two shares from the same sector'], c: 1,
+        f: 'Exactly. More companies, sectors and regions means one stumble matters less. Risk shrinks, but it does not vanish.' },
+      fees: { s: "TER is a fund's yearly fee, taken as a small percentage of your money every year. Lower fees leave more of the growth with you.",
+        e: 'Two gyms offer the same equipment, one for 50 PLN and one for 150 PLN a month. Over the years the cheaper one leaves far more in your pocket.',
+        q: 'Two similar broad ETFs differ only in TER: 0.1% vs 0.9%. Which detail matters?',
+        o: ['The lower yearly fee', 'The longer fund name', "Nothing, fees don't add up"], c: 0,
+        f: 'Yes. The fee is charged every year, so small differences add up over a long horizon.' },
+      general: { s: 'The core idea of the first days: cushion first, then small, regular amounts in a broad, low-cost fund, kept for the long term.',
+        e: 'Think of learning to swim: first the shallow end (the cushion), then short lengths (small amounts), and only later the deep end.',
+        q: 'What usually comes first for a beginner?',
+        o: ['Picking a hot stock', 'Investing all savings at once', 'Building an emergency cushion'], c: 2,
+        f: 'Right. With a cushion in place you never have to sell investments for everyday surprises.' },
     },
-    summary: freshSummary(), // Ekran 4 i modal bankowy (stan lokalny, zerowany przy nowej analizie)
+    pl: {
+      inflation: { s: 'Inflacja to wzrost cen w czasie, więc te same pieniądze co roku kupują trochę mniej. Gotówka na koncie 0% za tym nie nadąża.',
+        e: 'Koszyk zakupów kosztuje dziś 200 zł. Przy inflacji 3,5% za rok kosztuje ok. 207 zł, a Twoje 200 zł na koncie 0% to wciąż tylko 200 zł.',
+        q: 'Co dzieje się z 1 000 zł na koncie 0% przez rok, gdy inflacja wynosi 3,5%?',
+        o: ['Kupuje mniej niż wcześniej', 'Kupuje dokładnie tyle samo', 'Rośnie o 3,5%'], c: 0,
+        f: 'Tak: kwota jest ta sama, ale kupuje mniej. To realna strata siły nabywczej.' },
+      etf: { s: 'ETF to koszyk wielu firm kupowany za jednym razem, jak gotowy kosz owoców zamiast wybierania pojedynczych sztuk.',
+        e: 'Zamiast stawiać na jedną kawiarnię, masz maleńki kawałek setek firm na świecie. Gdy jedna kawiarnia się zamyka, koszyk ledwo to czuje.',
+        q: 'Jaka jest główna zaleta szerokiego ETF w porównaniu z akcjami jednej firmy?',
+        o: ['Nigdy nie traci na wartości', 'Ryzyko rozkłada się na wiele firm', 'Zawsze wygrywa z kontem w banku'], c: 1,
+        f: 'Dokładnie. Rozłożenie pieniędzy łagodzi wpadkę jednej firmy, ale cały rynek nadal może spaść.' },
+      cushion: { s: 'Poduszka finansowa to pieniądze odłożone na niespodzianki, zwykle 3–6 miesięcy wydatków, trzymane pod ręką.',
+        e: 'Psuje się pralka. Z poduszką płacisz z oszczędności, a długoterminowe inwestycje zostają nietknięte.',
+        q: 'W przyszłym tygodniu psuje się laptop. Skąd w pierwszej kolejności wziąć pieniądze?',
+        o: ['Z poduszki finansowej', 'Ze sprzedaży ETF w pośpiechu', 'Z drogiej pożyczki'], c: 0,
+        f: 'Tak. Poduszka jest po to, żeby długoterminowych pieniędzy nie trzeba było sprzedawać w złym momencie.' },
+      dip: { s: 'Spadek -20% oznacza, że portfel jest przez jakiś czas wart mniej na papierze. Realną stratą staje się dopiero po sprzedaży.',
+        e: 'Cena rynkowa Twojego mieszkania spada na rok, ale dalej w nim mieszkasz. Nic nie tracisz, dopóki nie sprzedasz po niskiej cenie.',
+        q: 'Twój ETF pokazuje -20% na papierze, a horyzont to 15 lat. Co zwykle chroni najlepiej?',
+        o: ['Sprzedaż wszystkiego dziś', 'Sprawdzanie cen co godzinę', 'Trzymanie się planu'], c: 2,
+        f: 'Tak. Sprzedaż zamienia spadek na papierze w realną stratę. Historia nie gwarantuje przyszłości, ale panika rzadko pomaga.' },
+      diversification: { s: 'Dywersyfikacja to niewkładanie wszystkich jajek do jednego koszyka: pieniądze rozkładasz na wiele firm, branż i krajów.',
+        e: 'Gdy uprawiasz tylko truskawki, jedna burza niszczy zbiory. Przy dziesięciu uprawach jeden zły sezon boli dużo mniej.',
+        q: 'Który wybór jest najbardziej zdywersyfikowany?',
+        o: ['Akcje jednej popularnej firmy', 'Szeroki globalny ETF z setkami spółek', 'Dwie spółki z tej samej branży'], c: 1,
+        f: 'Dokładnie. Więcej firm, branż i regionów to mniejsze znaczenie jednej wpadki. Ryzyko maleje, ale nie znika.' },
+      fees: { s: 'TER to roczna opłata funduszu, pobierana co roku jako mały procent Twoich pieniędzy. Niższa opłata zostawia Ci więcej wzrostu.',
+        e: 'Dwie siłownie mają ten sam sprzęt, jedna za 50 zł, druga za 150 zł miesięcznie. Po latach tańsza zostawia w kieszeni dużo więcej.',
+        q: 'Dwa podobne szerokie ETF-y różnią się tylko TER: 0,1% i 0,9%. Który szczegół ma znaczenie?',
+        o: ['Niższa roczna opłata', 'Dłuższa nazwa funduszu', 'Żaden, opłaty się nie sumują'], c: 0,
+        f: 'Tak. Opłata pobierana jest co roku, więc małe różnice sumują się w długim horyzoncie.' },
+      general: { s: 'Sedno pierwszych dni: najpierw poduszka, potem małe, regularne kwoty w szerokim, tanim funduszu, trzymane długo.',
+        e: 'Jak nauka pływania: najpierw płytki basen (poduszka), potem krótkie długości (małe kwoty), a dopiero później głęboka woda.',
+        q: 'Od czego zwykle zaczyna początkujący?',
+        o: ['Od gorącej spółki', 'Od zainwestowania wszystkich oszczędności naraz', 'Od zbudowania poduszki finansowej'], c: 2,
+        f: 'Tak. Z poduszką nigdy nie musisz sprzedawać inwestycji z powodu codziennych niespodzianek.' },
+    },
   };
+  const EXPLAIN_TOPICS = ['inflation', 'etf', 'cushion', 'dip', 'diversification', 'fees'];
+  const EXPLAIN_PATTERNS = [
+    ['cushion', /cushion|emergency|buffer|poduszk|awari|nagł/i],
+    ['fees', /\bter\b|fee|cost|opłat|koszt|prowizj/i],
+    ['dip', /dip|drop|crash|-\s?20|volatil|spad|wahan|panik/i],
+    ['diversification', /divers|dywersyf|one compan|jedn(ej|a) (firm|spół)|koszyk/i],
+    ['inflation', /inflat|inflac|cash|gotówk|purchasing|siła nabywcz/i],
+    ['etf', /etf|fund|fundusz|index|indeks/i],
+  ];
 
-  const els = {};
-  let timeMachineChart = null;
+  const state0 = { lang: 'en' };
+  function t(key, vars) {
+    const lang = state0.lang;
+    let s = (I18N[lang] && I18N[lang][key]) != null ? I18N[lang][key] : I18N.en[key];
+    if (s == null) return key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+    return s;
+  }
+  function tPick(key, seed) {
+    const parts = t(key).split('|');
+    return parts[Math.abs(seed || 0) % parts.length];
+  }
+  function blocks() { return I18N_BLOCKS[state0.lang] || I18N_BLOCKS.en; }
 
-  function cacheElements() {
-    const byId = (id) => document.getElementById(id);
-    els.screens = Array.from(document.querySelectorAll('main .screen'));
-    els.personaPills = Array.from(document.querySelectorAll('[data-persona-id]'));
-    els.toastRoot = byId('toast-root');
+  // ------------------------------------------------------------------------
+  // 3. Icons (2-tone, 2px petrol outline), Kita the monkey, badge art
+  // ------------------------------------------------------------------------
+  const S = 'stroke="#082933" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  const ICON_PATHS = {
+    brand: '<path d="M4.5 16.5l4.5-4.5 3.5 3 7-7.5" ' + S + ' stroke-width="2.8"/><circle cx="19.5" cy="7.5" r="1.8" fill="#082933"/>',
+    calendar: '<path d="M6.5 5h11a3 3 0 0 1 3 3v1.5h-17V8a3 3 0 0 1 3-3z" fill="#FFCC00"/><rect x="3.5" y="5" width="17" height="15.5" rx="3" ' + S + '/><path d="M3.5 9.5h17M8 3v4M16 3v4" ' + S + '/><circle cx="8.5" cy="14.5" r="1.1" fill="#082933"/><circle cx="12" cy="14.5" r="1.1" fill="#082933"/><circle cx="15.5" cy="14.5" r="1.1" fill="#082933"/>',
+    flame: '<path d="M12 2.8c2.6 3 6.2 5.7 6.2 10.4a6.2 6.2 0 0 1-12.4 0c0-2.6 1.3-4.4 2.6-5.6.2 1.8.9 3 2 3.6-.2-3.2.4-6 1.6-8.4z" fill="#FF8A00" ' + S + '/><path d="M12 12.4c1.3 1.2 2.5 2.4 2.5 4.1a2.5 2.5 0 0 1-5 0c0-1.6 1.1-2.8 2.5-4.1z" fill="#FFCC00" ' + S + ' stroke-width="1.6"/>',
+    bolt: '<path d="M13.5 2.5 5 13.5h6l-1 8 8.5-11h-6z" fill="#FFCC00" ' + S + '/>',
+    soundOn: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#FFCC00" ' + S + '/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" ' + S + '/>',
+    soundOff: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#EEEADF" ' + S + '/><path d="M16 9.5l5 5M21 9.5l-5 5" ' + S + '/>',
+    reset: '<path d="M5 12.5A7 7 0 1 0 7.6 6.8" ' + S + '/><path d="M8.2 3.4 7.6 6.9 4.1 7.3" ' + S + '/>',
+    clipboard: '<rect x="5" y="4.5" width="14" height="16.5" rx="2.5" fill="#DDF1FD" ' + S + '/><rect x="8.5" y="2.8" width="7" height="3.6" rx="1.2" fill="#FFCC00" ' + S + '/><path d="M8.5 12l2 2 4.5-4.5M8.5 17.5h7" ' + S + '/>',
+    menu: '<circle cx="5.5" cy="12" r="1.8" fill="#082933"/><circle cx="12" cy="12" r="1.8" fill="#082933"/><circle cx="18.5" cy="12" r="1.8" fill="#082933"/>',
+    x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11" ' + S + ' stroke-width="2.6"/>',
+    'arrow-right': '<path d="M4.5 12h14M13 6.5l5.5 5.5-5.5 5.5" ' + S + ' stroke-width="2.4"/>',
+    'chevron-down': '<path d="M6 9.5l6 6 6-6" ' + S + ' stroke-width="2.4"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5" ' + S + ' stroke-width="2.8"/>',
+    lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="#CBC3B0" ' + S + '/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" ' + S + '/><circle cx="12" cy="15.5" r="1.5" fill="#082933"/>',
+    star: '<path d="M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.6l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z" fill="#FFCC00" ' + S + '/><path d="M9.3 11.6l1.9 1.9 3.6-3.7" ' + S + '/>',
+    trophy: '<path d="M7 6H4.5a3 3 0 0 0 3 4.3M17 6h2.5a3 3 0 0 1-3 4.3" ' + S + '/><path d="M7 3.5h10V9a5 5 0 0 1-10 0z" fill="#FFCC00" ' + S + '/><path d="M12 14v3.5" ' + S + '/><rect x="8" y="17.5" width="8" height="3.5" rx="1.2" fill="#FF8A00" ' + S + '/>',
+    shield: '<path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6z" fill="#29A9F5" ' + S + '/><path d="M8.7 12l2.3 2.3 4.3-4.6" ' + S + '/>',
+    piggy: '<path d="M4.5 12.5c0-3.6 3.4-6 7.5-6 1.4 0 2.7.3 3.8.8l2.7-1.3-.4 3a5.6 5.6 0 0 1 1.5 2.4H21v3.2h-1.6a6.4 6.4 0 0 1-2.4 2.6V20h-3v-1.3h-3.2V20H7.8v-2.1a5.8 5.8 0 0 1-3.3-5.4z" fill="#FDE4E2" ' + S + '/><circle cx="16" cy="11" r="1.1" fill="#082933"/><path d="M10 7.3h3" ' + S + '/>',
+    sprout: '<path d="M12 21v-8" ' + S + '/><path d="M12 13c0-4-3-6.5-7.5-6.5 0 4.2 3 6.5 7.5 6.5z" fill="#12B76A" ' + S + '/><path d="M12 11c0-3.6 2.6-6 6.8-6 0 3.9-2.6 6-6.8 6z" fill="#12B76A" ' + S + '/><path d="M7.5 21h9" ' + S + '/>',
+    building: '<rect x="5" y="3.5" width="14" height="17.5" rx="2" fill="#EEEADF" ' + S + '/><path d="M9 7.5h2M13 7.5h2M9 11h2M13 11h2M9 14.5h2M13 14.5h2M10.5 21v-3h3v3" ' + S + '/>',
+    wallet: '<rect x="3.5" y="6" width="17" height="13.5" rx="3" fill="#DDF1FD" ' + S + '/><path d="M15 11h5.5v4.5H15a2.25 2.25 0 0 1 0-4.5z" fill="#FFCC00" ' + S + '/><path d="M6 6l9-2.5 1 2.5" ' + S + '/>',
+    coins: '<path d="M5 7v10c0 1.7 3.1 3 7 3s7-1.3 7-3V7" fill="#E0B200"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7" ' + S + '/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5" ' + S + '/><ellipse cx="12" cy="7" rx="7" ry="3" fill="#FFCC00" ' + S + '/>',
+    snowflake: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5" ' + S + '/><circle cx="12" cy="12" r="2.4" fill="#29A9F5" ' + S + '/>',
+    clock: '<circle cx="12" cy="12" r="8.5" fill="#DDF1FD" ' + S + '/><path d="M12 7.5V12l3 2" ' + S + '/>',
+    hourglass: '<path d="M7.5 3c0 4.5 4.5 5.5 4.5 9s-4.5 4.5-4.5 9h9c0-4.5-4.5-5.5-4.5-9s4.5-4.5 4.5-9z" fill="#fff" ' + S + '/><path d="M9.3 19.6c.6-1.8 2.7-2.6 2.7-3.6 0 1 2.1 1.8 2.7 3.6z" fill="#FFCC00"/><path d="M6.5 3h11M6.5 21h11" ' + S + '/>',
+    'trend-down': '<path d="M3.5 7l6 6 3.5-3.5 7.5 7.5" stroke="#F0544F" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 17h6v-6" ' + S + '/>',
+    eye: '<path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" fill="#fff" ' + S + '/><circle cx="12" cy="12" r="3" fill="#29A9F5" ' + S + '/>',
+    repeat: '<path d="M17 3.5 20 6.5l-3 3M4 11.5V10a3.5 3.5 0 0 1 3.5-3.5H20M7 20.5 4 17.5l3-3M20 12.5V14a3.5 3.5 0 0 1-3.5 3.5H4" ' + S + '/>',
+    pause: '<rect x="6" y="5" width="4" height="14" rx="1.5" fill="#FFCC00" ' + S + '/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="#FFCC00" ' + S + '/>',
+    help: '<path d="M4 6.5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7.5a3 3 0 0 1-3 3h-5.5L7 21v-4a3 3 0 0 1-3-3z" fill="#DDF1FD" ' + S + '/><path d="M10 8.6a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.2v.4" ' + S + '/><circle cx="12" cy="14.4" r="1.1" fill="#082933"/>',
+    info: '<circle cx="12" cy="12" r="9" ' + S + '/><path d="M12 11v5.5" ' + S + '/><circle cx="12" cy="7.8" r="1.2" fill="#082933"/>',
+    landmark: '<path d="M3.5 9.5 12 4l8.5 5.5z" fill="#FFCC00" ' + S + '/><path d="M5.5 10.5v7M10 10.5v7M14 10.5v7M18.5 10.5v7M3.5 20.5h17" ' + S + '/>',
+    users: '<circle cx="9" cy="8.5" r="3.5" fill="#FFCC00" ' + S + '/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" ' + S + '/><circle cx="17" cy="9.5" r="2.7" fill="#fff" ' + S + '/><path d="M16 14.2c2.9.2 5 2.5 5 5.4" ' + S + '/>',
+    target: '<circle cx="12" cy="12" r="8.5" fill="#fff" ' + S + '/><circle cx="12" cy="12" r="5" fill="#F0544F" ' + S + '/><circle cx="12" cy="12" r="1.8" fill="#fff" ' + S + '/>',
+    bulb: '<path d="M8.5 15.5c-1.6-1.2-2.7-3-2.7-5.2a6.2 6.2 0 0 1 12.4 0c0 2.2-1.1 4-2.7 5.2v2h-7z" fill="#FFCC00" ' + S + '/><path d="M9.5 20.5h5" ' + S + '/>',
+    chart: '<path d="M4 4v16h16" ' + S + '/><path d="M7.5 15l3.5-4 3 2.5 5-6" stroke="#12B76A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    search: '<circle cx="10.5" cy="10.5" r="6.5" fill="#DDF1FD" ' + S + '/><path d="M15.5 15.5l5 5" ' + S + ' stroke-width="2.6"/>',
+    banknote: '<rect x="2.5" y="6" width="19" height="12" rx="2.5" fill="#12B76A" ' + S + '/><circle cx="12" cy="12" r="2.8" fill="#FFCC00" ' + S + '/><path d="M6 9.5v5M18 9.5v5" ' + S + '/>',
+    house: '<path d="M5.5 9.5V20h13V9.5L12 4.3z" fill="#FFCC00" ' + S + '/><path d="M3.5 11 12 4l8.5 7" ' + S + '/><rect x="10" y="14" width="4" height="6" fill="#fff" ' + S + '/>',
+    peak: '<path d="M2.5 20 9 8.5l3.5 5.5 2.5-3.5 6.5 9.5z" fill="#29A9F5" ' + S + '/><path d="M9 8.5V3.5l4 1.5-4 1.5" fill="#FFCC00" ' + S + '/>',
+    sunset: '<path d="M5.5 16a6.5 6.5 0 0 1 13 0z" fill="#FF8A00" ' + S + '/><path d="M3 16h18M7 20h10M12 4.5v2.5M5.3 8.3l1.6 1.6M18.7 8.3l-1.6 1.6" ' + S + '/>',
+    user: '<circle cx="12" cy="8" r="4" fill="#FFCC00" ' + S + '/><path d="M4.5 20.5c0-4 3.4-7 7.5-7s7.5 3 7.5 7" ' + S + '/>',
+    scale: '<path d="M12 4v16M7 20h10M5 7h14" ' + S + '/><path d="M5 7l-2.5 6a2.5 2.5 0 0 0 5 0z" fill="#DDF1FD" ' + S + '/><path d="M19 7l-2.5 6a2.5 2.5 0 0 0 5 0z" fill="#DDF1FD" ' + S + '/>',
+    chat: '<path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-6l-4.5 4v-4H7a3 3 0 0 1-3-3z" fill="#DCF5E7" ' + S + '/><path d="M8.5 9.5h7M8.5 12.5h4" ' + S + '/>',
+    play: '<path d="M8 5.5v13l10.5-6.5z" fill="#FFCC00" ' + S + '/>',
+    send: '<path d="M3.5 11.5 20.5 4l-6.5 16.5-3-6.5z" fill="#FFCC00" ' + S + '/><path d="M11 14l9.5-10" ' + S + '/>',
+    flag: '<path d="M6 21V4" ' + S + '/><path d="M6 4.5h11l-2.5 4 2.5 4H6z" fill="#FFCC00" ' + S + '/>',
+  };
+  function icon(name, cls) {
+    const inner = ICON_PATHS[name] || ICON_PATHS.bulb;
+    return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">' + inner + '</svg>';
+  }
+  function hydrateIcons(root) {
+    (root || document).querySelectorAll('[data-icon]').forEach((el) => {
+      if (el.dataset.iconDone === el.dataset.icon) return;
+      el.innerHTML = icon(el.dataset.icon, el.dataset.iconClass);
+      el.dataset.iconDone = el.dataset.icon;
+      el.style.display = 'inline-flex';
+    });
+  }
 
-    // Nagłówek
-    els.day = byId('hdr-day');
-    els.totalDays = byId('hdr-total-days');
-    els.level = byId('hdr-level');
-    els.levelIcon = byId('hdr-level-icon');
-    els.levelNum = byId('hdr-level-num');
-    els.levelTitle = byId('hdr-level-title');
-    els.xp = byId('hdr-xp');
-    els.xpFill = byId('hdr-xp-fill');
-    els.xpDelta = byId('hdr-xp-delta');
-    els.streakText = byId('hdr-streak-text');
-    els.readiness = byId('hdr-readiness');
-    els.readinessValue = byId('hdr-readiness-value');
-    els.readinessDelta = byId('hdr-readiness-delta');
-    els.readinessBar = byId('hdr-readiness-bar');
-    els.readinessFill = byId('hdr-readiness-fill');
+  // --- Kita: bespoke flat-vector monkey (viewBox 160×160, 2.5px petrol outline) ---
+  const SW = 2.5;
+  function limb(d, w) {
+    const width = w || 8;
+    return '<path d="' + d + '" stroke="' + C.ink + '" stroke-width="' + (width + 5) + '" stroke-linecap="round" fill="none"/>' +
+      '<path d="' + d + '" stroke="' + C.fur + '" stroke-width="' + width + '" stroke-linecap="round" fill="none"/>';
+  }
+  function paw(cx, cy, r) {
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r || 6.5) + '" fill="' + C.cream + '" stroke="' + C.ink + '" stroke-width="' + SW + '"/>';
+  }
+  function coraFace(opts) {
+    const o = opts || {};
+    const st = 'stroke="' + C.ink + '" stroke-width="' + SW + '"';
+    return (
+      '<g class="c-ear-l"><circle cx="48" cy="66" r="12" fill="' + C.fur + '" ' + st + '/><circle cx="48" cy="66" r="6.5" fill="' + C.cream + '"/></g>' +
+      '<g class="c-ear-r"><circle cx="112" cy="66" r="12" fill="' + C.fur + '" ' + st + '/><circle cx="112" cy="66" r="6.5" fill="' + C.cream + '"/></g>' +
+      '<circle cx="80" cy="62" r="32" fill="' + C.fur + '" ' + st + '/>' +
+      '<path d="M72 32 Q 75 23 80 30 Q 84 22 89 32" fill="none" ' + st + ' stroke-linecap="round" stroke-linejoin="round"/>' +
+      // face mask: outlined union (stroked shapes, then the same fills on top)
+      '<g fill="' + C.cream + '" ' + st + '><circle cx="68" cy="58" r="13"/><circle cx="92" cy="58" r="13"/><ellipse cx="80" cy="75" rx="21" ry="15"/></g>' +
+      '<g fill="' + C.cream + '"><circle cx="68" cy="58" r="13"/><circle cx="92" cy="58" r="13"/><ellipse cx="80" cy="75" rx="21" ry="15"/></g>' +
+      '<circle cx="61" cy="75" r="4.5" fill="' + C.coral + '" opacity=".35"/><circle cx="99" cy="75" r="4.5" fill="' + C.coral + '" opacity=".35"/>' +
+      // eyes by mood
+      '<g class="c-eyes" data-pose="' + (o.peek ? 'idle thinking coaching celebrating confident' : 'idle coaching confident') + '">' +
+        '<ellipse cx="69" cy="59" rx="4.6" ry="5.6" fill="' + C.ink + '"/><ellipse cx="91" cy="59" rx="4.6" ry="5.6" fill="' + C.ink + '"/>' +
+        '<circle cx="70.8" cy="56.8" r="1.7" fill="#fff"/><circle cx="92.8" cy="56.8" r="1.7" fill="#fff"/></g>' +
+      (o.peek ? '' :
+        '<g class="c-eyes" data-pose="thinking"><ellipse cx="70" cy="56" rx="4.4" ry="5.4" fill="' + C.ink + '"/><ellipse cx="92" cy="56" rx="4.4" ry="5.4" fill="' + C.ink + '"/>' +
+          '<circle cx="71.6" cy="53.8" r="1.6" fill="#fff"/><circle cx="93.6" cy="53.8" r="1.6" fill="#fff"/></g>' +
+        '<g data-pose="celebrating"><path d="M63.5 60 Q 69 52.5 74.5 60M85.5 60 Q 91 52.5 96.5 60" fill="none" stroke="' + C.ink + '" stroke-width="3" stroke-linecap="round"/></g>' +
+        '<g data-pose="coaching"><path d="M62 47 Q 68 43.5 74 46.5M86 46.5 Q 92 43.5 98 47" fill="none" ' + st + ' stroke-linecap="round"/></g>' +
+        '<g data-pose="thinking"><path d="M86 44.5 Q 92 40 98 43" fill="none" ' + st + ' stroke-linecap="round"/></g>') +
+      '<ellipse cx="76.5" cy="70" rx="1.7" ry="1.3" fill="' + C.ink + '"/><ellipse cx="83.5" cy="70" rx="1.7" ry="1.3" fill="' + C.ink + '"/>' +
+      // mouths by mood
+      (o.peek
+        ? '<path d="M71 77 Q 80 85 89 77" fill="none" ' + st + ' stroke-linecap="round"/>'
+        : '<g data-pose="idle"><path d="M71 77 Q 80 85.5 89 77" fill="none" ' + st + ' stroke-linecap="round"/></g>' +
+          '<g data-pose="thinking"><path d="M75.5 80.5 Q 80 78.5 84.5 80.5" fill="none" ' + st + ' stroke-linecap="round"/></g>' +
+          '<g data-pose="coaching"><path d="M72.5 78 Q 80 83.5 87.5 78" fill="none" ' + st + ' stroke-linecap="round"/></g>' +
+          '<g data-pose="celebrating"><path d="M69 76 Q 80 93 91 76 Z" fill="' + C.ink + '" ' + st + ' stroke-linejoin="round"/><path d="M74 84 Q 80 80.5 86 84 Q 80 89.5 74 84 Z" fill="' + C.coral + '"/></g>' +
+          '<g data-pose="confident"><path d="M70 76 Q 80 89 90 76 Q 80 81 70 76 Z" fill="#fff" ' + st + ' stroke-linejoin="round"/></g>')
+    );
+  }
+  function coraSVG() {
+    const st = 'stroke="' + C.ink + '" stroke-width="' + SW + '"';
+    return (
+      '<svg viewBox="0 0 160 160" aria-hidden="true" focusable="false">' +
+      '<g class="c-body">' +
+        '<g class="c-tail">' + limb('M100 132 C 128 138, 144 112, 131 98 C 123 89, 110 96, 117 104', 7) + '</g>' +
+        '<ellipse cx="66" cy="146" rx="11" ry="7" fill="' + C.furDark + '" ' + st + '/><ellipse cx="94" cy="146" rx="11" ry="7" fill="' + C.furDark + '" ' + st + '/>' +
+        '<ellipse cx="80" cy="122" rx="27" ry="26" fill="' + C.fur + '" ' + st + '/>' +
+        '<ellipse cx="80" cy="128" rx="17" ry="15.5" fill="' + C.cream + '"/>' +
+        // back arms (behind the head)
+        '<g data-pose="idle">' + limb('M58 110 Q 49 122 54 134') + paw(55, 136) +
+          '<g class="c-wave">' + limb('M102 108 Q 122 100 130 84') + paw(131, 80) + '</g></g>' +
+        '<g data-pose="thinking coaching">' + limb('M58 110 Q 49 122 54 134') + paw(55, 136) + '</g>' +
+        '<g data-pose="celebrating">' + limb('M58 108 Q 40 98 30 80') + paw(28, 76) + limb('M102 108 Q 120 98 130 80') + paw(132, 76) +
+          '<g class="c-lines" fill="none" stroke="' + C.ink + '" stroke-width="2.5" stroke-linecap="round"><path d="M15 64l-7-5M13 77H5M145 64l7-5M147 77h8"/></g></g>' +
+        '<g data-pose="confident">' + limb('M58 110 Q 43 120 55 131') + paw(57, 131) + '</g>' +
+        // neckerchief with coin pin
+        '<path d="M57 95 L103 95 L80 117 Z" fill="' + C.yellow + '" ' + st + ' stroke-linejoin="round"/>' +
+        '<circle cx="80" cy="98.5" r="5" fill="' + C.yellowPress + '" ' + st + '/>' +
+        '<circle cx="89.5" cy="104" r="4.3" fill="' + C.yellowPress + '" stroke="' + C.ink + '" stroke-width="2"/><circle cx="89.5" cy="104" r="1.7" fill="none" stroke="' + C.ink + '" stroke-width="1.4"/>' +
+        '<g class="c-head">' + coraFace() + '</g>' +
+        // front arms (over the face / chest)
+        '<g data-pose="thinking coaching">' + limb('M102 110 Q 120 104 100 91') + paw(97, 89) + '</g>' +
+        '<g data-pose="confident"><g class="c-thumb">' + limb('M102 110 Q 118 111 120 100') +
+          '<rect x="116.5" y="76" width="7.5" height="15" rx="3.75" fill="' + C.cream + '" ' + st + '/>' +
+          '<rect x="112" y="88" width="17" height="15" rx="5.5" fill="' + C.cream + '" ' + st + '/></g></g>' +
+        '<g data-pose="thinking" class="c-dots" fill="' + C.ink + '"><circle cx="121" cy="34" r="3.2"/><circle cx="131" cy="25" r="3.7"/><circle cx="142" cy="15" r="4.2"/></g>' +
+      '</g></svg>'
+    );
+  }
+  // Head + paws gripping a card edge (viewBox 160×108)
+  function coraPeekSVG() {
+    return (
+      '<svg viewBox="0 0 160 108" aria-hidden="true" focusable="false">' +
+        '<g class="c-head">' + coraFace({ peek: true }) + '</g>' +
+        '<rect x="40" y="92" width="24" height="15" rx="7" fill="' + C.cream + '" stroke="' + C.ink + '" stroke-width="' + SW + '"/>' +
+        '<rect x="96" y="92" width="24" height="15" rx="7" fill="' + C.cream + '" stroke="' + C.ink + '" stroke-width="' + SW + '"/>' +
+        '<path d="M48 94v6M56 94v6M104 94v6M112 94v6" stroke="' + C.ink + '" stroke-width="2" stroke-linecap="round"/>' +
+      '</svg>'
+    );
+  }
+  function coraHTML(mood, cls) {
+    return '<div class="cora' + (cls ? ' ' + cls : '') + '" data-mood="' + (mood || 'idle') + '">' + coraSVG() + '</div>';
+  }
+  function setMood(el, mood) {
+    if (el) el.dataset.mood = mood;
+  }
+  function hydrateCora(root) {
+    (root || document).querySelectorAll('[data-cora]').forEach((el) => {
+      if (!el.querySelector('svg')) el.innerHTML = coraSVG();
+      if (!el.dataset.mood) el.dataset.mood = el.dataset.cora || 'idle';
+    });
+    (root || document).querySelectorAll('[data-cora-face]').forEach((el) => {
+      if (!el.querySelector('svg')) el.innerHTML = coraPeekSVG();
+    });
+  }
 
-    // Ekran 1
-    els.form = byId('onboarding-form');
-    els.fAge = byId('f-age');
-    els.fAgeOut = byId('f-age-out');
-    els.fAgeGroup = byId('f-age-group');
-    els.fNet = byId('f-net');
-    els.fNetOut = byId('f-net-out');
-    els.fFree = byId('f-free');
-    els.fFreeOut = byId('f-free-out');
-    els.fFreeMax = byId('f-free-max');
-    els.ctaOnboarding = byId('cta-onboarding');
-
-    // Ekran 2
-    els.planIntro = byId('plan-intro');
-    els.cardRoadmap = byId('card-roadmap');
-    els.cardSpeakly = byId('card-speakly');
-    els.cardSplit = byId('card-split');
-    els.tmMonthly = byId('tm-monthly');
-    els.tmYears = byId('tm-years');
-    els.tmYearsOut = byId('tm-years-out');
-    els.kpiCash = byId('kpi-cash');
-    els.kpiPaid = byId('kpi-paid');
-    els.kpiEtf = byId('kpi-etf');
-    els.kpiEtfNominal = byId('kpi-etf-nominal');
-    els.kpiWin = byId('kpi-win');
-    els.kpiWinBar = byId('kpi-win-bar');
-    els.kpiWinSource = byId('kpi-win-source');
-    els.tmChart = byId('tm-chart');
-    els.tmAssumptions = byId('tm-assumptions');
-    els.tmCompliance = byId('tm-compliance');
-
-    // Ekran 3
-    els.msPanel = byId('ms-panel');
-    els.msDay = byId('ms-day');
-    els.msTotalDays = byId('ms-total-days');
-    els.msStep = byId('ms-step');
-    els.msTotalSteps = byId('ms-total-steps');
-    els.msSteps = byId('ms-steps');
-    els.msBadgeText = byId('ms-badge-text');
-    els.msValue = byId('ms-value');
-    els.msFeedback = byId('ms-feedback');
-    els.msFeedbackTitle = byId('ms-feedback-title');
-    els.msFeedbackAnswer = byId('ms-feedback-answer');
-    els.msFeedbackText = byId('ms-feedback-text');
-    els.msFeedbackXp = byId('ms-feedback-xp');
-    els.msFeedbackReadiness = byId('ms-feedback-readiness');
-    els.msFeedbackLevel = byId('ms-feedback-level');
-    els.msLuna = byId('ms-luna');
-    els.msLunaMessage = byId('ms-luna-message');
-    els.msThinking = byId('ms-thinking');
-    els.msInteraction = byId('ms-interaction');
-    els.msReplies = byId('ms-replies');
-    els.msForm = byId('ms-form');
-    els.msInput = byId('ms-input');
-    els.msSend = byId('ms-send');
-    els.msCount = byId('ms-count');
-    els.ctaFinishDay = byId('cta-finish-day');
-
-    // Ekran 4 i modal bankowy
-    els.cardLevelup = byId('card-levelup');
-    els.cardNextStep = byId('card-next-step');
-    els.cardChallenge = byId('card-challenge');
-    els.cardChecklist = byId('card-checklist');
-    els.cardBank = byId('card-bank');
-    els.cardLeaderboard = byId('card-leaderboard');
-    els.cardAfter14 = byId('card-after14');
-    els.complianceFooter = byId('compliance-footer');
-    els.bankOrderContent = byId('bank-order-content');
-
-    // Checkpoint #1
-    els.cpHead = byId('checkpoint-head');
-    els.cpForm = byId('checkpoint-form');
-    els.cpQuestions = byId('checkpoint-questions');
-    els.cpSubmit = byId('checkpoint-submit');
-    els.cpResult = byId('checkpoint-result');
-    els.cpAfter14 = byId('checkpoint-after14');
+  // Level badge (medal + ribbon)
+  function badgeSVG(level) {
+    const fills = { 1: C.stone, 2: C.yellow, 3: C.green };
+    const fill = fills[level] || C.yellow;
+    const st = 'stroke="' + C.ink + '" stroke-width="3" stroke-linejoin="round"';
+    return (
+      '<svg viewBox="0 0 120 132" aria-hidden="true" focusable="false">' +
+        '<path d="M38 82 L26 124 L42 116 L50 130 L60 90 Z" fill="' + C.sky + '" ' + st + '/>' +
+        '<path d="M82 82 L94 124 L78 116 L70 130 L60 90 Z" fill="' + C.coral + '" ' + st + '/>' +
+        '<circle cx="60" cy="56" r="46" fill="' + fill + '" ' + st + '/>' +
+        '<circle cx="60" cy="56" r="34" fill="#fff" ' + st + '/>' +
+        '<path d="M60 31l7 14.2 15.6 2.3-11.3 11 2.7 15.6L60 66.7l-14 7.4 2.7-15.6-11.3-11 15.6-2.3z" fill="' + C.yellow + '" ' + st + '/>' +
+        '<text x="60" y="61" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="15" fill="' + C.ink + '">' + level + '</text>' +
+      '</svg>'
+    );
   }
 
   // ------------------------------------------------------------------------
-  // 3. Narzędzia
+  // 4. Sound — zero-asset Web Audio utility; fails silently when blocked.
   // ------------------------------------------------------------------------
-
-  const NBSP = ' ';
-
-  function clamp(value, min, max) {
-    return Math.min(max, Math.max(min, value));
-  }
-
-  function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  // „33,844" (EN) / „33 844" (PL) — separator tysięcy zawsze, także dla 4 cyfr („1,214").
-  function formatNumber(value) {
-    const n = Math.round(Number(value) || 0);
-    const sign = n < 0 ? '-' : '';
-    const separator = state.lang === 'en' ? ',' : NBSP;
-    return sign + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, separator);
-  }
-
-  function formatPLN(value) {
-    return state.lang === 'en'
-      ? formatNumber(value) + NBSP + 'PLN'
-      : formatNumber(value) + NBSP + 'zł';
-  }
-
-  // Polska odmiana: 1 rok / 2–4 lata / 5+ lat (z wyjątkiem 12–14); EN: year/years.
-  function pluralPL(n, one, few, many) {
-    const abs = Math.abs(n);
-    if (abs === 1) return one;
-    const lastDigit = abs % 10;
-    const lastTwo = abs % 100;
-    return lastDigit >= 2 && lastDigit <= 4 && !(lastTwo >= 12 && lastTwo <= 14) ? few : many;
-  }
-
-  function yearsLabel(n) {
-    if (state.lang === 'en') return n + NBSP + (Math.abs(n) === 1 ? 'year' : 'years');
-    return n + NBSP + pluralPL(n, 'rok', 'lata', 'lat');
-  }
-
-  function pluralDays(n) {
-    if (state.lang === 'en') return Math.abs(n) === 1 ? 'day' : 'days';
-    return n === 1 ? 'dzień' : 'dni';
-  }
-
-  // Odmiana rzeczownika „temat" dla badge’a Speakly (PL) / EN: topic(s).
-  function pluralTopics(n) {
-    return state.lang === 'en' ? (n === 1 ? 'topic' : 'topics') : pluralPL(n, 'temat', 'tematy', 'tematów');
-  }
-
-  function escapeHtml(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // Ponowne odtworzenie animacji CSS (np. .shimmer-bar, .level-pop, .screen-enter).
-  function replayClass(el, className) {
-    if (!el) return;
-    el.classList.remove(className);
-    void el.offsetWidth; // wymuszenie reflow
-    el.classList.add(className);
-  }
-
-  // Ustawienie wartości bez animacji — anuluje trwające liczenie, żeby nie nadpisało wyniku.
-  function setNumber(el, value, format) {
-    if (!el) return;
-    if (el._fqAnimFrame) {
-      cancelAnimationFrame(el._fqAnimFrame);
-      el._fqAnimFrame = null;
+  const Sound = (function () {
+    let ctx = null;
+    let muted = false;
+    try { muted = window.localStorage.getItem(LS_MUTED) === '1'; } catch (e) { muted = false; }
+    function audio() {
+      if (muted) return null;
+      try {
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          ctx = new AC();
+        }
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        return ctx;
+      } catch (e) {
+        return null;
+      }
     }
-    clearTimeout(el._fqAnimTimer);
-    el.textContent = (format || formatNumber)(value);
-  }
+    function tone(freq, at, dur, type, gain) {
+      const c = audio();
+      if (!c) return;
+      try {
+        const t0 = c.currentTime + (at || 0);
+        const osc = c.createOscillator();
+        const g = c.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, t0);
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(gain || 0.1, t0 + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        osc.connect(g);
+        g.connect(c.destination);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.03);
+      } catch (e) { /* silent */ }
+    }
+    return {
+      isMuted: () => muted,
+      setMuted(value) {
+        muted = !!value;
+        try { window.localStorage.setItem(LS_MUTED, muted ? '1' : '0'); } catch (e) { /* ignore */ }
+      },
+      click() { tone(620, 0, 0.045, 'triangle', 0.05); tone(180, 0, 0.03, 'sine', 0.04); },
+      correct() { tone(784, 0, 0.14, 'sine', 0.11); tone(1175, 0.11, 0.26, 'sine', 0.1); },
+      retry() { tone(392, 0, 0.16, 'sine', 0.07); tone(330, 0.13, 0.24, 'sine', 0.06); },
+      fanfare() {
+        [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.1, 0.22, 'triangle', 0.09));
+        tone(784, 0.46, 0.5, 'sine', 0.06); tone(1047, 0.46, 0.6, 'sine', 0.07);
+      },
+      pop() { tone(880, 0, 0.08, 'sine', 0.07); tone(1320, 0.05, 0.12, 'sine', 0.05); },
+    };
+  })();
 
+  // ------------------------------------------------------------------------
+  // 5. Utilities
+  // ------------------------------------------------------------------------
+  function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+  function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
   function prefersReducedMotion() {
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
-
-  // Płynne liczenie w górę/dół (kwoty, XP, procenty).
-  function animateNumber(el, from, to, options) {
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  const NBSP = ' ';
+  // EN: "33,844" · PL: "33 844" (hard space). Amounts are always PLN — no FX conversion.
+  function formatNumber(value) {
+    const n = Math.round(Number(value) || 0);
+    const sep = state0.lang === 'pl' ? NBSP : ',';
+    const sign = n < 0 ? '-' : '';
+    return sign + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+  }
+  function money(value) {
+    return formatNumber(value) + NBSP + (state0.lang === 'pl' ? 'zł' : 'PLN');
+  }
+  function pluralPL(n, one, few, many) {
+    const abs = Math.abs(n);
+    if (abs === 1) return one;
+    const d = abs % 10;
+    const dd = abs % 100;
+    return d >= 2 && d <= 4 && !(dd >= 12 && dd <= 14) ? few : many;
+  }
+  function years(n) {
+    return state0.lang === 'pl' ? n + NBSP + pluralPL(n, 'rok', 'lata', 'lat') : n + NBSP + (n === 1 ? 'year' : 'years');
+  }
+  function replayClass(el, cls) {
     if (!el) return;
-    const opts = options || {};
-    const duration = opts.duration || 650;
-    const format = opts.format || formatNumber;
-    // Karta w tle: requestAnimationFrame jest wstrzymany — od razu wartość końcowa.
-    if (prefersReducedMotion() || from === to || document.hidden) {
-      setNumber(el, to, format);
-      return;
-    }
-    if (el._fqAnimFrame) cancelAnimationFrame(el._fqAnimFrame);
-    clearTimeout(el._fqAnimTimer);
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+  function setNumber(el, value, format) {
+    if (!el) return;
+    if (el._fqRaf) { cancelAnimationFrame(el._fqRaf); el._fqRaf = null; }
+    clearTimeout(el._fqTimer);
+    el.textContent = (format || formatNumber)(value);
+  }
+  function animateNumber(el, from, to, opts) {
+    if (!el) return;
+    const o = opts || {};
+    const duration = o.duration || 650;
+    const format = o.format || formatNumber;
+    if (prefersReducedMotion() || from === to || document.hidden) { setNumber(el, to, format); return; }
+    if (el._fqRaf) cancelAnimationFrame(el._fqRaf);
+    clearTimeout(el._fqTimer);
     const start = performance.now();
     const step = (now) => {
-      const t = clamp((now - start) / duration, 0, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
+      const p = clamp((now - start) / duration, 0, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
       el.textContent = format(from + (to - from) * eased);
-      if (t < 1) {
-        el._fqAnimFrame = requestAnimationFrame(step);
-      } else {
-        setNumber(el, to, format);
-      }
+      if (p < 1) el._fqRaf = requestAnimationFrame(step);
+      else setNumber(el, to, format);
     };
-    el._fqAnimFrame = requestAnimationFrame(step);
-    // Bezpiecznik: przy dławionym requestAnimationFrame (karta w tle) wartość końcowa i tak się pojawi.
-    el._fqAnimTimer = setTimeout(() => setNumber(el, to, format), duration + 250);
+    el._fqRaf = requestAnimationFrame(step);
+    el._fqTimer = setTimeout(() => setNumber(el, to, format), duration + 250);
   }
-
-  // Liczniki [data-count] w danym kontenerze: od 0 do wartości docelowej.
-  function animateCounters(root) {
-    if (!root) return;
-    root.querySelectorAll('[data-count]').forEach((el) => {
-      animateNumber(el, 0, Number(el.dataset.count), { duration: 900 });
-    });
-  }
-
-  // Unoszący się licznik „+10" / „+40 XP".
-  function flashDelta(el, text) {
-    if (!el) return;
-    el.textContent = text;
-    el.hidden = false;
-    replayClass(el, 'delta-float');
-    clearTimeout(el._fqHideTimer);
-    el._fqHideTimer = setTimeout(() => { el.hidden = true; }, 1700);
-  }
-
-  function setRangeFill(input) {
+  function setRangeFill(input, pill, label) {
     if (!input) return;
     const min = Number(input.min);
     const max = Number(input.max);
-    const pct = max > min ? ((Number(input.value) - min) / (max - min)) * 100 : 0;
-    input.style.setProperty('--fill', clamp(pct, 0, 100) + '%');
-  }
-
-  function refreshIcons() {
-    if (window.lucide && typeof window.lucide.createIcons === 'function') {
-      window.lucide.createIcons();
+    const pct = max > min ? clamp(((Number(input.value) - min) / (max - min)) * 100, 0, 100) : 0;
+    input.style.setProperty('--fill', pct + '%');
+    if (pill) {
+      pill.style.setProperty('--pos', 'calc(' + pct + '% + ' + ((0.5 - pct / 100) * 32).toFixed(1) + 'px)');
+      if (label != null) pill.textContent = label;
     }
   }
+  function storageGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
+  function storageSet(key, value) { try { window.localStorage.setItem(key, value); } catch (e) { /* ignore */ } }
 
   // ------------------------------------------------------------------------
-  // 3b. Dni sprintu 1–4 (docs/01 §1–§2)
+  // 6. API + silent session recovery (docs/02 §5)
   // ------------------------------------------------------------------------
-
-  // Bieżący dzień: tura misji > sesja (OnboardingResponse.current_day) > 1.
-  function currentDay() {
-    const fromTurn = state.turn && Number(state.turn.day);
-    if (fromTurn >= 1 && fromTurn <= PLAYABLE_DAYS) return fromTurn;
-    const fromSession = state.session && Number(state.session.current_day);
-    if (fromSession >= 1 && fromSession <= PLAYABLE_DAYS) return fromSession;
-    return 1;
-  }
-
-  function totalDays() {
-    return (state.session && Number(state.session.total_program_days)) || SPRINT_DAYS;
-  }
-
-  // Ukończone dni: lokalny zbiór + turn.completed_days (źródło prawdy z backendu).
-  function completedDaySet() {
-    const days = new Set(state.completedDays);
-    ((state.turn && state.turn.completed_days) || []).forEach((day) => {
-      const n = Number(day);
-      if (n >= 1 && n <= PLAYABLE_DAYS) days.add(n);
-    });
-    return days;
-  }
-
-  function isDayUnlocked(day) {
-    const n = Number(day);
-    if (!(n >= 1 && n <= PLAYABLE_DAYS)) return false;
-    if (n === 1) return true;
-    const done = completedDaySet();
-    return done.has(n) || done.has(n - 1) || n <= currentDay();
-  }
-
-  // Nagłówek pokazuje Dzień z sesji — po /api/day/start i po turze synchronizujemy oba źródła.
-  function syncSessionDay(day) {
-    const n = Number(day);
-    if (!(n >= 1 && n <= PLAYABLE_DAYS)) return;
-    if (state.session) state.session.current_day = n;
-    if (state.turn) state.turn = Object.assign({}, state.turn, { day: n });
-  }
-
-  // ------------------------------------------------------------------------
-  // 4. API
-  // ------------------------------------------------------------------------
-
   class ApiError extends Error {
     constructor(status, data, kind) {
       super(kind === 'timeout' ? 'timeout' : kind === 'network' ? 'network' : 'HTTP ' + status);
       this.name = 'ApiError';
-      this.status = status; // 0 = brak odpowiedzi (sieć / timeout)
+      this.status = status;
       this.kind = kind || 'http';
       this.data = data;
     }
   }
-
   async function apiRequest(path, options) {
-    const opts = options || {};
-    const method = opts.method || 'GET';
+    const o = options || {};
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), opts.timeoutMs || API_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), o.timeoutMs || API_TIMEOUT_MS);
     try {
       const res = await fetch(API_BASE + path, {
-        method,
-        headers: opts.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        method: o.method || 'GET',
+        headers: o.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+        body: o.body !== undefined ? JSON.stringify(o.body) : undefined,
         signal: controller.signal,
       });
       const data = await res.json().catch(() => null);
@@ -1051,2157 +1247,1671 @@
       clearTimeout(timer);
     }
   }
-
   const api = {
-    getDemoPersonas: () => apiRequest('/api/demo-personas?lang=' + encodeURIComponent(state.lang)),
-    analyze: (profile) =>
-      apiRequest('/api/onboarding/analyze', {
-        method: 'POST',
-        body: Object.assign({}, profile, { lang: state.lang }),
-      }),
-    // Wywołuj przez withSessionRecovery — przy 404 sesja jest po cichu odtwarzana (docs/02 §5).
-    missionTurn: (payload) =>
-      apiRequest('/api/mission/turn', {
-        method: 'POST',
-        body: Object.assign({ day: currentDay() }, payload, { lang: state.lang }),
-      }),
-    dayStart: (sessionId, day) =>
-      apiRequest('/api/day/start', {
-        method: 'POST',
-        body: { session_id: sessionId, day, lang: state.lang },
-      }),
-    acceptChallenge: (sessionId, day) =>
-      apiRequest('/api/challenge/accept', {
-        method: 'POST',
-        body: { session_id: sessionId, day: day || currentDay(), lang: state.lang },
-      }),
-    checkpointSubmit: (sessionId, answers) =>
-      apiRequest('/api/checkpoint/submit', {
-        method: 'POST',
-        body: { session_id: sessionId, answers: answers || {}, lang: state.lang },
-      }),
+    personas: (lang) => apiRequest('/api/demo-personas?lang=' + encodeURIComponent(lang)),
+    analyze: (profile) => apiRequest('/api/onboarding/analyze', { method: 'POST', body: profile }),
+    turn: (body) => apiRequest('/api/mission/turn', { method: 'POST', body }),
+    challenge: (body) => apiRequest('/api/challenge/accept', { method: 'POST', body }),
+    dayStart: (body) => apiRequest('/api/day/start', { method: 'POST', body }),
+    checkpoint: (body) => apiRequest('/api/checkpoint/submit', { method: 'POST', body }),
+    explain: (body) => apiRequest('/api/coach/explain', { method: 'POST', body, timeoutMs: 9000 }),
   };
-
-  function describeApiError(err) {
-    if (!(err instanceof ApiError)) return t('errorGeneric');
-    if (err.kind === 'network') return t('errorNetwork');
-    if (err.kind === 'timeout') return t('errorTimeout');
-    if (err.status === 422) return t('error422');
-    if (err.status === 404) return t('error404');
-    return t('errorServer', { status: err.status });
+  // FastAPI answers an unknown route with 404 {"detail": "Not Found"}; an unknown session
+  // has a different detail. Routes from Issue #27 may not be deployed yet.
+  function isRouteMissing(err) {
+    return err instanceof ApiError && (err.status === 405 || (err.status === 404 && err.data && err.data.detail === 'Not Found'));
   }
-
-  // FastAPI 422: {"detail": [{"loc": ["body", "free_cash"], "msg": "..."}]}.
-  // Walidator modelu (free_cash > net_income) ma loc ["body"] — rozpoznajemy po treści.
-  function mapValidationErrors(data) {
-    const errors = {};
-    const messages = fieldMessages();
-    const detail = data && Array.isArray(data.detail) ? data.detail : [];
-    detail.forEach((item) => {
-      const loc = Array.isArray(item.loc) ? item.loc : [];
-      let field = loc.length > 1 ? String(loc[loc.length - 1]) : null;
-      if (!field || !messages[field]) {
-        field = /free_cash|net_income/.test(String(item.msg || '')) ? 'free_cash' : null;
-      }
-      if (field && !errors[field]) errors[field] = messages[field];
-    });
-    return errors;
-  }
-
-  // --- Ciche odtworzenie sesji po 404 (docs/02 §5) ---------------------------
-  // Np. restart serwera w trybie SQLite-w-pamięci kasuje sesje. Frontend tworzy nową sesję
-  // z ostatnim profilem (analyze) i odtwarza wysłane już odpowiedzi, więc serwer wraca do
-  // bieżącego kroku. Treść Ekranu 2 jest identyczna (ten sam profil), bonus z mikro-lekcji zostaje.
-
   function isSessionMissing(err) {
-    return err instanceof ApiError && err.status === 404;
+    return err instanceof ApiError && err.status === 404 && !isRouteMissing(err);
   }
+  function describeApiError(err) {
+    if (!(err instanceof ApiError)) return t('toast.generic');
+    if (err.kind === 'network') return t('toast.network');
+    if (err.kind === 'timeout') return t('toast.timeout');
+    if (err.status === 422) return t('err.fixForm');
+    return t('toast.server', { n: err.status });
+  }
+
+  // ------------------------------------------------------------------------
+  // 7. State
+  // ------------------------------------------------------------------------
+  const DEFAULT_G = Object.freeze({ level: 1, level_title: 'Observer', xp: 20, next_level_xp: 100, xp_gained: 0, leveled_up: false, streak_days: 1 });
+  const LEVEL_FLOOR = Object.freeze({ 1: 0, 2: 100, 3: 250 });
+
+  const state = Object.assign(state0, {
+    screen: SCREENS.ONBOARDING,
+    busy: false,
+    personas: [],
+    stageId: null,           // 'first' | 'home' | 'peak' | 'pre' | null (custom form)
+    lastProfile: null,       // last OnboardingRequest (silent re-analyze after 404)
+    session: null,           // OnboardingResponse
+    turn: null,              // latest MissionTurnResponse of the current day
+    day: 1,
+    completedDays: new Set(),
+    completedChallenges: new Set(),
+    checkpointPassed: false,
+    lessonsXp: 0,            // local XP from micro lessons (monotonic XP rule)
+    practiceXp: 0,           // local XP from practice beats
+    completedLessons: new Set(),
+    dayLessons: [],
+    log: [],                 // server actions to replay after a lost session
+    restoring: null,
+    token: 0,                // bumps on every fresh analyze; stale responses are ignored
+    tm: { year: null, point: null },
+    rendered: { xp: null, level: null, ready: null },
+    mission: null,
+    summary: null,
+    cp: null,
+    cora: { busy: false, result: null, picked: null, question: '' },
+  });
+
+  const els = {};
+  let tmChart = null;
+
+  function g() { return (state.turn && state.turn.gamification) || DEFAULT_G; }
+  function bonusXp() { return state.lessonsXp + state.practiceXp; }
+  function displayedXp() { return g().xp + bonusXp(); }
 
   function restoreSession() {
     if (!state.lastProfile) return Promise.reject(new ApiError(404, null, 'http'));
-    if (!state.mission.restoring) {
-      const profile = state.lastProfile;
-      const day = currentDay();
-      const log = state.mission.log.slice();
-      const token = state.mission.token;
-      state.mission.restoring = (async () => {
+    if (!state.restoring) {
+      const profile = Object.assign({}, state.lastProfile, { lang: state.lang });
+      const log = state.log.slice();
+      const token = state.token;
+      state.restoring = (async () => {
         const data = await api.analyze(profile);
-        if (day > 1) {
-          await api.dayStart(data.session_id, day);
-          data.current_day = day;
-        }
+        const sid = data.session_id;
         for (const entry of log) {
-          await api.missionTurn(Object.assign({ session_id: data.session_id, day }, entry));
+          const body = Object.assign({ session_id: sid }, entry.body);
+          if (entry.kind === 'turn') await api.turn(body);
+          else if (entry.kind === 'day') await api.dayStart(body);
+          else if (entry.kind === 'challenge') await api.challenge(body);
+          else if (entry.kind === 'checkpoint') await api.checkpoint(body);
         }
-        // W międzyczasie nowa analiza (np. Demo Mode)? Wtedy nie nadpisujemy jej sesji.
-        if (token === state.mission.token) state.session = data;
-        return data;
-      })().finally(() => {
-        state.mission.restoring = null;
-      });
+        if (token === state.token && state.session) state.session.session_id = sid;
+        return sid;
+      })().finally(() => { state.restoring = null; });
     }
-    return state.mission.restoring;
+    return state.restoring;
   }
-
-  // request(sessionId) -> Promise. Jedno ciche ponowienie po 404; kolejny błąd idzie dalej.
   async function withSessionRecovery(request) {
     if (!state.session) throw new ApiError(404, null, 'http');
     try {
       return await request(state.session.session_id);
     } catch (err) {
       if (!isSessionMissing(err) || !state.lastProfile) throw err;
-      console.info('[Finance Quest] Sesja nie istnieje na serwerze (404) — odtwarzam ją po cichu.');
-      const data = await restoreSession();
-      return request(data.session_id);
+      console.info('[Finance Quest] Session missing on the server (404), restoring it silently.');
+      const sid = await restoreSession();
+      return request(sid);
     }
   }
 
   // ------------------------------------------------------------------------
-  // 5. Stały nagłówek (docs/01 §6)
+  // 8. HUD
   // ------------------------------------------------------------------------
+  function readyWidgets() { return [els.hudReady, els.hudReadyMobile].filter(Boolean); }
 
-  // Tytuł poziomu zawsze w języku UI (backendowy tytuł bywa w języku startowym sesji).
-  function levelTitleFor(level, fallback) {
-    const n = Number(level) || 1;
-    if (n >= 3) return t('levelSteady');
-    if (n === 2) return t('levelConfident');
-    if (n === 1) return t('levelObserver');
-    return fallback || '';
-  }
-
-  function currentGamification() {
-    return (state.turn && state.turn.gamification) || defaultGamification();
-  }
-
-  // Reguła monotonicznego XP: gamification.xp + microLessonBonusXp (docs/01 §7 Ekran 2).
-  function displayedXp() {
-    return currentGamification().xp + state.microLessonBonusXp;
-  }
-
-  function readinessVisible() {
-    return state.currentScreen !== SCREENS.ONBOARDING && state.turn != null;
-  }
-
-  function renderHeader(options) {
-    const animate = !options || options.animate !== false;
-    const g = currentGamification();
+  function renderHud(opts) {
+    const animate = !opts || opts.animate !== false;
+    const gs = g();
     const xp = displayedXp();
     const prev = state.rendered;
-
-    // Dzień programu
-    els.day.textContent = state.session ? state.session.current_day : 1;
-    els.totalDays.textContent = state.session ? state.session.total_program_days : 14;
-
-    // Poziom: ⭐ Poz. 1: Observer (XP) -> 🏆 Poz. 2+: Confident Start / Steady Builder
-    els.levelIcon.textContent = g.level >= 2 ? '🏆' : '⭐';
-    els.levelNum.textContent = g.level;
-    els.levelTitle.textContent = levelTitleFor(g.level, g.level_title);
-    if (animate && prev.level != null && g.level > prev.level) {
-      replayClass(els.level, 'level-pop');
-    }
-
-    // XP + mini pasek postępu do następnego poziomu
+    els.hudDayNum.textContent = String(state.day);
+    els.hudDayTotal.textContent = String(TOTAL_DAYS);
+    els.hudStreak.textContent = String(gs.streak_days || 1);
+    els.hudLevel.textContent = t('hud.lvl', { n: gs.level });
     if (animate && prev.xp != null && xp > prev.xp) {
-      animateNumber(els.xp, prev.xp, xp);
-      flashDelta(els.xpDelta, '+' + (xp - prev.xp) + NBSP + 'XP');
-      replayClass(els.xpFill, 'shimmer-bar');
+      animateNumber(els.hudXp, prev.xp, xp);
+      replayClass(els.hudXpPill, 'bump');
     } else {
-      setNumber(els.xp, xp);
+      setNumber(els.hudXp, xp);
     }
-    const floor = LEVEL_FLOOR_XP[g.level] || 0;
-    const span = Math.max(1, g.next_level_xp - floor);
-    els.xpFill.style.width = clamp(((xp - floor) / span) * 100, 0, 100) + '%';
+    if (animate && prev.level != null && gs.level > prev.level) replayClass(els.hudXpPill, 'bump');
 
-    // Streak
-    els.streakText.textContent = g.streak_days + NBSP + pluralDays(g.streak_days);
-
-    // Gotowość (od Ekranu 2; wartość z API — confidence_score, start = samoocena)
-    const showReadiness = readinessVisible();
-    els.readiness.hidden = !showReadiness;
-    let readiness = prev.readiness;
-    if (showReadiness) {
-      readiness = clamp(state.turn.confidence_score, 0, 100);
-      if (animate && prev.readiness != null && readiness > prev.readiness) {
-        animateNumber(els.readinessValue, prev.readiness, readiness, { format: (v) => Math.round(v) + '%' });
-        flashDelta(els.readinessDelta, '+' + (readiness - prev.readiness));
-        replayClass(els.readinessFill, 'shimmer-bar');
-      } else {
-        setNumber(els.readinessValue, readiness, (v) => Math.round(v) + '%');
+    const show = !!state.turn && state.screen !== SCREENS.ONBOARDING;
+    const ready = show ? clamp(Number(state.turn.confidence_score) || 0, 0, 100) : 0;
+    if (els.hudReadyRow) els.hudReadyRow.hidden = !show;
+    readyWidgets().forEach((w) => {
+      w.hidden = !show;
+      const val = w.querySelector('[data-ready-val]');
+      const fill = w.querySelector('.meter__fill');
+      const bar = w.querySelector('.meter');
+      if (val) {
+        if (animate && prev.ready != null && ready > prev.ready) animateNumber(val, prev.ready, ready, { format: (v) => Math.round(v) + '%' });
+        else setNumber(val, ready, (v) => Math.round(v) + '%');
       }
-      els.readinessFill.style.width = readiness + '%';
-      els.readinessBar.setAttribute('aria-valuenow', String(readiness));
-    }
+      if (fill) fill.style.width = ready + '%';
+      if (bar) bar.setAttribute('aria-valuenow', String(ready));
+    });
+    if (els.mXp) setNumber(els.mXp, xp);
+    state.rendered = { xp, level: gs.level, ready: show ? ready : prev.ready };
+  }
+  function resetHudBaseline() { state.rendered = { xp: null, level: null, ready: null }; }
 
-    state.rendered = { xp, level: g.level, readiness };
+  function xpFloat(amount, anchor, tone) {
+    if (!amount) return;
+    const el = document.createElement('div');
+    el.className = 'xp-float' + (tone === 'green' ? ' xp-float--green' : '');
+    el.textContent = '+' + amount + ' XP';
+    const r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : null;
+    const x = r && r.width ? r.left + r.width / 2 : window.innerWidth / 2;
+    const y = r && r.height ? Math.max(70, r.top - 6) : window.innerHeight * 0.4;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1400);
   }
 
-  // Zerowanie bazy animacji (nowa persona/sesja — bez „+X" i bez cofania licznika na oczach).
-  function resetHeaderBaseline() {
-    state.rendered = { xp: null, level: null, readiness: null };
+  function renderSoundButton() {
+    const muted = Sound.isMuted();
+    els.hudSound.innerHTML = icon(muted ? 'soundOff' : 'soundOn');
+    els.hudSound.setAttribute('aria-pressed', String(muted));
+    els.hudSound.title = muted ? t('hud.soundOff') : t('hud.soundOn');
   }
 
   // ------------------------------------------------------------------------
-  // 5b. Język EN | PL (docs/01 §9)
+  // 9. Router
   // ------------------------------------------------------------------------
-
-  // Aktualizuje statyczne teksty z index.html (atrybuty data-i18n*) i metadane strony.
-  function applyStaticTranslations() {
-    state.lang = normalizeLang(state.lang);
-    document.documentElement.lang = state.lang;
-    document.title = t('pageTitle');
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', t('metaDescription'));
-
-    const setText = (selector, attribute) => {
-      Array.from(document.querySelectorAll(selector)).forEach((el) => {
-        const key = el.getAttribute(attribute);
-        if (!key) return;
-        el.textContent = t(key);
-        if (el.hasAttribute('data-label')) el.dataset.idleText = el.textContent;
-      });
-    };
-    setText('[data-i18n]', 'data-i18n');
-
-    Array.from(document.querySelectorAll('[data-i18n-placeholder]')).forEach((el) => {
-      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
-    });
-    Array.from(document.querySelectorAll('[data-i18n-aria]')).forEach((el) => {
-      el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria')));
-    });
-    Array.from(document.querySelectorAll('[data-i18n-title]')).forEach((el) => {
-      el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
-    });
-
-    Array.from(document.querySelectorAll('[data-action="set-lang"]')).forEach((btn) => {
-      btn.setAttribute('aria-pressed', String(normalizeLang(btn.dataset.lang) === state.lang));
-    });
-  }
-
-  function persistLang(lang) {
-    try {
-      window.localStorage.setItem(LANG_STORAGE_KEY, lang);
-    } catch (err) {
-      // Tryb prywatny bez localStorage — język działa do końca sesji.
-    }
-  }
-
-  // Pełne przełączenie języka w locie: statyczne teksty, formularz, nagłówek i bieżący ekran.
-  async function setLanguage(nextLang) {
-    const lang = normalizeLang(nextLang);
-    if (lang === state.lang) {
-      applyStaticTranslations();
-      return;
-    }
-    state.lang = lang;
-    persistLang(lang);
-    applyStaticTranslations();
-    syncFormOutputs();
-    renderPersonaPills();
-    renderHeader({ animate: false });
-
-    if (state.currentScreen === SCREENS.FILTER && state.lastProfile) {
-      await analyzeProfile(state.lastProfile);
-    } else if (state.currentScreen === SCREENS.MISSION && state.turn) {
-      renderMission({ animate: false });
-    } else if (state.currentScreen === SCREENS.CHECKPOINT) {
-      renderCheckpoint();
-    } else if (state.currentScreen === SCREENS.CHECKLIST && state.turn) {
-      renderSummary({ animate: false });
-    }
-    const modal = document.getElementById('modal_bank_order');
-    if (modal && !modal.hidden) renderBankModal();
-    if (timeMachineChart && state.timeMachine.year != null) {
-      const series = (state.session && state.session.projection_series) || [];
-      renderTimeMachineChart(series, state.timeMachine.year);
-    }
-    refreshIcons();
-    loadPersonas();
-  }
-
-  // ↺ Reset / Profile — powrót do ankiety i wyboru profilu (bez przeładowania strony).
-  function resetDemo() {
-    const modal = document.getElementById('modal_bank_order');
-    if (modal && !modal.hidden) closeModal('modal_bank_order');
-
-    state.mission.token += 1;
-    state.session = null;
-    state.turn = null;
-    state.activePersonaId = null;
-    state.lastProfile = null;
-    state.microLessonBonusXp = 0;
-    state.completedLessons = new Set();
-    state.completedDays = new Set();
-    state.challenges = { acceptedDays: new Set(), rewards: {} };
-    state.checkpoint = { answers: {}, busy: false, result: null, passed: false };
-    state.timeMachine = { year: null, point: null };
-    resetHeaderBaseline();
-    resetMission();
-    clearSummary();
-    setBusy(false);
-
-    // Domyślne wartości ankiety (docs/01 §7 Ekran 1): 35 lat, 6 000 zł netto, 1 000 zł wolnych.
-    if (els.fAge) els.fAge.value = '35';
-    if (els.fNet) els.fNet.value = '6000';
-    if (els.fFree) els.fFree.value = '1000';
-    if (els.form) {
-      els.form.querySelectorAll('input[type="radio"]').forEach((input) => {
-        input.checked = false;
-      });
-    }
-    clearFieldErrors();
-    syncFormOutputs();
-    renderPersonaPills();
-    renderHeader({ animate: false });
-    if (els.cpHead) els.cpHead.innerHTML = '';
-    if (els.cpQuestions) els.cpQuestions.innerHTML = '';
-    if (els.cpResult) {
-      els.cpResult.hidden = true;
-      els.cpResult.innerHTML = '';
-    }
-    if (els.cpAfter14) els.cpAfter14.innerHTML = '';
-    showScreen(SCREENS.ONBOARDING);
-  }
-
-  // ------------------------------------------------------------------------
-  // 6. Router ekranów
-  // ------------------------------------------------------------------------
-
-  function showScreen(id) {
-    if (id === SCREENS.CHECKLIST && !summaryTurn()) {
-      id = state.session ? SCREENS.FILTER : SCREENS.ONBOARDING;
-    }
+  function showScreen(id, opts) {
     const target = document.getElementById(id);
-    if (!target || !target.classList.contains('screen')) return;
-    state.currentScreen = id;
+    if (!target) return;
+    state.screen = id;
     els.screens.forEach((el) => {
       const active = el.id === id;
       el.hidden = !active;
       if (active) replayClass(el, 'screen-enter');
     });
     document.body.dataset.screen = id;
-    window.scrollTo(0, 0);
+    closeMenu();
+    if (!opts || opts.scroll !== false) window.scrollTo(0, 0);
     const title = target.querySelector('[data-screen-title]');
     if (title) title.focus({ preventScroll: true });
-    renderHeader();
-    if (id === SCREENS.FILTER && state.session) {
-      // Powrót na mapę: odśwież fazy, ukończone dni i lekcje bieżącego dnia (bez resetu suwaka).
-      renderRoadmap(state.session.roadmap_milestones, state.session.current_day, state.session.total_program_days);
-      renderLessons(state.session.micro_lessons);
-      syncFilterCta();
-      refreshIcons();
+    renderHud({ animate: false });
+  }
+
+  // ------------------------------------------------------------------------
+  // 10. Screen 1 — life stage cards & 6-question profile
+  // ------------------------------------------------------------------------
+  function stageById(id) { return STAGES.find((s) => s.id === id) || null; }
+  function stageProfile(stage) {
+    const persona = stage.personaId ? state.personas.find((p) => p.id === stage.personaId) : null;
+    const src = persona || stage.profile;
+    return {
+      age: src.age, net_income: src.net_income, free_cash: src.free_cash,
+      has_emergency_fund: src.has_emergency_fund, main_concern: src.main_concern,
+      self_confidence_start: src.self_confidence_start,
+    };
+  }
+
+  function renderStageCards() {
+    els.stageGrid.innerHTML = STAGES.map((s) =>
+      '<button type="button" class="stage-card" data-stage="' + s.id + '" aria-pressed="' + (state.stageId === s.id) + '">' +
+        '<span class="stage-card__icon">' + icon(s.icon, 'ic--lg') + '</span>' +
+        '<span><span class="stage-card__title">' + escapeHtml(t('stage.' + s.id + '.name')) + '</span>' +
+        '<span class="stage-card__meta" style="display:block;margin-top:3px">' + escapeHtml(t('stage.' + s.id + '.meta')) + '</span></span>' +
+        '<span class="small" style="color:var(--ink-2)">' + escapeHtml(t('stage.' + s.id + '.desc')) + '</span>' +
+        '<span class="stage-card__go">' + escapeHtml(t('stage.go')) + icon('arrow-right', 'ic--sm') + '</span>' +
+      '</button>'
+    ).join('');
+  }
+
+  function renderStagebar() {
+    const pills = STAGES.map((s) =>
+      '<button type="button" class="stage-pill" data-stage="' + s.id + '" aria-pressed="' + (state.stageId === s.id) + '">' +
+        '<span class="stage-pill__dot">' + icon(s.icon) + '</span>' +
+        '<span class="stage-pill__text"><span class="stage-pill__name">' + escapeHtml(t('stage.' + s.id + '.name')) + '</span>' +
+        '<span class="stage-pill__meta">' + escapeHtml(t('stage.' + s.id + '.meta')) + '</span></span>' +
+      '</button>'
+    );
+    if (!state.stageId && state.session) {
+      pills.push('<button type="button" class="stage-pill" data-action="reset" aria-pressed="true">' +
+        '<span class="stage-pill__dot">' + icon('user') + '</span>' +
+        '<span class="stage-pill__text"><span class="stage-pill__name">' + escapeHtml(t('stage.custom')) + '</span>' +
+        '<span class="stage-pill__meta">' + escapeHtml(t('hud.reset')) + '</span></span></button>');
     }
-    if (id === SCREENS.CHECKPOINT) renderCheckpoint();
-    if (id === SCREENS.CHECKLIST) renderSummary({ animate: true });
+    els.stagebar.innerHTML = pills.join('');
   }
 
-  // ------------------------------------------------------------------------
-  // 7. Ekran 1 — ankieta (docs/01 §7 Ekran 1)
-  // ------------------------------------------------------------------------
-
-  function ageGroupLabel(age) {
-    if (age < 30) return t('ageGroupYoung');
-    if (age <= 50) return t('ageGroupMid');
-    return t('ageGroupSenior');
+  function setStageBusy(stageId, busy) {
+    document.querySelectorAll('[data-stage]').forEach((btn) => {
+      btn.disabled = busy;
+      btn.classList.toggle('is-loading', busy && btn.dataset.stage === stageId);
+    });
   }
 
-  // Maksimum wolnych środków = min(10 000, net_income); obniżenie zarobków obniża suwak.
+  function ageGroupOf(age) { return age < 30 ? '20+' : age <= 50 ? '30-50' : '50+'; }
+
   function syncFreeCashMax() {
     const max = Math.min(FREE_CASH_CAP, Number(els.fNet.value));
     els.fFree.max = String(max);
     if (Number(els.fFree.value) > max) els.fFree.value = String(max);
   }
-
   function syncFormOutputs() {
     syncFreeCashMax();
     const age = Number(els.fAge.value);
-    els.fAgeOut.textContent = yearsLabel(age);
-    els.fAgeGroup.textContent = ageGroupLabel(age);
-    els.fNetOut.textContent = formatPLN(els.fNet.value);
-    els.fFreeOut.textContent = formatPLN(els.fFree.value);
-    els.fFreeMax.textContent = formatPLN(els.fFree.max);
-    [els.fAge, els.fNet, els.fFree].forEach(setRangeFill);
+    els.fAgeOut.textContent = state.lang === 'pl' ? age + NBSP + 'l.' : String(age);
+    els.fAgeGroup.textContent = t('group.' + ageGroupOf(age));
+    els.fNetOut.textContent = money(els.fNet.value);
+    els.fFreeOut.textContent = money(els.fFree.value);
+    els.fFreeHint.textContent = t('form.freeHint', { max: money(els.fFree.max) });
+    [els.fAge, els.fNet, els.fFree].forEach((input) => setRangeFill(input));
   }
-
   function setRadio(name, value) {
-    els.form.querySelectorAll('input[name="' + name + '"]').forEach((input) => {
-      input.checked = input.value === value;
-    });
+    els.form.querySelectorAll('input[name="' + name + '"]').forEach((input) => { input.checked = input.value === value; });
   }
-
-  // Wypełnia 6 pól wartościami persony (Demo Mode).
-  function fillOnboardingForm(profile) {
-    els.fAge.value = String(profile.age);
-    els.fNet.value = String(profile.net_income);
+  function fillForm(p) {
+    els.fAge.value = String(p.age);
+    els.fNet.value = String(p.net_income);
     syncFreeCashMax();
-    els.fFree.value = String(profile.free_cash);
-    setRadio('has_emergency_fund', String(profile.has_emergency_fund));
-    setRadio('main_concern', profile.main_concern);
-    setRadio('self_confidence_start', String(profile.self_confidence_start));
+    els.fFree.value = String(p.free_cash);
+    setRadio('has_emergency_fund', String(p.has_emergency_fund));
+    setRadio('main_concern', p.main_concern);
+    setRadio('self_confidence_start', String(p.self_confidence_start));
     clearFieldErrors();
     syncFormOutputs();
   }
-
-  function fieldContainer(name) {
-    return els.form.querySelector('[data-field="' + name + '"]');
-  }
-
+  const FIELD_ERR = { age: 'err.age', net_income: 'err.net', free_cash: 'err.free', has_emergency_fund: 'err.fund', main_concern: 'err.concern', self_confidence_start: 'err.conf' };
+  const FORM_FIELDS = Object.keys(FIELD_ERR);
   function clearFieldErrors(name) {
-    (name ? [name] : FORM_FIELDS).forEach((field) => {
-      const box = fieldContainer(field);
-      const msg = els.form.querySelector('[data-error-for="' + field + '"]');
+    (name ? [name] : FORM_FIELDS).forEach((f) => {
+      const box = els.form.querySelector('[data-field="' + f + '"]');
+      const msg = els.form.querySelector('[data-error-for="' + f + '"]');
       if (box) box.removeAttribute('data-invalid');
-      if (msg) {
-        msg.hidden = true;
-        msg.textContent = '';
-      }
+      if (msg) { msg.hidden = true; msg.textContent = ''; }
     });
   }
-
   function showFieldErrors(errors) {
     clearFieldErrors();
     let first = null;
-    FORM_FIELDS.forEach((field) => {
-      if (!errors[field]) return;
-      const box = fieldContainer(field);
-      const msg = els.form.querySelector('[data-error-for="' + field + '"]');
+    FORM_FIELDS.forEach((f) => {
+      if (!errors[f]) return;
+      const box = els.form.querySelector('[data-field="' + f + '"]');
+      const msg = els.form.querySelector('[data-error-for="' + f + '"]');
       if (box) box.setAttribute('data-invalid', '');
-      if (msg) {
-        msg.textContent = errors[field];
-        msg.hidden = false;
-      }
+      if (msg) { msg.textContent = t(errors[f]); msg.hidden = false; }
       if (!first && box) first = box;
     });
     if (first) {
-      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      openTailor(true);
+      first.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' });
       const input = first.querySelector('input');
       if (input) input.focus({ preventScroll: true });
     }
   }
-
-  // Odczyt 6 pól OnboardingRequest (docs/02 §4) z walidacją lokalną. null = błędy przy polach.
-  function readOnboardingForm() {
+  function readForm() {
     const fd = new FormData(els.form);
     const fund = fd.get('has_emergency_fund');
     const concern = fd.get('main_concern');
-    const confidence = fd.get('self_confidence_start');
-    const profile = {
-      age: Number(fd.get('age')),
-      net_income: Number(fd.get('net_income')),
-      free_cash: Number(fd.get('free_cash')),
-      has_emergency_fund: fund === 'true',
-      main_concern: concern,
-      self_confidence_start: Number(confidence),
+    const conf = fd.get('self_confidence_start');
+    const p = {
+      age: Number(fd.get('age')), net_income: Number(fd.get('net_income')), free_cash: Number(fd.get('free_cash')),
+      has_emergency_fund: fund === 'true', main_concern: concern, self_confidence_start: Number(conf),
     };
-
     const errors = {};
-    const messages = fieldMessages();
-    const concerns = concernLabels();
-    if (!(profile.age >= 18 && profile.age <= 70)) errors.age = messages.age;
-    if (!(profile.net_income >= 2500 && profile.net_income <= 25000)) errors.net_income = messages.net_income;
-    if (!(profile.free_cash >= 200 && profile.free_cash <= FREE_CASH_CAP && profile.free_cash <= profile.net_income)) {
-      errors.free_cash = messages.free_cash;
-    }
-    if (fund == null) errors.has_emergency_fund = messages.has_emergency_fund;
-    if (!concern || !concerns[concern]) errors.main_concern = messages.main_concern;
-    if (!(profile.self_confidence_start >= 1 && profile.self_confidence_start <= 5)) {
-      errors.self_confidence_start = messages.self_confidence_start;
-    }
-
-    if (Object.keys(errors).length) {
-      showFieldErrors(errors);
-      return null;
-    }
+    if (!(p.age >= 18 && p.age <= 70)) errors.age = FIELD_ERR.age;
+    if (!(p.net_income >= 2500 && p.net_income <= 25000)) errors.net_income = FIELD_ERR.net_income;
+    if (!(p.free_cash >= 200 && p.free_cash <= FREE_CASH_CAP && p.free_cash <= p.net_income)) errors.free_cash = FIELD_ERR.free_cash;
+    if (fund == null) errors.has_emergency_fund = FIELD_ERR.has_emergency_fund;
+    if (!concern || !I18N.en['concern.' + concern]) errors.main_concern = FIELD_ERR.main_concern;
+    if (!(p.self_confidence_start >= 1 && p.self_confidence_start <= 5)) errors.self_confidence_start = FIELD_ERR.self_confidence_start;
+    if (Object.keys(errors).length) { showFieldErrors(errors); return null; }
     clearFieldErrors();
-    return profile;
+    return p;
   }
-
-  function onFormInput(event) {
-    syncFormOutputs();
-    const box = event.target.closest('[data-field]');
-    if (box) clearFieldErrors(box.dataset.field);
-    // Ręczna zmiana ankiety = już nie dokładnie persona demo.
-    if (state.activePersonaId) {
-      state.activePersonaId = null;
-      renderPersonaPills();
-    }
-  }
-
-  // ------------------------------------------------------------------------
-  // 8. Demo Mode i analiza profilu
-  // ------------------------------------------------------------------------
-
-  function findPersona(id) {
-    return state.personas.find((p) => p.id === id) || null;
-  }
-
-  function profileFromPersona(p) {
-    return {
-      age: p.age,
-      net_income: p.net_income,
-      free_cash: p.free_cash,
-      has_emergency_fund: p.has_emergency_fund,
-      main_concern: p.main_concern,
-      self_confidence_start: p.self_confidence_start,
-    };
-  }
-
-  function renderPersonaPills() {
-    els.personaPills.forEach((btn) => {
-      const persona = findPersona(btn.dataset.personaId);
-      if (persona) {
-        btn.textContent = persona.short_label;
-        btn.title = persona.full_label;
-      }
-      btn.setAttribute('aria-pressed', String(btn.dataset.personaId === state.activePersonaId));
+  // FastAPI 422: {"detail": [{"loc": ["body", "free_cash"], ...}]}; the model validator has loc ["body"].
+  function mapValidationErrors(data) {
+    const errors = {};
+    const detail = data && Array.isArray(data.detail) ? data.detail : [];
+    detail.forEach((item) => {
+      const loc = Array.isArray(item.loc) ? item.loc : [];
+      let f = loc.length > 1 ? String(loc[loc.length - 1]) : null;
+      if (!f || !FIELD_ERR[f]) f = /free_cash|net_income/.test(String(item.msg || '')) ? 'free_cash' : null;
+      if (f && !errors[f]) errors[f] = FIELD_ERR[f];
     });
+    return errors;
+  }
+  function openTailor(open) {
+    const body = els.tailorBody;
+    const toggle = document.querySelector('[data-action="toggle-tailor"]');
+    const next = open == null ? body.hidden : open;
+    body.hidden = !next;
+    if (toggle) toggle.setAttribute('aria-expanded', String(next));
+  }
+  function setFormBusy(busy) {
+    const cta = els.ctaOnboarding;
+    cta.disabled = busy;
+    cta.classList.toggle('is-busy', busy);
+    cta.querySelector('.spinner').hidden = !busy;
+    const idle = cta.querySelector('[data-idle-icon]');
+    if (idle) idle.hidden = busy;
+    cta.querySelector('[data-label]').textContent = busy ? t('form.ctaBusy') : t('form.cta');
   }
 
   async function loadPersonas() {
     try {
-      const data = await api.getDemoPersonas();
-      if (Array.isArray(data)) {
-        state.personas = data;
-        renderPersonaPills();
-      }
+      const data = await api.personas(state.lang);
+      if (Array.isArray(data)) state.personas = data;
     } catch (err) {
-      console.info('[Finance Quest] GET /api/demo-personas niedostępne (' + err.message + ').');
+      console.info('[Finance Quest] /api/demo-personas unavailable (' + err.message + '), using built-in profiles.');
     }
-    return state.personas;
   }
 
-  function setBusy(isBusy) {
-    state.busy = isBusy;
-    document.body.setAttribute('aria-busy', String(isBusy));
-    els.personaPills.forEach((btn) => {
-      btn.disabled = isBusy;
-      btn.classList.toggle('animate-pulse', isBusy && btn.getAttribute('aria-pressed') === 'true');
-    });
-    const cta = els.ctaOnboarding;
-    if (!cta) return;
-    cta.disabled = isBusy;
-    const label = cta.querySelector('[data-label]');
-    if (label) {
-      if (!label.dataset.idleText) label.dataset.idleText = label.textContent;
-      label.textContent = isBusy ? t('ctaBusy') : label.dataset.idleText;
-    }
-    const spinner = cta.querySelector('.fq-spinner');
-    const idleIcon = cta.querySelector('[data-idle-icon]');
-    if (spinner) spinner.hidden = !isBusy;
-    // Ikona Lucide jest <svg> — SVGElement nie ma właściwości .hidden, więc atrybut.
-    if (idleIcon) idleIcon.toggleAttribute('hidden', isBusy);
+  // ------------------------------------------------------------------------
+  // Analyze (fresh session) — shared by life stages, the form and language switch
+  // ------------------------------------------------------------------------
+  function freshMissionState() {
+    return {
+      token: state.token, beats: [], index: 0, phase: 'answer', selected: null, ownText: '',
+      pending: null, retry: false, quality: null, lastAnswer: '', started: false,
+      xpAtStart: g().xp, practiceAtStart: state.practiceXp, practiceDone: new Set(),
+      alloc: null, mythPick: null, spotPick: null, renderedValue: 0,
+    };
+  }
+  function freshSummary() {
+    return { challengeBusy: false, accepted: false, reward: 0, leaderboard: null, checked: new Set(), celebrated: false, selfAfter: null, bankOption: 'a', bankDone: false, leveledViaChallenge: false };
   }
 
-  function applyOnboardingResponse(data) {
-    state.session = data;
-    state.turn = data.initial_mission_turn;
-    state.microLessonBonusXp = 0;
-    state.completedLessons = new Set();
-    state.completedDays = new Set();
-    state.challenges = { acceptedDays: new Set(), rewards: {} };
-    state.checkpoint = { answers: {}, busy: false, result: null, passed: false };
-    state.timeMachine = { year: null, point: null };
-    resetHeaderBaseline();
-    resetMission();
-    renderMission({ animate: false });
-  }
-
-  // Wynik tury misji — nagłówek animuje wzrost XP i Gotowości, Ekran 3 pokazuje kolejny krok.
-  function applyMissionTurn(turn) {
-    state.turn = turn;
-    if (turn && turn.day) syncSessionDay(turn.day);
-    if (turn && turn.mission_completed) {
-      (turn.completed_days || []).forEach((day) => {
-        const n = Number(day);
-        if (n >= 1 && n <= PLAYABLE_DAYS) state.completedDays.add(n);
-      });
-      if (turn.day) state.completedDays.add(Number(turn.day));
-    }
-    renderHeader();
-    renderMission();
-    if (turn.mission_completed) renderSummary({ animate: false });
-  }
-
-  function addMicroLessonBonusXp(xp) {
-    const next = clamp(state.microLessonBonusXp + (Number(xp) || 0), 0, MICRO_LESSON_BONUS_CAP);
-    if (next === state.microLessonBonusXp) return;
-    state.microLessonBonusXp = next;
-    renderHeader();
-  }
-
-  async function analyzeProfile(profile) {
+  async function analyzeProfile(profile, opts) {
+    const o = opts || {};
     if (state.busy) return null;
+    state.busy = true;
     state.lastProfile = profile;
-    setBusy(true);
+    if (o.stageId !== undefined) setStageBusy(o.stageId, true);
+    if (o.fromForm) setFormBusy(true);
     try {
-      const results = await Promise.all([api.analyze(profile), wait(ANALYZE_MIN_ANIMATION_MS)]);
-      const data = results[0];
-      applyOnboardingResponse(data);
-      renderFilterScreen(data);
-      showScreen(SCREENS.FILTER);
-      updateTimeMachine(data.default_horizon_years, { animate: false });
-      animateCounters(els.cardSplit);
-      return data;
+      const body = Object.assign({}, profile, { lang: state.lang });
+      const results = await Promise.all([api.analyze(body), wait(o.quick ? 0 : ANALYZE_MIN_ANIMATION_MS)]);
+      applyOnboarding(results[0]);
+      if (o.stay !== true || state.screen === SCREENS.ONBOARDING) {
+        renderHub();
+        showScreen(SCREENS.HUB);
+      } else {
+        renderHub();
+        if (state.screen === SCREENS.HUB) renderHud({ animate: false });
+      }
+      updateTimeMachine(state.session.default_horizon_years, { animate: false });
+      return results[0];
     } catch (err) {
       if (err instanceof ApiError && err.status === 422) {
-        const fieldErrors = mapValidationErrors(err.data);
-        if (Object.keys(fieldErrors).length) {
-          if (state.currentScreen !== SCREENS.ONBOARDING) showScreen(SCREENS.ONBOARDING);
-          showFieldErrors(fieldErrors);
-          showToast(t('toastFixFields'), 'warn');
+        const fe = mapValidationErrors(err.data);
+        if (Object.keys(fe).length) {
+          if (state.screen !== SCREENS.ONBOARDING) showScreen(SCREENS.ONBOARDING);
+          showFieldErrors(fe);
+          toast(t('err.fixForm'), 'warn');
           return null;
         }
       }
-      showToast(describeApiError(err), 'warn');
+      toast(describeApiError(err), 'warn');
       return null;
     } finally {
-      setBusy(false);
+      state.busy = false;
+      setStageBusy(null, false);
+      if (o.fromForm) setFormBusy(false);
     }
   }
 
-  async function selectPersona(personaId) {
-    if (state.busy) return;
-    // Pigułki są pod nakładką modala, ale osiągalne klawiaturą — modal zamykamy od razu.
-    const modal = document.getElementById('modal_bank_order');
-    if (modal && !modal.hidden) closeModal('modal_bank_order');
-    let persona = findPersona(personaId);
-    if (!persona) {
-      await loadPersonas();
-      persona = findPersona(personaId);
-    }
-    if (!persona) {
-      showToast(t('toastPersonasFailed'), 'warn');
-      return;
-    }
-    state.activePersonaId = personaId;
-    renderPersonaPills();
-    const profile = profileFromPersona(persona);
-    fillOnboardingForm(profile);
-    await analyzeProfile(profile);
+  function applyOnboarding(data) {
+    state.token += 1;
+    state.session = data;
+    state.turn = data.initial_mission_turn;
+    state.day = data.current_day || 1;
+    state.completedDays = new Set();
+    state.completedChallenges = new Set();
+    state.checkpointPassed = false;
+    state.lessonsXp = 0;
+    state.practiceXp = 0;
+    state.completedLessons = new Set();
+    state.dayLessons = data.micro_lessons || [];
+    state.log = [];
+    state.tm = { year: null, point: null };
+    state.mission = freshMissionState();
+    state.summary = freshSummary();
+    state.cp = null;
+    closeModal();
+    closeCora();
+    resetHudBaseline();
   }
 
-  async function submitOnboarding() {
+  function selectStage(stageId) {
+    const stage = stageById(stageId);
+    if (!stage || state.busy) return;
+    state.stageId = stageId;
+    const profile = stageProfile(stage);
+    fillForm(profile);
+    renderStageCards();
+    analyzeProfile(profile, { stageId });
+  }
+  function submitForm() {
     if (state.busy) return;
-    const profile = readOnboardingForm();
-    if (!profile) {
-      showToast(t('toastFillFields'), 'warn');
-      return;
-    }
-    await analyzeProfile(profile);
+    const profile = readForm();
+    if (!profile) { toast(t('err.fixForm'), 'warn'); return; }
+    state.stageId = null;
+    renderStageCards();
+    analyzeProfile(profile, { fromForm: true });
+  }
+  function onFormInput(event) {
+    syncFormOutputs();
+    const box = event.target.closest('[data-field]');
+    if (box) clearFieldErrors(box.dataset.field);
+  }
+
+  function resetToProfile() {
+    state.token += 1;
+    state.session = null;
+    state.turn = null;
+    state.stageId = null;
+    state.day = 1;
+    state.lessonsXp = 0;
+    state.practiceXp = 0;
+    state.log = [];
+    state.mission = null;
+    state.summary = null;
+    state.cp = null;
+    closeModal();
+    closeCora();
+    closeDrawer();
+    resetHudBaseline();
+    renderStageCards();
+    showScreen(SCREENS.ONBOARDING);
   }
 
   // ------------------------------------------------------------------------
-  // 9. Ekran 2 — mapa 14 dni, filtr Speakly, mikro-lekcje, podział, Wehikuł Czasu
+  // 11. Screen 2 — Quest Hub
   // ------------------------------------------------------------------------
+  function dayDone(d) { return state.completedDays.has(d); }
+  function maxDone() { let m = 0; state.completedDays.forEach((d) => { if (d > m) m = d; }); return m; }
 
-  function renderFilterScreen(data) {
-    renderPlanIntro(data);
-    renderRoadmap(data.roadmap_milestones, data.current_day, data.total_program_days);
-    renderSpeakly(data.speakly_filter, data.micro_lessons);
-    renderSplit(data.safe_investment);
-    setupTimeMachine(data);
-    syncFilterCta();
-    refreshIcons();
+  function nodeState(d) {
+    if (dayDone(d)) return 'done';
+    if (d === state.day) return 'active';
+    if (dayDone(state.day) && d === maxDone() + 1) return 'next';
+    return 'locked';
+  }
+  function checkpointState() {
+    if (state.checkpointPassed) return 'done';
+    return dayDone(4) ? 'active' : 'locked';
   }
 
-  // CTA Ekranu 2 pokazuje bieżący dzień sprintu (Dni 1–4).
-  function syncFilterCta() {
-    const btn = document.querySelector('[data-goto="screen_mission_live"]');
-    if (!btn) return;
-    const label = btn.querySelector('[data-label]');
-    if (label) label.textContent = t('ctaStartMissionDynamic', { day: currentDay() });
-    btn.disabled = !state.session;
-  }
-
-  function chip(icon, text, tone) {
-    const tones = {
-      dark: 'bg-brand-dark text-white',
-      light: 'bg-white text-brand-dark border border-slate-200',
-    };
-    return '<span class="inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold sm:text-sm ' +
-      (tones[tone] || tones.light) + '"><i data-lucide="' + icon + '" class="h-4 w-4" aria-hidden="true"></i>' +
-      escapeHtml(text) + '</span>';
-  }
-
-  function renderPlanIntro(data) {
-    const concerns = concernLabels();
-    els.planIntro.innerHTML = [
-      chip('user', data.persona_label, 'dark'),
-      chip('calendar-clock', t('planIntroHorizon') + ' ' + yearsLabel(data.default_horizon_years)),
-      chip(
-        'heart-handshake',
-        t('planIntroConcern') + ' ' + (concerns[data.main_concern] || data.main_concern)
-      ),
-    ].join('');
-  }
-
-  // Grupowanie kamieni milowych w 3 fazy (m.phase z backendu; fallback po numerze dnia).
-  function phaseGroups(milestones) {
-    const list = milestones || [];
-    const groups = [];
-    list.forEach((m) => {
-      const key = m.phase || '';
-      let group = groups.find((g) => g.key === key);
-      if (!group) {
-        group = { key, items: [] };
-        groups.push(group);
-      }
-      group.items.push(m);
-    });
-    if (groups.length === 1 && groups[0].items.length > 1) {
-      const split = [
-        { key: 'fallback-1', items: groups[0].items.filter((m) => Number(m.day) <= 4) },
-        { key: 'fallback-2', items: groups[0].items.filter((m) => Number(m.day) > 4 && Number(m.day) <= 9) },
-        { key: 'fallback-3', items: groups[0].items.filter((m) => Number(m.day) > 9) },
-      ].filter((g) => g.items.length > 0);
-      if (split.length > 1) return split;
+  function hubPrimary() {
+    if (!dayDone(state.day)) {
+      const resuming = state.mission && state.mission.started;
+      return { label: t(resuming ? 'hub.resumeMission' : 'hub.startMission', { n: state.day }), action: 'open-mission' };
     }
-    return groups;
+    if (state.day < PLAYABLE_DAYS) return { label: t('hub.nextDay', { n: state.day + 1 }), action: 'start-day', day: state.day + 1 };
+    if (!state.checkpointPassed) return { label: t('hub.openCheckpoint'), action: 'open-checkpoint' };
+    return { label: t('hub.reviewDay', { n: state.day }), action: 'open-done' };
+  }
+  function primaryButton(cls) {
+    const p = hubPrimary();
+    return '<button type="button" class="btn btn--primary btn--lg ' + (cls || '') + '" data-action="' + p.action + '"' +
+      (p.day ? ' data-day="' + p.day + '"' : '') + '>' + escapeHtml(p.label) + icon('arrow-right') + '</button>';
   }
 
-  const PHASE_FALLBACK_KEYS = Object.freeze(['roadmapPhase1', 'roadmapPhase2', 'roadmapPhase3']);
-
-  function phaseLabel(group, index) {
-    if (group.key) return group.key;
-    return t(PHASE_FALLBACK_KEYS[Math.min(index, PHASE_FALLBACK_KEYS.length - 1)]);
+  function renderHub() {
+    if (!state.session) return;
+    renderStagebar();
+    renderPathColumn();
+    renderPlanCard();
+    renderSkippedCard();
+    renderLessonsCard();
+    setupTimeMachine();
+    els.hubMobileCta.innerHTML = '<div class="wrap" style="padding:0">' + primaryButton('btn--block') + '</div>';
   }
 
-  function checkpointBadgeHtml(index) {
-    if (index === 0) {
-      const passed = completedDaySet().has(4) || !!state.checkpoint.passed;
-      return '<span class="fq-phase-badge" data-badge-state="' + (passed ? 'passed' : 'available') + '">' +
-        escapeHtml(t('roadmapCheckpoint1')) + '</span>';
+  function milestoneFor(day) {
+    return (state.session.roadmap_milestones || []).find((m) => m.day === day) || null;
+  }
+  function dayTitle(d) {
+    const m = milestoneFor(d);
+    if (m && m.title) return m.title;
+    if (d === 2) return t('hub.day2Title');
+    if (d === 3) return t('hub.day3Title');
+    return '';
+  }
+
+  function renderPathColumn() {
+    const s = state.session;
+    const nodes = [1, 2, 3, 4].map((d) => ({ key: String(d), day: d, st: nodeState(d) }));
+    nodes.push({ key: 'cp', day: null, st: checkpointState() });
+    const xs = [30, 70, 30, 70, 50];
+    const top = 104;   // room for the START bubble above the first node
+    const gap = 124;
+    const height = top + gap * (nodes.length - 1) + 110;
+    const ys = nodes.map((_, i) => top + gap * i);
+
+    let d = 'M' + xs[0] + ' ' + ys[0];
+    for (let i = 1; i < nodes.length; i++) {
+      const my = (ys[i - 1] + ys[i]) / 2;
+      d += ' C' + xs[i - 1] + ' ' + my + ' ' + xs[i] + ' ' + my + ' ' + xs[i] + ' ' + ys[i];
     }
-    if (index === 1) {
-      return '<span class="fq-phase-badge" data-badge-state="locked">' + escapeHtml(t('roadmapCheckpoint2')) + '</span>';
+    let reach = 0;
+    nodes.forEach((n, i) => { if (n.st === 'done' || n.st === 'active' || n.st === 'next') reach = i; });
+    let dDone = 'M' + xs[0] + ' ' + ys[0];
+    for (let i = 1; i <= reach; i++) {
+      const my = (ys[i - 1] + ys[i]) / 2;
+      dDone += ' C' + xs[i - 1] + ' ' + my + ' ' + xs[i] + ' ' + my + ' ' + xs[i] + ' ' + ys[i];
     }
-    return '<span class="fq-phase-badge" data-badge-state="locked">' + escapeHtml(t('roadmapSprintFinale')) + '</span>';
-  }
 
-  function dayChipHtml(day) {
-    const n = Number(day);
-    const done = completedDaySet();
-    const playable = n >= 1 && n <= PLAYABLE_DAYS;
-    const unlocked = playable && isDayUnlocked(n);
-    const isCurrent = playable && n === currentDay();
-    const stateAttr = done.has(n) ? 'done' : isCurrent ? 'current' : unlocked ? 'available' : 'locked';
-    const label = t('roadmapDayLabel', { day: n });
-    const desc = unlocked ? t('roadmapDayAria', { day: n }) : t('roadmapLockedDayAria', { day: n });
-    const mark = done.has(n) ? '<span aria-hidden="true">✓</span>' : '';
-    if (!unlocked) {
-      return '<span class="fq-day-chip" data-state="locked" aria-label="' + escapeHtml(desc) + '" aria-disabled="true">' +
-        label + '</span>';
-    }
-    return '<button type="button" class="fq-day-chip" data-state="' + stateAttr + '" data-action="start-day" data-day="' + n + '" ' +
-      'aria-label="' + escapeHtml(desc) + '">' + mark + label + '</button>';
-  }
-
-  // Karta A — 14-Day Confidence Sprint w 3 fazach (docs/01 §2 pkt 2, §7 Ekran 2).
-  function renderRoadmap(milestones, currentDayValue, totalDaysValue) {
-    const total = totalDaysValue || SPRINT_DAYS;
-    const today = currentDayValue || currentDay();
-    const done = completedDaySet();
-    const milestoneDays = new Set((milestones || []).map((m) => Number(m.day)));
-    const groups = phaseGroups(milestones);
-
-    const track = Array.from({ length: total }, (_, i) => {
-      const day = i + 1;
-      const cls = done.has(day) ? 'done' : day === today ? 'active' : milestoneDays.has(day) ? 'checkpoint' : '';
-      return '<span data-state="' + cls + '"></span>';
-    }).join('');
-
-    const phases = groups.map((group, index) => {
-      const active = index === 0;
-      const items = group.items.map((m) =>
-        '<li class="flex items-start gap-2 text-sm">' +
-          '<span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px] font-extrabold text-brand-dark ring-1 ring-slate-200" aria-hidden="true">' + escapeHtml(m.day) + '</span>' +
-          '<span class="min-w-0"><span class="block font-extrabold leading-snug">' + escapeHtml(m.title) + '</span>' +
-          '<span class="mt-0.5 block text-xs leading-snug text-slate-500">' + escapeHtml(m.focus) + '</span></span>' +
-        '</li>'
-      ).join('');
-      const hint = (group.items[0] && group.items[0].duration_hint) || '~5 min/day';
-      // Phase 1 pokazuje wszystkie grywalne dni 1–4 (także te bez kamienia milowego).
-      const chipDays = index === 0
-        ? Array.from({ length: PLAYABLE_DAYS }, (_, i) => i + 1)
-        : group.items.map((m) => Number(m.day));
-      const chips = chipDays.map((day) => dayChipHtml(day)).join('');
+    const resuming = state.mission && state.mission.started;
+    const slots = nodes.map((n, i) => {
+      const isCp = n.key === 'cp';
+      const ico = n.st === 'done' ? 'star' : n.st === 'locked' ? 'lock' : isCp ? 'trophy' : DAY_ICONS[n.day];
+      const side = isCp ? 'below' : xs[i] < 50 ? 'right' : 'left';
+      const dayLabel = isCp ? t('hub.checkpoint') : t('hub.day', { n: n.day });
+      const sub = isCp ? t('hub.checkpointSub') : dayTitle(n.day);
+      const lockedHint = n.st === 'locked' ? (isCp ? t('hub.lockedCp') : t('hub.locked', { n: n.day - 1 })) : '';
+      const aria = dayLabel + (sub ? ': ' + sub : '') + (n.st === 'done' ? ', ' + t('hub.done') : lockedHint ? ', ' + lockedHint : '');
+      const live = n.st === 'active' || n.st === 'next';
+      const bubble = live ? '<span class="start-bubble">' + escapeHtml(resuming && n.st === 'active' && !isCp ? t('hub.resume') : t('hub.start')) + '</span>' : '';
+      const cora = live ? coraHTML('idle', 'path-cora path-cora--' + (side === 'right' ? 'left' : side === 'left' ? 'right' : 'right')) : '';
       return (
-        '<section class="fq-phase" data-phase-state="' + (active ? 'active' : 'locked') + '">' +
-          '<div class="fq-phase-head">' +
-            '<span class="fq-phase-title">' + escapeHtml(phaseLabel(group, index)) + '</span>' +
-            '<span class="fq-phase-hint">' + escapeHtml(hint) + '</span>' +
-            checkpointBadgeHtml(index) +
-          '</div>' +
-          '<p class="mt-1 text-[11px] font-bold uppercase tracking-wider ' + (active ? 'text-brand-yellow-dark' : 'text-slate-400') + '">' +
-            escapeHtml(active ? t('roadmapAvailableNow') : t('roadmapPhaseLocked')) + '</p>' +
-          '<div class="mt-3 flex flex-wrap gap-2">' + chips + '</div>' +
-          '<ul class="mt-3 space-y-2">' + items + '</ul>' +
-        '</section>'
+        '<div class="node-slot node-slot--' + n.st + '" style="left:' + xs[i] + '%;top:' + ys[i] + 'px">' +
+          bubble + cora +
+          '<button type="button" class="node node--' + n.st + (isCp ? ' node--checkpoint' : '') + '" data-action="node" data-node="' + n.key + '" aria-label="' + escapeHtml(aria) + '"' +
+            (n.st === 'locked' ? ' aria-disabled="true"' : '') + '>' + icon(ico) + '</button>' +
+          '<span class="node-label node-label--' + side + '"><span class="node-label__day">' + escapeHtml(dayLabel) + '</span>' +
+            (sub ? '<span class="node-label__title">' + escapeHtml(sub) + '</span>' : '') +
+            (lockedHint ? '<span class="node-label__title">' + escapeHtml(lockedHint) + '</span>' : '') + '</span>' +
+        '</div>'
       );
     }).join('');
 
-    els.cardRoadmap.innerHTML =
-      '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-        '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('roadmapTitlePhases')) + '</h3>' +
-        '<span class="text-xs font-bold text-slate-500">' + escapeHtml(t('roadmapCompletedDays', { done: done.size })) + '</span>' +
+    const m9 = milestoneFor(9);
+    const m14 = milestoneFor(14);
+    const chapter = (num, range, title, milestone, ending) =>
+      '<div class="chapter">' +
+        '<span class="chapter__lock">' + icon('lock') + '</span>' +
+        '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: num }) + ', ' + t(range)) + '</p>' +
+          '<p class="phase__title">' + escapeHtml(t(title)) + '</p>' +
+          (milestone ? '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(milestone.title) + ', ' + escapeHtml(t(ending)) + '</p>' : '') +
+          '<div class="chapter__dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span class="is-check"></span></div>' +
+        '</div></div>';
+
+    const after = after14Paths().map((p) =>
+      '<div class="after14__tile">' + icon(p.icon || 'chat') + '<h4 style="margin-top:8px">' + escapeHtml(p.title) + '</h4><p>' + escapeHtml(p.cadence || '') + '</p></div>'
+    ).join('');
+
+    const g0 = s.age_group;
+    els.hubPathCol.innerHTML =
+      '<div class="card">' +
+        '<div class="learner">' +
+          '<span class="chip chip--ink">' + icon('user', 'ic--sm') + escapeHtml(s.persona_label) + '</span>' +
+          '<span class="chip">' + icon('hourglass', 'ic--sm') + escapeHtml(t('hub.horizon', { n: state.lang === 'pl' ? years(s.default_horizon_years) : s.default_horizon_years })) + '</span>' +
+          '<span class="chip chip--soft">' + escapeHtml(t('hub.worry', { x: t('concern.' + s.main_concern) })) + '</span>' +
+        '</div>' +
+        '<div class="phase" style="margin-top:16px">' +
+          '<span class="phase__num">1</span>' +
+          '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: 1 }) + ', ' + t('hub.phase1.range') + ', ' + t('hub.perDay')) + '</p>' +
+          '<p class="phase__title">' + escapeHtml(t('hub.phase1.title')) + '</p></div>' +
+        '</div>' +
+        '<div class="path" data-group="' + escapeHtml(g0) + '" style="height:' + height + 'px">' +
+          '<svg class="path__svg" viewBox="0 0 100 ' + height + '" preserveAspectRatio="none" aria-hidden="true">' +
+            '<path class="path__trail" d="' + d + '"/>' + (reach > 0 ? '<path class="path__done" d="' + dDone + '"/>' : '') +
+          '</svg>' + slots +
+        '</div>' +
+        '<div class="hub-cta-desktop" style="margin-top:6px">' + primaryButton('btn--block') + '</div>' +
       '</div>' +
-      '<div class="mt-3 fq-day-track" aria-hidden="true">' + track + '</div>' +
-      '<p class="mt-2 text-xs leading-relaxed text-slate-500">' + escapeHtml(t('roadmapSprintNote')) + '</p>' +
-      '<div class="mt-4 space-y-3">' + phases + '</div>' +
-      after14Html(state.session && state.session.post_14_paths, { compact: true });
+      chapter(2, 'hub.phase2.range', 'hub.phase2.title', m9, 'hub.checkpoint2') +
+      chapter(3, 'hub.phase3.range', 'hub.phase3.title', m14, 'hub.finale') +
+      '<div class="card after14"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3>' +
+        '<p class="small" style="color:var(--ink-2);margin-top:4px">' + escapeHtml(t('hub.after14.sub')) + '</p>' +
+        '<div class="after14__grid">' + after + '</div></div>';
   }
 
-  // Krótki podgląd After Day 14 (pod mapą oraz jako sekcja na Ekranie 4 / po Checkpoincie).
-  function after14Html(paths, options) {
-    const list = paths || [];
-    if (!list.length) return '';
-    const compact = !!(options && options.compact);
-    const cards = list.map((path) =>
-      '<li class="fq-after14-card">' +
-        '<div class="flex flex-wrap items-center gap-2">' +
-          '<span class="fq-after14-badge">' + escapeHtml(path.badge || '') + '</span>' +
-          '<span class="text-xs font-bold text-slate-500">' + escapeHtml(path.cadence || '') + '</span>' +
-        '</div>' +
-        '<p class="mt-1.5 font-extrabold leading-snug">' + escapeHtml(path.title) + '</p>' +
-        '<p class="mt-1 text-sm leading-snug text-slate-600">' + escapeHtml(path.description) + '</p>' +
-      '</li>'
-    ).join('');
-    return (
-      '<section class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4" data-after14>' +
-        '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-          '<h4 class="font-extrabold tracking-tight">' + escapeHtml(t('roadmapAfter14Title')) + '</h4>' +
-          (compact ? '<span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">' + escapeHtml(t('roadmapSprintFinale')) + '</span>' : '') +
-        '</div>' +
-        '<p class="mt-1 text-xs leading-relaxed text-slate-600">' + escapeHtml(t('roadmapAfter14Note')) + '</p>' +
-        '<ul class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">' + cards + '</ul>' +
-      '</section>'
-    );
+  function after14Paths() {
+    const server = (state.turn && state.turn.post_14_paths) || (state.session && state.session.post_14_paths) || [];
+    const local = blocks().after14;
+    if (Array.isArray(server) && server.length) {
+      return server.map((p, i) => Object.assign({ icon: (local.find((l) => l.id === p.id) || local[i % local.length] || {}).icon }, p));
+    }
+    return local;
   }
 
-  // Wstawia podgląd After Day 14 do kontenera (Ekran 4 / wynik Checkpointu).
-  function renderAfter14(target, paths) {
-    if (!target) return;
-    const list = paths || (state.session && state.session.post_14_paths) || [];
-    target.innerHTML = after14Html(list);
+  function renderPlanCard() {
+    const a = state.session.safe_investment || {};
+    const cushion = Number(a.emergency_savings_monthly) || 0;
+    const etf = Number(a.training_etf_monthly) || 0;
+    let body;
+    if (a.plan_type === 'split') {
+      const total = Math.max(1, cushion + etf);
+      const pc = Math.round((cushion / total) * 100);
+      body =
+        '<div class="split">' +
+          '<div class="split__box split__box--cushion"><p class="split__label">' + icon('shield', 'ic--sm') + escapeHtml(t('plan.cushion')) + '</p>' +
+            '<p class="split__value"><span data-count="' + cushion + '">0</span> <small>' + (state.lang === 'pl' ? 'zł' : 'PLN') + escapeHtml(t('plan.mo')) + '</small></p></div>' +
+          '<div class="split__box split__box--etf"><p class="split__label">' + icon('sprout', 'ic--sm') + escapeHtml(t('plan.etf')) + '</p>' +
+            '<p class="split__value"><span data-count="' + etf + '">0</span> <small>' + (state.lang === 'pl' ? 'zł' : 'PLN') + escapeHtml(t('plan.mo')) + '</small></p></div>' +
+        '</div>' +
+        '<div class="split__bar" aria-hidden="true"><span style="width:' + pc + '%"></span><span></span></div>' +
+        '<p class="tiny muted" style="margin-top:6px">' + escapeHtml(t('plan.shares', { a: pc, b: 100 - pc })) + '</p>';
+    } else if (a.plan_type === 'invest') {
+      body =
+        '<div class="split" style="grid-template-columns:1fr">' +
+          '<div class="split__box split__box--etf"><p class="split__label">' + icon('sprout', 'ic--sm') + escapeHtml(t('plan.range')) + '</p>' +
+            '<p class="split__value"><span data-count="' + a.min_monthly + '">0</span>–<span data-count="' + a.max_monthly + '">0</span> <small>' + (state.lang === 'pl' ? 'zł' : 'PLN') + escapeHtml(t('plan.mo')) + '</small></p></div>' +
+        '</div>' +
+        '<p class="small" style="margin-top:8px;color:var(--ink-2)">' + escapeHtml(t('plan.sim', { amount: money(a.recommended_monthly) })) + '</p>';
+    } else {
+      body =
+        '<div class="split" style="grid-template-columns:1fr">' +
+          '<div class="split__box split__box--cushion"><p class="split__label">' + icon('shield', 'ic--sm') + escapeHtml(t('plan.cushion')) + '</p>' +
+            '<p class="split__value"><span data-count="' + cushion + '">0</span> <small>' + (state.lang === 'pl' ? 'zł' : 'PLN') + escapeHtml(t('plan.mo')) + '</small></p></div>' +
+        '</div>' +
+        '<p class="chip chip--soft" style="margin-top:10px">' + icon('clock', 'ic--sm') + escapeHtml(t('plan.etfLater', { amount: money(a.recommended_monthly) })) + '</p>';
+    }
+    els.cardPlan.classList.add('has-peek');
+    els.cardPlan.innerHTML =
+      '<div class="cora-peek cora-peek--right" style="--peek-size:104px">' + coraPeekSVG() + '</div>' +
+      '<h3 class="card__title">' + escapeHtml(t('plan.title')) + '</h3>' +
+      '<p class="tiny muted" style="margin-top:2px">' + escapeHtml(t('plan.label')) + '</p>' + body +
+      '<p class="small" style="margin-top:14px;color:var(--ink-2)">' + escapeHtml(a.reasoning || '') + '</p>';
+    els.cardPlan.querySelectorAll('[data-count]').forEach((el) => animateNumber(el, 0, Number(el.dataset.count), { duration: 900 }));
   }
 
-  function renderLessonCard(lesson, done) {
-    const action = done
-      ? '<p class="mt-3 inline-flex min-h-tap items-center gap-2 text-sm font-extrabold text-emerald-700">' +
-          '<i data-lucide="circle-check" class="h-5 w-5" aria-hidden="true"></i>' + escapeHtml(t('lessonDone', { xp: lesson.xp_reward })) + '</p>'
-      : '<button type="button" data-action="complete-lesson" data-lesson-id="' + escapeHtml(lesson.id) + '" ' +
-          'class="mt-3 inline-flex min-h-tap items-center gap-2 rounded-xl border-2 border-brand-dark/10 bg-white px-4 text-sm font-extrabold transition hover:border-brand-yellow hover:bg-brand-yellow/10">' +
-          escapeHtml(t('lessonUnderstood', { xp: lesson.xp_reward })) + '</button>';
-    return (
-      '<article data-lesson-card="' + escapeHtml(lesson.id) + '" tabindex="-1" class="rounded-2xl border p-4 transition ' +
-        (done ? 'border-etf-green/50 bg-etf-green/5' : 'border-slate-200 bg-white') + '">' +
-        '<div class="flex items-start justify-between gap-3">' +
-          '<h5 class="font-extrabold leading-snug">' + escapeHtml(lesson.title) + '</h5>' +
-          '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">' +
-            '<i data-lucide="timer" class="h-3 w-3" aria-hidden="true"></i>' + escapeHtml(t('lessonSeconds', { seconds: lesson.duration_sec })) + '</span>' +
-        '</div>' +
-        '<p class="mt-1.5 text-sm leading-relaxed text-slate-600">' + escapeHtml(lesson.summary) + '</p>' +
-        '<p class="mt-2 flex items-start gap-1.5 text-sm font-bold">' +
-          '<i data-lucide="lightbulb" class="mt-0.5 h-4 w-4 shrink-0 text-brand-yellow-dark" aria-hidden="true"></i>' +
-          escapeHtml(lesson.key_takeaway) + '</p>' +
-        action +
-      '</article>'
-    );
-  }
-
-  // Karta B — badge „Pominęliśmy {n} tematów", 3 mikro-lekcje, priorytety i .topic-strike.
-  function renderSpeakly(filter, lessons) {
-    const removed = (filter && filter.removed_topics) || [];
-    const kept = (filter && filter.kept_topics) || [];
-    const n = removed.length;
-    const maxBonus = Math.min(MICRO_LESSON_BONUS_CAP, (lessons || []).reduce((sum, l) => sum + (l.xp_reward || 0), 0));
-
-    const lessonCards = (lessons || [])
-      .map((lesson) => renderLessonCard(lesson, state.completedLessons.has(lesson.id)))
-      .join('');
-
-    const keptList = kept.map((topic) =>
-      '<li class="flex items-start gap-2 text-sm font-semibold">' +
-        '<span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-etf-green text-[11px] font-extrabold text-white" aria-hidden="true">✓</span>' +
-        escapeHtml(topic) + '</li>'
-    ).join('');
-
-    const removedList = removed.map((topic, i) =>
-      '<li class="text-sm text-slate-600"><span class="topic-strike" style="--i: ' + i + '">' + escapeHtml(topic) + '</span></li>'
-    ).join('');
-
-    const skipped =
-      state.lang === 'en'
-        ? t('speaklySkipped', { n })
-        : t('speaklySkipped', { n, word: pluralTopics(n) });
-
-    els.cardSpeakly.innerHTML =
-      '<div class="flex flex-wrap items-center justify-between gap-3">' +
-        '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('speaklyTitle')) + '</h3>' +
-        '<span class="inline-flex items-center gap-1.5 rounded-full bg-etf-green/10 px-3 py-1.5 text-xs font-extrabold text-emerald-700 sm:text-sm">' +
-          escapeHtml(skipped) + '</span>' +
-      '</div>' +
-      '<div class="mt-5 grid grid-cols-1 gap-6 md:grid-cols-5">' +
-        '<div class="md:col-span-3">' +
-          '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-            '<h4 class="font-extrabold">' + escapeHtml(t('lessonsTitle')) + '</h4>' +
-            '<span class="text-xs text-slate-500">' + escapeHtml(t('lessonsOptional', { xp: maxBonus })) + '</span>' +
-          '</div>' +
-          '<div class="mt-3 space-y-3">' + lessonCards + '</div>' +
-        '</div>' +
-        '<div class="md:col-span-2">' +
-          '<h4 class="font-extrabold">' + escapeHtml(t('prioritiesTitle')) + '</h4>' +
-          '<ul class="mt-3 space-y-2">' + keptList + '</ul>' +
-          '<h4 class="mt-6 font-extrabold text-slate-500">' + escapeHtml(t('skippedTitle')) + '</h4>' +
-          '<ul class="mt-3 space-y-2">' + removedList + '</ul>' +
-        '</div>' +
+  function renderSkippedCard() {
+    const f = state.session.speakly_filter || { kept_topics: [], removed_topics: [] };
+    const n = (f.removed_topics || []).length;
+    els.cardSkipped.innerHTML =
+      '<span class="skip-badge">' + icon('bolt', 'ic--sm') + escapeHtml(t('skip.badge', { n })) + '</span>' +
+      '<div class="topics">' +
+        '<div><h4>' + escapeHtml(t('skip.kept')) + '</h4><ul class="kept">' +
+          (f.kept_topics || []).map((k) => '<li>' + icon('check', 'ic--sm') + '<span>' + escapeHtml(k) + '</span></li>').join('') + '</ul></div>' +
+        '<div><h4 class="muted">' + escapeHtml(t('skip.removed')) + '</h4><ul class="removed">' +
+          (f.removed_topics || []).map((r, i) => '<li><span class="topic-strike" style="--i:' + i + '">' + escapeHtml(r) + '</span></li>').join('') + '</ul></div>' +
       '</div>';
   }
 
-  function completeLesson(lessonId) {
-    if (!state.session || state.completedLessons.has(lessonId)) return;
-    const lesson = (state.session.micro_lessons || []).find((l) => l.id === lessonId);
-    if (!lesson) return;
-    state.completedLessons.add(lessonId);
-    const card = Array.from(els.cardSpeakly.querySelectorAll('[data-lesson-card]')).find((el) => el.dataset.lessonCard === lessonId);
-    if (card) {
-      card.outerHTML = renderLessonCard(lesson, true);
-      refreshIcons();
-      const fresh = Array.from(els.cardSpeakly.querySelectorAll('[data-lesson-card]')).find((el) => el.dataset.lessonCard === lessonId);
-      if (fresh) fresh.focus({ preventScroll: true });
-    }
-    addMicroLessonBonusXp(lesson.xp_reward);
+  function renderLessonsCard() {
+    const lessons = state.dayLessons || [];
+    const max = Math.min(MICRO_LESSON_BONUS_CAP, lessons.reduce((sum, l) => sum + (l.xp_reward || 0), 0));
+    const title = state.day === 1 ? t('lessons.title') : t('lessons.titleDay', { n: state.day });
+    els.cardLessons.innerHTML =
+      '<div class="card__head"><h3 class="card__title">' + escapeHtml(title) + '</h3><span class="tiny muted">' + escapeHtml(t('lessons.sub', { n: max })) + '</span></div>' +
+      '<div class="lessons">' + lessons.map(lessonHTML).join('') + '</div>';
+  }
+  function lessonHTML(l) {
+    const done = state.completedLessons.has(l.id);
+    return (
+      '<article class="lesson' + (done ? ' lesson--done' : '') + '" data-lesson="' + escapeHtml(l.id) + '">' +
+        '<div class="lesson__head"><h4 class="lesson__title">' + escapeHtml(l.title) + '</h4><span class="lesson__time">' + escapeHtml(t('lessons.sec', { n: l.duration_sec || 20 })) + '</span></div>' +
+        '<p class="lesson__body">' + escapeHtml(l.summary) + '</p>' +
+        '<p class="lesson__key">' + icon('bulb', 'ic--sm') + '<span>' + escapeHtml(l.key_takeaway) + '</span></p>' +
+        '<div class="lesson__actions">' +
+          (done
+            ? '<span class="lesson__done">' + icon('check', 'ic--sm') + escapeHtml(t('lessons.done', { n: l.xp_reward })) + '</span>'
+            : '<button type="button" class="btn btn--green btn--sm" data-action="lesson" data-lesson-id="' + escapeHtml(l.id) + '">' + escapeHtml(t('lessons.got', { n: l.xp_reward })) + '</button>') +
+          '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.explain')) + '</button>' +
+        '</div>' +
+      '</article>'
+    );
+  }
+  function completeLesson(id, btn) {
+    if (state.completedLessons.has(id)) return;
+    const l = (state.dayLessons || []).find((x) => x.id === id);
+    if (!l) return;
+    state.completedLessons.add(id);
+    const before = state.lessonsXp;
+    state.lessonsXp = clamp(state.lessonsXp + (Number(l.xp_reward) || 0), 0, MICRO_LESSON_BONUS_CAP * PLAYABLE_DAYS);
+    const gained = state.lessonsXp - before;
+    const card = els.cardLessons.querySelector('[data-lesson="' + CSS.escape(id) + '"]');
+    if (card) card.outerHTML = lessonHTML(l);
+    Sound.pop();
+    xpFloat(gained, btn || els.hudXpPill);
+    renderHud();
   }
 
-  // Karta C — przykładowy podział wolnych środków wg plan_type (split / invest / savings_first).
-  function renderSplit(advice) {
-    const a = advice || {};
-    const perMonth = NBSP + t('splitPerMonth');
-    const amount = (value, extraClass) =>
-      '<span class="tabular-nums ' + (extraClass || '') + '" data-count="' + Number(value || 0) + '">0</span>';
-    const label =
-      '<p class="text-xs font-bold uppercase tracking-wider text-slate-500">' +
-      escapeHtml(t('splitLabel')) + '</p>';
-    let body = '';
-
-    if (a.plan_type === 'split') {
-      const total = Math.max(1, (a.emergency_savings_monthly || 0) + (a.training_etf_monthly || 0));
-      const cushionPct = Math.round(((a.emergency_savings_monthly || 0) / total) * 100);
-      body =
-        label +
-        '<div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">' +
-          '<div class="rounded-2xl bg-brand-dark p-4 text-white">' +
-            '<p class="flex items-center gap-1.5 text-xs font-bold text-white/70"><i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i>' + escapeHtml(t('splitCushion')) + '</p>' +
-            '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.emergency_savings_monthly) + perMonth + '</p>' +
-          '</div>' +
-          '<div class="rounded-2xl border border-etf-green/30 bg-etf-green/10 p-4">' +
-            '<p class="flex items-center gap-1.5 text-xs font-bold text-emerald-700"><i data-lucide="sprout" class="h-4 w-4" aria-hidden="true"></i>' + escapeHtml(t('splitEtf')) + '</p>' +
-            '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.training_etf_monthly) + perMonth + '</p>' +
-          '</div>' +
-        '</div>' +
-        '<div class="mt-3 flex h-3 overflow-hidden rounded-full" aria-hidden="true">' +
-          '<div class="bg-brand-dark" style="width: ' + cushionPct + '%"></div>' +
-          '<div class="bg-etf-green" style="width: ' + (100 - cushionPct) + '%"></div>' +
-        '</div>' +
-        '<p class="mt-1.5 text-xs font-semibold text-slate-500">' +
-          escapeHtml(t('splitShare', { cushion: cushionPct, etf: 100 - cushionPct })) + '</p>';
-    } else if (a.plan_type === 'invest') {
-      body =
-        label +
-        '<p class="mt-2 text-3xl font-extrabold sm:text-4xl">' + amount(a.min_monthly) + ' – ' + amount(a.max_monthly) + perMonth + '</p>' +
-        '<p class="mt-1 text-sm text-slate-600">' + escapeHtml(t('splitSim')) + ' <strong class="tabular-nums text-brand-dark">' +
-          formatPLN(a.recommended_monthly) + escapeHtml(t('splitPerMonth')) + '</strong> ' + escapeHtml(t('splitSimEtf')) + '</p>';
-    } else {
-      // savings_first — najpierw poduszka; ETF tylko jako przykład (illustrative_only).
-      body =
-        label +
-        '<div class="mt-3 rounded-2xl bg-brand-dark p-4 text-white">' +
-          '<p class="flex items-center gap-1.5 text-xs font-bold text-white/70"><i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i>' + escapeHtml(t('splitCushion')) + '</p>' +
-          '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.emergency_savings_monthly) + perMonth + '</p>' +
-        '</div>' +
-        '<span class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">' +
-          '<i data-lucide="clock" class="h-3.5 w-3.5" aria-hidden="true"></i>' +
-          escapeHtml(t('splitLater', { amount: formatNumber(a.recommended_monthly) })) + '</span>';
-    }
-
-    els.cardSplit.innerHTML =
-      '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('splitTitle')) + '</h3>' +
-      '<div class="mt-4">' + body + '</div>' +
-      '<p class="mt-4 text-sm leading-relaxed text-slate-600">' + escapeHtml(a.reasoning) + '</p>';
+  // Time machine: slider 1–20 years, 3 KPIs in today's money, chart with a "Year 0" point.
+  function setupTimeMachine() {
+    const s = state.session;
+    els.tmMonthly.textContent = t('tm.monthly', { amount: money(s.safe_investment.recommended_monthly) });
+    els.tmAssumptions.textContent = s.assumptions ? s.assumptions.text : '';
+    els.tmMin.textContent = years(1);
+    els.tmMax.textContent = years(20);
   }
-
-  // Karta D — Wehikuł Czasu: suwak 1–20 lat, 3 KPI w dzisiejszych zł, wykres z punktem Rok 0.
-  function setupTimeMachine(data) {
-    els.tmYears.value = String(data.default_horizon_years);
-    els.tmMonthly.textContent = formatPLN(data.safe_investment.recommended_monthly) + t('splitPerMonth');
-    els.tmAssumptions.textContent = data.assumptions ? data.assumptions.text : '';
-    els.tmCompliance.textContent = t('complianceText');
-    els.kpiWinSource.textContent = WIN_RATE_SOURCE_NOTE;
-  }
-
-  function updateTimeMachine(year, options) {
+  function updateTimeMachine(year, opts) {
     if (!state.session) return;
     const series = state.session.projection_series || [];
     if (!series.length) return;
     const y = clamp(Math.round(Number(year) || 1), 1, series.length);
-    const point = series[y - 1];
-    const prev = state.timeMachine.point;
-    const animate = !options || options.animate !== false;
-
+    const p = series[y - 1];
+    const prev = state.tm.point;
+    const animate = !opts || opts.animate !== false;
     els.tmYears.value = String(y);
-    els.tmYearsOut.textContent = yearsLabel(y);
-    setRangeFill(els.tmYears);
-
-    const setKpi = (el, key) => {
-      if (animate && prev) animateNumber(el, prev[key], point[key], { duration: 450 });
-      else setNumber(el, point[key]);
+    setRangeFill(els.tmYears, els.tmPill, years(y));
+    const kpi = (el, key) => {
+      if (animate && prev) animateNumber(el, prev[key], p[key], { duration: 420, format: money });
+      else setNumber(el, p[key], money);
     };
-    setKpi(els.kpiCash, 'cash_real_value');
-    setKpi(els.kpiEtf, 'etf_real_value');
-    els.kpiPaid.textContent = formatNumber(point.total_paid);
-    els.kpiEtfNominal.textContent = formatNumber(point.etf_nominal_value);
-
-    const win = Math.min(WIN_RATE_DISPLAY_CAP, point.historical_win_rate);
+    kpi(els.kpiCash, 'cash_real_value');
+    kpi(els.kpiEtf, 'etf_real_value');
+    els.kpiPaid.textContent = t('tm.paid', { amount: money(p.total_paid) });
+    els.kpiEtfNominal.textContent = t('tm.nominal', { amount: money(p.etf_nominal_value) });
+    const win = Math.min(WIN_RATE_DISPLAY_CAP, p.historical_win_rate);
     els.kpiWin.textContent = win + '%';
-    els.kpiWinBar.style.width = win + '%';
-
-    state.timeMachine = { year: y, point };
-    renderTimeMachineChart(series, y);
+    els.kpiWinText.textContent = t('tm.winText');
+    state.tm = { year: y, point: p };
+    renderChart(series, y);
   }
-
-  // Przed projection_series.slice(0, year) zawsze punkt „Rok 0" (0, 0, 0) — docs/01 §7 Ekran 2.
-  function timeMachineChartData(series, year) {
-    const points = series.slice(0, year);
+  function chartData(series, year) {
+    const pts = series.slice(0, year);
     return {
-      labels: [t('chartYearZero')].concat(points.map((p) => t('chartYear', { year: p.year }))),
-      etf: [0].concat(points.map((p) => p.etf_real_value)),
-      cash: [0].concat(points.map((p) => p.cash_real_value)),
-      stress: [0].concat(points.map((p) => p.etf_stress_real_value)),
+      labels: [t('tm.year', { n: 0 })].concat(pts.map((p) => t('tm.year', { n: p.year }))),
+      etf: [0].concat(pts.map((p) => p.etf_real_value)),
+      cash: [0].concat(pts.map((p) => p.cash_real_value)),
+      stress: [0].concat(pts.map((p) => p.etf_stress_real_value)),
     };
   }
-
-  function compactPLN(value) {
-    if (Math.abs(value) >= 1000) {
-      const scaled = value / 1000;
-      if (state.lang === 'en') {
-        return scaled.toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'k';
-      }
-      return scaled.toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + NBSP + 'tys.';
+  function compactMoney(v) {
+    if (Math.abs(v) >= 1000) {
+      return (v / 1000).toLocaleString(state.lang === 'pl' ? 'pl-PL' : 'en-US', { maximumFractionDigits: 1 }) + (state.lang === 'pl' ? NBSP + 'tys.' : 'k');
     }
-    return formatNumber(value);
+    return formatNumber(v);
   }
-
-  function renderTimeMachineChart(series, year) {
+  function renderChart(series, year) {
     if (!window.Chart || !els.tmChart) return;
-    const d = timeMachineChartData(series, year);
-
-    if (timeMachineChart) {
-      timeMachineChart.data.labels = d.labels;
-      timeMachineChart.data.datasets[0].label = t('chartEtf');
-      timeMachineChart.data.datasets[0].data = d.etf;
-      timeMachineChart.data.datasets[1].label = t('chartCash');
-      timeMachineChart.data.datasets[1].data = d.cash;
-      timeMachineChart.data.datasets[2].label = t('chartStress');
-      timeMachineChart.data.datasets[2].data = d.stress;
-      if (timeMachineChart.options.scales && timeMachineChart.options.scales.y) {
-        timeMachineChart.options.scales.y.title.text = t('chartAxis');
-      }
-      timeMachineChart.update();
+    const d = chartData(series, year);
+    if (tmChart) {
+      tmChart.data.labels = d.labels;
+      tmChart.data.datasets[0].data = d.etf;
+      tmChart.data.datasets[1].data = d.cash;
+      tmChart.data.datasets[2].data = d.stress;
+      tmChart.data.datasets[0].label = t('tm.legendEtf');
+      tmChart.data.datasets[1].label = t('tm.legendCash');
+      tmChart.data.datasets[2].label = t('tm.legendStress');
+      tmChart.options.scales.y.title.text = t('tm.yAxis');
+      tmChart.update();
       return;
     }
-
-    const etfFill = (context) => {
-      const chart = context.chart;
-      const area = chart.chartArea;
-      if (!area) return 'rgba(16, 185, 129, 0.15)';
-      const gradient = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.30)');
-      gradient.addColorStop(1, 'rgba(16, 185, 129, 0.02)');
-      return gradient;
+    const fill = (ctx) => {
+      const area = ctx.chart.chartArea;
+      if (!area) return 'rgba(18,183,106,0.15)';
+      const grad = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+      grad.addColorStop(0, 'rgba(18,183,106,0.28)');
+      grad.addColorStop(1, 'rgba(18,183,106,0.02)');
+      return grad;
     };
-
-    timeMachineChart = new window.Chart(els.tmChart, {
+    tmChart = new window.Chart(els.tmChart, {
       type: 'line',
       data: {
         labels: d.labels,
         datasets: [
-          {
-            label: t('chartEtf'),
-            data: d.etf,
-            borderColor: COLORS.etfGreen,
-            backgroundColor: etfFill,
-            fill: 'origin',
-            borderWidth: 3,
-            tension: 0.3,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            order: 2,
-          },
-          {
-            label: t('chartCash'),
-            data: d.cash,
-            borderColor: COLORS.inflationRed,
-            borderDash: [7, 5],
-            borderWidth: 2.5,
-            fill: false,
-            tension: 0.3,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            order: 1,
-          },
-          {
-            label: t('chartStress'),
-            data: d.stress,
-            borderColor: COLORS.stressAmber,
-            borderDash: [2, 4],
-            borderWidth: 2.5,
-            fill: false,
-            tension: 0.3,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            order: 0,
-          },
+          { label: t('tm.legendEtf'), data: d.etf, borderColor: C.green, backgroundColor: fill, fill: 'origin', borderWidth: 3.5, tension: 0.3, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: C.green, pointHoverBorderColor: C.ink, pointHoverBorderWidth: 2, order: 2 },
+          { label: t('tm.legendCash'), data: d.cash, borderColor: C.coral, borderDash: [8, 6], borderWidth: 3, fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: C.coral, pointHoverBorderColor: C.ink, pointHoverBorderWidth: 2, order: 1 },
+          { label: t('tm.legendStress'), data: d.stress, borderColor: C.tangerine, borderDash: [2, 5], borderWidth: 3, fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: C.tangerine, pointHoverBorderColor: C.ink, pointHoverBorderWidth: 2, order: 0 },
         ],
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 400 },
+        responsive: true, maintainAspectRatio: false, animation: { duration: 380 },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
-          tooltip: {
-            backgroundColor: COLORS.brandDark,
-            padding: 10,
-            callbacks: {
-              label: (ctx) => ' ' + ctx.dataset.label + ': ' + formatPLN(ctx.parsed.y),
-            },
-          },
+          tooltip: { backgroundColor: C.ink, padding: 10, cornerRadius: 10, titleFont: { weight: '800' }, callbacks: { label: (ctx) => ' ' + ctx.dataset.label + ': ' + money(ctx.parsed.y) } },
         },
         scales: {
-          x: {
-            grid: { display: false },
-            ticks: { autoSkip: true, maxTicksLimit: 11, maxRotation: 0 },
-          },
-          y: {
-            beginAtZero: true,
-            grid: { color: '#F1F5F9' },
-            border: { display: false },
-            title: { display: true, text: t('chartAxis'), font: { size: 11, weight: '600' } },
-            ticks: { callback: (value) => compactPLN(value) },
-          },
+          x: { grid: { display: false }, border: { color: C.ink, width: 2 }, ticks: { autoSkip: true, maxTicksLimit: 8, maxRotation: 0 } },
+          y: { beginAtZero: true, grid: { color: 'rgba(8,41,51,0.08)' }, border: { display: false },
+            title: { display: true, text: t('tm.yAxis'), font: { size: 11, weight: '700' } },
+            ticks: { callback: (v) => compactMoney(v), maxTicksLimit: 6 } },
         },
       },
     });
   }
 
   // ------------------------------------------------------------------------
-  // 10. Ekran 3 — symulacja wyborów z Corą (docs/01 §7 Ekran 3, docs/02 §4)
+  // 12. Screen 3 — mission engine
+  // Server steps (docs/03 §2) are interleaved with frontend practice beats:
+  //   Day 1: decision -> cash-split slider -> concern scenario -> myth vs reality -> -20% dip check
+  //   Day 2: step 1 -> spot the fee -> step 2 · Days 3–4: server steps only.
+  // Practice beats never touch the server state, so the Golden Path numbers stay exact.
   // ------------------------------------------------------------------------
-
-  function resetMission() {
+  function buildBeats(day, total) {
+    const steps = Array.from({ length: total }, (_, i) => ({ kind: 'server', step: i + 1 }));
+    if (day === 1 && total === 3) return [steps[0], { kind: 'alloc' }, steps[1], { kind: 'myth' }, steps[2]];
+    if (day === 2 && total === 2) return [steps[0], { kind: 'spot' }, steps[1]];
+    return steps;
+  }
+  function currentBeat() {
     const m = state.mission;
-    m.token += 1;
-    m.log = [];
-    m.lastAnswer = null;
-    m.renderedValue = 0;
-    if (els.msInput) els.msInput.value = '';
-    syncMissionCounter();
-    setMissionBusy(false);
-    state.summary = freshSummary();
-    clearSummary();
+    return m && m.beats[m.index];
   }
 
-  // Nowa sesja: zamknięty modal i pusty Ekran 4 (bez resztek poprzedniej persony w DOM).
-  function clearSummary() {
-    const modal = document.getElementById('modal_bank_order');
-    if (modal && !modal.hidden) closeModal('modal_bank_order');
-    [els.cardLevelup, els.cardNextStep, els.cardChallenge, els.cardChecklist, els.cardBank,
-      els.cardLeaderboard, els.cardAfter14, els.complianceFooter, els.bankOrderContent]
-      .forEach((el) => { if (el) el.innerHTML = ''; });
+  const REPLY_ICON_RULES = [
+    ['snowflake', /nothing|locked|frozen|nic nie|zablokow|zamroż/i],
+    ['trend-down', /\bsell|sprzeda/i],
+    ['pause', /\bstop|wait|wstrzym|czekam|postpone|odkład/i],
+    ['shield', /buffer|cushion|poduszk/i],
+    ['repeat', /keep the plan|keep contributing|standing|automat|background|trzymam plan|dalej wpłacam|stał|w tle/i],
+    ['eye', /daily|every day|codzien|notowa/i],
+    ['building', /one .*compan|single|jednej|pojedyncz|spółk/i],
+    ['wallet', /account|cash|konto|gotówk/i],
+    ['sprout', /etf|fund|fundusz/i],
+    ['hourglass', /age|horizon|wiek|horyzont/i],
+    ['coins', /half|połow|fee|opłat|ter\b/i],
+  ];
+  function replyIcon(text, i) {
+    const rule = REPLY_ICON_RULES.find((r) => r[1].test(text || ''));
+    return rule ? rule[0] : ['bulb', 'target', 'chart'][i % 3];
   }
 
-  function renderMission(options) {
-    const turn = state.turn;
-    if (!turn || !els.msLunaMessage) return;
-    const animate = !options || options.animate !== false;
-    const s = state.session;
-    const completed = turn.mission_completed === true;
-    const total = turn.total_steps || 3;
-    const step = clamp(turn.step_number || 1, 1, total);
+  function openMission() {
+    if (!state.session || !state.turn) return;
+    if (dayDone(state.day)) { openDone(); return; }
+    const m = state.mission;
+    if (!m.beats.length) m.beats = buildBeats(state.day, state.turn.total_steps || 3);
+    m.started = true;
+    showScreen(SCREENS.MISSION);
+    renderBeat();
+  }
 
-    // Mini-panel: Dzień X z 14 • Symulacja wyborów • Krok N z 3
-    els.msDay.textContent = s ? s.current_day : 1;
-    const screenTitle = document.getElementById('screen_mission_title');
-    if (screenTitle) screenTitle.textContent = t('screenMissionTitleDynamic', { day: s ? s.current_day || 1 : 1 });
-    els.msTotalDays.textContent = s ? s.total_program_days : 14;
-    els.msStep.textContent = step;
-    els.msTotalSteps.textContent = total;
-    Array.from(els.msSteps.children).forEach((bar, i) => {
-      const n = i + 1;
-      bar.hidden = n > total;
-      bar.dataset.state = completed || n < step ? 'done' : n === step ? 'current' : 'todo';
-    });
-    const portfolio = turn.portfolio_status || { simulated_value: 0, event_badge: '' };
-    els.msBadgeText.textContent = portfolio.event_badge || '';
-    const value = Number(portfolio.simulated_value) || 0;
-    if (animate && value !== state.mission.renderedValue) {
-      animateNumber(els.msValue, state.mission.renderedValue, value, { duration: 900 });
-    } else {
-      setNumber(els.msValue, value);
+  function closeMission() {
+    const m = state.mission;
+    if (m && m.phase === 'feedback' && !m.retry && !(state.turn && state.turn.mission_completed)) {
+      m.index = Math.min(m.index + 1, m.beats.length - 1);
+      m.phase = 'answer';
     }
-    state.mission.renderedValue = value;
-
-    renderMissionFeedback(turn, animate);
-    els.msLunaMessage.textContent = turn.luna_message || '';
-    if (animate) replayClass(els.msLuna, 'screen-enter');
-
-    // Po ostatnim kroku dnia znikają karty i pole tekstowe, pojawia się CTA na Ekran 4.
-    renderQuickReplies(completed ? [] : turn.quick_replies || []);
-    els.msInteraction.hidden = completed;
-    els.ctaFinishDay.hidden = !completed;
-    const ctaLabel = els.ctaFinishDay.querySelector('[data-label]');
-    if (ctaLabel) ctaLabel.textContent = t('ctaFinishDayDynamic', { day: s ? s.current_day || 1 : 1 });
-    refreshIcons();
+    closeDrawer();
+    if (state.turn && state.turn.mission_completed && dayDone(state.day)) { openDone(); return; }
+    renderHub();
+    showScreen(SCREENS.HUB);
+    updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false });
   }
 
-  function shortAnswer(text) {
-    const value = String(text || '');
-    return value.length > ANSWER_PREVIEW_MAX ? value.slice(0, ANSWER_PREVIEW_MAX - 1).trimEnd() + '…' : value;
+  function renderMissionBar() {
+    const m = state.mission;
+    const total = m.beats.length || 1;
+    const advanced = m.phase === 'feedback' && !m.retry ? 1 : 0;
+    const pct = clamp(((m.index + advanced) / total) * 100, 0, 100);
+    els.mProgressFill.style.width = pct + '%';
+    els.mProgress.setAttribute('aria-valuenow', String(Math.round(pct)));
+    els.mTicks.innerHTML = '<span></span>'.repeat(total);
+    setNumber(els.mXp, displayedXp());
+    const beat = currentBeat();
+    // Chips describe the step on screen, not the next step already returned by the server.
+    const tt = m.viewTurn || state.turn || {};
+    const ps = tt.portfolio_status || {};
+    const chips = ['<span class="chip chip--ink">' + icon('calendar', 'ic--sm') + escapeHtml(t('mission.dayChip', { d: state.day })) + '</span>',
+      '<span class="chip">' + escapeHtml(t('mission.stepChip', { s: Math.min(m.index + 1, total), t: total })) + '</span>'];
+    if (beat && beat.kind === 'server') {
+      if (ps.event_badge) chips.push('<span class="chip chip--yellow">' + icon('flag', 'ic--sm') + escapeHtml(ps.event_badge) + '</span>');
+      if (Number(ps.simulated_value) > 0) chips.push('<span class="chip chip--green">' + icon('chart', 'ic--sm') + '<span id="m-value">' + escapeHtml(t('mission.portfolio', { amount: money(ps.simulated_value) })) + '</span></span>');
+    } else {
+      chips.push('<span class="chip chip--sky">' + icon('bulb', 'ic--sm') + escapeHtml(t('mission.practice')) + '</span>');
+    }
+    els.mMeta.innerHTML = chips.join('');
   }
 
-  // Karta feedbacku: zielona (optimal), ciepły bursztyn (partial), czerwień + 0 XP (allow_retry).
-  function renderMissionFeedback(turn, animate) {
-    const retry = turn.allow_retry === true || turn.answer_quality === 'invalid';
-    const visible = (turn.is_optimal_choice != null || retry) && !!turn.understanding_feedback;
-    els.msFeedback.hidden = !visible;
-    if (!visible) return;
-    const good = turn.is_optimal_choice === true;
-    const g = turn.gamification || defaultGamification();
-    els.msFeedback.dataset.tone = retry ? 'retry' : good ? 'good' : 'warm';
-    els.msFeedbackTitle.textContent = retry
-      ? t('feedbackRetryTitle')
-      : good ? t('feedbackGood') : t('feedbackTip');
-    const answer = state.mission.lastAnswer;
-    els.msFeedbackAnswer.hidden = !answer;
-    els.msFeedbackAnswer.textContent = answer
-      ? t('feedbackAnswer', { answer: shortAnswer(answer) })
-      : '';
-    els.msFeedbackText.textContent = turn.understanding_feedback;
-    els.msFeedbackXp.textContent = retry
-      ? t('feedbackZeroXp')
-      : '+' + (g.xp_gained || 0) + NBSP + 'XP';
-    const delta = Number(turn.confidence_delta) || 0;
-    els.msFeedbackReadiness.hidden = delta <= 0;
-    els.msFeedbackReadiness.textContent = t('feedbackReadiness', { delta });
-    els.msFeedbackLevel.hidden = !g.leveled_up;
-    els.msFeedbackLevel.textContent = t('feedbackLevel', { level: g.level, title: levelTitleFor(g.level, g.level_title) });
-    if (animate) replayClass(els.msFeedback, 'screen-enter');
+  function sceneHTML(message, opts) {
+    const o = opts || {};
+    return (
+      '<div class="scene">' + coraHTML(o.mood || 'idle') +
+        '<div class="bubble bubble--left">' +
+          '<p class="scene__who">' + escapeHtml(t('mission.coraWho')) + '</p>' +
+          (o.question ? '<p class="scene__q" style="margin-top:0">' + escapeHtml(o.question) + '</p>' : '') +
+          '<p class="scene__msg"' + (o.question ? ' style="margin-top:8px;font-size:1rem;font-weight:600;color:var(--ink-2)"' : '') + ' id="m-msg">' + escapeHtml(message) + '</p>' +
+          '<p class="small strong" id="m-thinking" style="margin-top:8px" hidden>' + escapeHtml(t('mission.thinking')) + '<span class="thinking-dots" aria-hidden="true"><span></span><span></span><span></span></span></p>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+  function sceneCora() { return els.mStage.querySelector('.scene .cora'); }
+
+  function renderBeat() {
+    const m = state.mission;
+    const beat = currentBeat();
+    if (!beat) return;
+    m.phase = 'answer';
+    m.selected = null;
+    m.ownText = '';
+    m.retry = false;
+    m.practiceRetry = false;
+    m.viewTurn = state.turn;
+    closeDrawer();
+    if (beat.kind === 'server') renderServerBeat();
+    else if (beat.kind === 'alloc') renderAllocBeat();
+    else if (beat.kind === 'myth') renderMythBeat();
+    else if (beat.kind === 'spot') renderSpotBeat();
+    renderMissionBar();
+    updateCheck();
+    replayClass(els.mStage, 'screen-enter');
   }
 
-  function renderQuickReplies(replies) {
-    els.msReplies.innerHTML = replies.map((reply, i) =>
-      '<button type="button" class="fq-reply" data-action="quick-reply" data-reply-id="' + escapeHtml(reply.id) + '">' +
-        '<span class="fq-reply-key" aria-hidden="true">' + (REPLY_KEYS[i] || i + 1) + '</span>' +
-        '<span class="min-w-0">' + escapeHtml(reply.text) + '</span>' +
-        '<i data-lucide="chevron-right" class="h-5 w-5" aria-hidden="true"></i>' +
+  function renderServerBeat() {
+    const tt = state.turn;
+    const replies = tt.quick_replies || [];
+    const answers = replies.map((r, i) =>
+      '<button type="button" class="answer" data-action="pick" data-id="' + escapeHtml(r.id) + '" aria-pressed="false">' +
+        '<span class="answer__icon">' + icon(replyIcon(r.text, i)) + '</span>' +
+        '<span>' + escapeHtml(r.text) + '</span>' +
+        '<span class="answer__key" aria-hidden="true">' + 'ABCD'.charAt(i) + '</span>' +
       '</button>'
     ).join('');
+    els.mStage.innerHTML =
+      sceneHTML(tt.luna_message || '') +
+      '<div class="answers" role="group">' + answers + '</div>' +
+      '<div class="own" id="m-own">' +
+        '<label class="own__label" for="m-input">' + escapeHtml(t('mission.ownLabel')) + '</label>' +
+        '<textarea class="textarea" id="m-input" rows="2" maxlength="' + MISSION_MESSAGE_MAX + '" placeholder="' + escapeHtml(t('mission.ownPlaceholder')) + '"></textarea>' +
+        '<div class="own__meta"><span>' + escapeHtml(t('mission.ownHint')) + '</span><span class="num"><span id="m-count">0</span>/' + MISSION_MESSAGE_MAX + '</span></div>' +
+      '</div>';
+    state.mission.renderedValue = Number((tt.portfolio_status || {}).simulated_value) || 0;
   }
 
-  function syncMissionCounter() {
-    if (els.msCount && els.msInput) els.msCount.textContent = String(els.msInput.value.length);
-  }
-
-  // Blokada kontrolek na czas żądania (zero dubli). Kropki „Cora analizuje…" tylko dla wolnego tekstu.
-  function setMissionBusy(isBusy, options) {
-    const opts = options || {};
-    state.mission.busy = isBusy;
-    if (!els.msInteraction) return;
-    els.msInteraction.setAttribute('aria-busy', String(isBusy));
-    els.msReplies.querySelectorAll('[data-action="quick-reply"]').forEach((btn) => {
-      btn.disabled = isBusy;
-      if (isBusy && btn.dataset.replyId === opts.selectedId) btn.setAttribute('data-selected', '');
-      else btn.removeAttribute('data-selected');
-    });
-    els.msInput.disabled = isBusy;
-    els.msSend.disabled = isBusy;
-
-    const thinking = isBusy && opts.freeText === true;
-    els.msThinking.hidden = !thinking;
-    els.msLunaMessage.classList.toggle('fq-dim', thinking);
-    const label = els.msSend.querySelector('[data-label]');
-    if (label) label.textContent = thinking ? t('msSending') : t('msSend');
-    const spinner = els.msSend.querySelector('.fq-spinner');
-    const idleIcon = els.msSend.querySelector('[data-idle-icon]');
-    if (spinner) spinner.hidden = !thinking;
-    if (idleIcon) idleIcon.toggleAttribute('hidden', thinking);
-    if (thinking) revealElement(els.msThinking, 'nearest');
-  }
-
-  // Przewija do elementu tylko wtedy, gdy nie widać jego początku.
-  function revealElement(el, block) {
-    if (!el || el.hidden) return;
-    const rect = el.getBoundingClientRect();
-    const visible = rect.top >= 80 && rect.top <= window.innerHeight * 0.6;
-    if (visible) return;
-    el.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: block || 'start' });
-  }
-
-  // Po odpowiedzi: mini-panel (rosnąca kwota) razem z feedbackiem, jeśli oba mieszczą się na ekranie;
-  // inaczej sam feedback (na telefonie / małym rzutniku).
-  function revealMissionResult() {
-    const target = els.msFeedback.hidden ? els.msLuna : els.msFeedback;
-    const panelTop = els.msPanel.getBoundingClientRect().top;
-    const targetBottom = target.getBoundingClientRect().bottom;
-    const fitsWithPanel = targetBottom - panelTop + 96 <= window.innerHeight;
-    revealElement(fitsWithPanel ? els.msPanel : target);
-  }
-
-  function describeMissionError(err) {
-    if (err instanceof ApiError && err.status === 422) return t('errorMessageLength', { max: MISSION_MESSAGE_MAX });
-    if (isSessionMissing(err)) return t('errorRestoreSession');
-    return describeApiError(err);
-  }
-
-  // Klik karty: {session_id, user_message: text, quick_reply_id: id} — ocena po stronie serwera bez LLM.
-  // Wolny tekst: {session_id, user_message} — BEZ pola quick_reply_id (ocenia LLM lub fallback).
-  async function sendMissionAnswer(answer) {
+  function pickAnswer(id, btn) {
     const m = state.mission;
-    const current = state.turn;
-    if (m.busy || !state.session || !current || current.mission_completed) return false;
-    const text = String((answer && answer.text) || '').trim().slice(0, MISSION_MESSAGE_MAX);
-    if (!text) return false;
-    const quickReplyId = (answer && answer.quickReplyId) || null;
-    const payload = { user_message: text };
-    if (quickReplyId) payload.quick_reply_id = quickReplyId;
+    if (m.phase !== 'answer') return;
+    m.selected = id;
+    els.mStage.querySelectorAll('.answer[data-action="pick"]').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    const input = document.getElementById('m-input');
+    if (input && input.value) { input.value = ''; m.ownText = ''; syncOwn(); }
+    updateCheck();
+  }
+  function syncOwn() {
+    const input = document.getElementById('m-input');
+    const own = document.getElementById('m-own');
+    const count = document.getElementById('m-count');
+    if (!input) return;
+    state.mission.ownText = input.value;
+    if (count) count.textContent = String(input.value.length);
+    const active = input.value.trim().length > 0;
+    if (own) own.classList.toggle('is-active', active);
+    if (active && state.mission.selected) {
+      state.mission.selected = null;
+      els.mStage.querySelectorAll('.answer[data-action="pick"]').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    }
+    updateCheck();
+  }
 
-    const token = m.token;
-    setMissionBusy(true, { freeText: !quickReplyId, selectedId: quickReplyId });
+  function updateCheck() {
+    const m = state.mission;
+    const beat = currentBeat();
+    if (!m || !beat) return;
+    let ready = false;
+    if (beat.kind === 'server') ready = !!m.selected || m.ownText.trim().length > 0;
+    else if (beat.kind === 'alloc') ready = true;
+    else if (beat.kind === 'spot') ready = !!m.spotPick;
+    els.mCheck.hidden = beat.kind === 'myth';
+    els.mCheck.disabled = !(m.phase === 'answer' && ready);
+  }
+  function setCheckBusy(busy) {
+    els.mCheck.classList.toggle('is-busy', busy);
+    els.mCheck.querySelector('.spinner').hidden = !busy;
+    els.mCheck.querySelector('[data-label]').textContent = busy ? t('mission.checking') : t('mission.check');
+    if (busy) els.mCheck.disabled = true;
+  }
+
+  function check() {
+    const beat = currentBeat();
+    if (!beat || state.mission.phase !== 'answer') return;
+    if (beat.kind === 'server') checkServer();
+    else if (beat.kind === 'alloc') checkAlloc();
+    else if (beat.kind === 'spot') checkSpot();
+  }
+
+  function qualityOf(res, prevStep) {
+    if (res.answer_quality) return res.answer_quality;
+    if (res.allow_retry === true) return 'invalid';
+    const gained = (res.gamification && res.gamification.xp_gained) || 0;
+    if (!res.mission_completed && res.step_number === prevStep && res.is_optimal_choice === false && gained === 0) return 'invalid';
+    return res.is_optimal_choice ? 'optimal' : 'partial';
+  }
+  const FALLBACK_RE = /couldn't evaluate|could not evaluate|nie udało się jej teraz ocenić/i;
+
+  async function checkServer() {
+    const m = state.mission;
+    const tt = state.turn;
+    if (!tt || tt.mission_completed) return;
+    let payload;
+    if (m.selected) {
+      const r = (tt.quick_replies || []).find((x) => x.id === m.selected);
+      if (!r) return;
+      payload = { user_message: r.text, quick_reply_id: r.id };
+    } else {
+      const text = m.ownText.trim().slice(0, MISSION_MESSAGE_MAX);
+      if (!text) { toast(t('mission.pickOrType'), 'warn'); return; }
+      payload = { user_message: text };
+    }
+    payload.lang = state.lang;
+    payload.day = state.day;
+    const freeText = !payload.quick_reply_id;
+    const token = state.token;
+    const prevStep = tt.step_number;
+    m.phase = 'busy';
+    setCheckBusy(true);
+    setAnswersDisabled(true);
+    if (freeText) {
+      setMood(sceneCora(), 'thinking');
+      const th = document.getElementById('m-thinking');
+      if (th) th.hidden = false;
+    }
     try {
-      const turn = await withSessionRecovery((sessionId) =>
-        api.missionTurn(Object.assign({ session_id: sessionId }, payload))
-      );
-      if (token !== m.token) return false; // w międzyczasie nowa analiza — odpowiedź starej sesji
-      // Rygorystyczna ocena: invalid/allow_retry nie przechodzi dalej, 0 XP i brak konfetti.
-      const retry = turn.allow_retry === true || turn.answer_quality === 'invalid';
-      m.lastAnswer = text;
-      if (!retry) {
-        m.log.push(payload);
-        els.msInput.value = '';
-        syncMissionCounter();
-      }
-      setMissionBusy(false);
-      applyMissionTurn(turn);
-      if (!retry && turn.trigger_confetti === true) fireConfetti('micro');
-      if (retry) {
-        // Pole tekstowe i karty zostają aktywne — użytkownik poprawia odpowiedź.
-        revealElement(els.msFeedback);
-        if (!quickReplyId) els.msInput.focus();
-      } else {
-        revealMissionResult();
-      }
-      if (!retry && turn.mission_completed) els.ctaFinishDay.focus({ preventScroll: true });
-      return !retry;
+      const res = await withSessionRecovery((sid) => api.turn(Object.assign({ session_id: sid }, payload)));
+      if (token !== state.token) return;
+      state.log.push({ kind: 'turn', body: payload });
+      const quality = qualityOf(res, prevStep);
+      m.retry = quality === 'invalid';
+      m.quality = quality;
+      m.lastAnswer = freeText ? payload.user_message : '';
+      m.phase = 'feedback';
+      state.turn = res;
+      if (res.mission_completed) markDayComplete();
+      renderHud();
+      const th = document.getElementById('m-thinking');
+      if (th) th.hidden = true;
+
+      const picked = m.selected ? els.mStage.querySelector('.answer[data-id="' + CSS.escape(m.selected) + '"]') : null;
+      const win = quality === 'optimal';
+      if (picked) picked.classList.add(win ? 'is-right' : 'is-wrong');
+      if (!win) replayClass(picked || document.getElementById('m-own'), 'shake');
+      setMood(sceneCora(), win ? 'celebrating' : 'coaching');
+
+      const gs = res.gamification || DEFAULT_G;
+      const pills = [];
+      pills.push('<span class="pill-xp">' + (gs.xp_gained ? '+' + gs.xp_gained + ' XP' : escapeHtml(t('mission.zeroXp'))) + '</span>');
+      if ((res.confidence_delta || 0) > 0) pills.push('<span class="chip chip--green">' + escapeHtml(t('mission.readinessPill', { n: res.confidence_delta })) + '</span>');
+      if (gs.leveled_up) pills.push('<span class="chip chip--yellow">' + icon('trophy', 'ic--sm') + escapeHtml(t('mission.levelPill', { title: gs.level_title })) + '</span>');
+      let title;
+      if (win) title = tPick('mission.right', prevStep + state.day);
+      else if (quality === 'invalid') title = t('mission.invalid');
+      else if (freeText && FALLBACK_RE.test(res.understanding_feedback || '')) title = t('mission.fallback');
+      else title = t('mission.partial');
+      openDrawer({
+        tone: win ? 'win' : 'coach',
+        title,
+        text: res.understanding_feedback || '',
+        answer: m.lastAnswer,
+        pills: pills.join(''),
+        cta: m.retry ? t('mission.tryAgain') : res.mission_completed ? t('mission.finish') : t('mission.continue'),
+      });
+      if (win) { Sound.correct(); xpFloat(gs.xp_gained, els.mXpPill, 'green'); }
+      else { Sound.retry(); if (gs.xp_gained) xpFloat(gs.xp_gained, els.mXpPill); }
+      if (res.trigger_confetti === true) fireConfetti('micro');
+      renderMissionBar();
     } catch (err) {
-      if (token === m.token) {
-        setMissionBusy(false);
-        showToast(describeMissionError(err), 'warn');
-      }
-      return false;
+      if (token !== state.token) return;
+      m.phase = 'answer';
+      setMood(sceneCora(), 'idle');
+      const th = document.getElementById('m-thinking');
+      if (th) th.hidden = true;
+      setAnswersDisabled(false);
+      toast(err instanceof ApiError && err.status === 422 ? t('toast.answerLength') : isSessionMissing(err) ? t('toast.sessionLost') : describeApiError(err), 'warn');
+    } finally {
+      setCheckBusy(false);
+      updateCheck();
     }
   }
-
-  function answerWithQuickReply(replyId) {
-    const replies = (state.turn && state.turn.quick_replies) || [];
-    const reply = replies.find((r) => r.id === replyId);
-    if (!reply) return;
-    sendMissionAnswer({ text: reply.text, quickReplyId: reply.id });
+  function setAnswersDisabled(disabled) {
+    els.mStage.querySelectorAll('.answer, .myth__btns .btn, .fund__row').forEach((b) => { b.disabled = disabled; });
+    const input = document.getElementById('m-input');
+    if (input) input.disabled = disabled;
+    const range = document.getElementById('m-alloc');
+    if (range) range.disabled = disabled;
   }
 
-  function submitFreeText() {
-    if (state.mission.busy) return;
-    const text = els.msInput.value.trim();
-    if (!text) {
-      els.msInput.focus();
-      showToast(t('toastWriteMore'), 'info', 2400);
+  function openDrawer(o) {
+    const d = els.mDrawer;
+    d.dataset.tone = o.tone;
+    setMood(els.mDrawerCora, o.tone === 'win' ? 'celebrating' : 'coaching');
+    els.mDrawerTitle.textContent = o.title;
+    els.mDrawerText.textContent = o.text || '';
+    els.mDrawerAnswer.hidden = !o.answer;
+    els.mDrawerAnswer.textContent = o.answer ? t('mission.yourAnswer', { a: o.answer.length > 140 ? o.answer.slice(0, 139) + '…' : o.answer }) : '';
+    els.mDrawerPills.innerHTML = o.pills || '';
+    els.mContinue.className = 'btn drawer__cta ' + (o.tone === 'win' ? 'btn--green' : 'btn--ink');
+    els.mContinue.querySelector('[data-label]').textContent = o.cta || t('mission.continue');
+    d.setAttribute('aria-hidden', 'false');
+    els.mCheckbar.hidden = true;
+    requestAnimationFrame(() => {
+      d.classList.add('is-open');
+      setTimeout(() => els.mContinue.focus({ preventScroll: true }), 260);
+    });
+  }
+  function closeDrawer() {
+    if (!els.mDrawer) return;
+    els.mDrawer.classList.remove('is-open');
+    els.mDrawer.setAttribute('aria-hidden', 'true');
+    if (els.mCheckbar) els.mCheckbar.hidden = false;
+  }
+
+  function continueMission() {
+    const m = state.mission;
+    if (!m || m.phase !== 'feedback') return;
+    const beat = currentBeat();
+    if (m.retry) { renderBeat(); return; }
+    if (m.practiceRetry) {
+      m.phase = 'answer';
+      m.practiceRetry = false;
+      closeDrawer();
+      setAnswersDisabled(false);
+      setMood(sceneCora(), 'idle');
+      updateCheck();
+      renderMissionBar();
       return;
     }
-    sendMissionAnswer({ text });
+    if (beat.kind === 'server' && state.turn.mission_completed) { finishMission(); return; }
+    m.index += 1;
+    if (m.index >= m.beats.length) { finishMission(); return; }
+    renderBeat();
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   }
 
-  // ------------------------------------------------------------------------
-  // 10b. Dni 1–4 (POST /api/day/start), skrót Demo Mode i Checkpoint #1
-  // ------------------------------------------------------------------------
+  function awardPractice(kind, anchor) {
+    const m = state.mission;
+    if (m.practiceDone.has(kind)) return 0;
+    m.practiceDone.add(kind);
+    state.practiceXp += PRACTICE_XP;
+    renderHud();
+    xpFloat(PRACTICE_XP, anchor || els.mXpPill, 'green');
+    return PRACTICE_XP;
+  }
+  function practiceFeedback(ok, kind, title, text, retryOnWrong) {
+    const m = state.mission;
+    m.phase = 'feedback';
+    m.practiceRetry = !ok && !!retryOnWrong;
+    const gained = ok ? awardPractice(kind) : 0;
+    setMood(sceneCora(), ok ? 'celebrating' : 'coaching');
+    openDrawer({
+      tone: ok ? 'win' : 'coach', title, text,
+      pills: '<span class="pill-xp">' + (gained ? '+' + gained + ' XP' : escapeHtml(t('mission.zeroXp'))) + '</span>',
+      cta: m.practiceRetry ? t('mission.tryAgain') : t('mission.continue'),
+    });
+    if (ok) { Sound.correct(); fireConfetti('micro'); } else Sound.retry();
+    renderMissionBar();
+  }
 
-  // Skok do wybranego dnia: ładuje mikro-lekcje dnia + Krok 1, zachowuje XP i Gotowość.
-  async function startDay(day) {
-    const target = Number(day);
-    if (!(target >= 1 && target <= PLAYABLE_DAYS)) return false;
-    if (!state.session || state.mission.busy || state.dayBusy) return false;
-    state.dayBusy = true;
-    const token = state.mission.token;
+  // --- practice: cash split slider ---
+  function allocContext() {
+    const p = state.lastProfile || {};
+    const a = state.session.safe_investment || {};
+    const free = Number(p.free_cash) || (Number(a.emergency_savings_monthly) + Number(a.training_etf_monthly)) || 1000;
+    const hasCushion = p.has_emergency_fund === true || a.plan_type === 'invest';
+    const step = free >= 1000 ? 50 : 10;
+    return { free, hasCushion, step, a };
+  }
+  function renderAllocBeat() {
+    const m = state.mission;
+    const c = allocContext();
+    if (m.alloc == null) {
+      const start = c.hasCushion ? c.free * 0.1 : c.free * 0.6;
+      m.alloc = clamp(Math.round(start / c.step) * c.step, 0, c.free);
+    }
+    const msg = t(c.hasCushion ? 'alloc.msgCushion' : 'alloc.msgNoCushion', { free: money(c.free) });
+    els.mStage.innerHTML =
+      sceneHTML(msg, { question: t('alloc.q') }) +
+      '<div class="card alloc">' +
+        '<div class="range-wrap">' +
+          '<span class="range-pill" id="m-alloc-pill"></span>' +
+          '<label for="m-alloc" class="sr-only">' + escapeHtml(t('alloc.slider')) + '</label>' +
+          '<input id="m-alloc" type="range" class="range" min="0" max="' + c.free + '" step="' + c.step + '" value="' + m.alloc + '">' +
+          '<div class="scale-legend" aria-hidden="true"><span>' + money(0) + '</span><span>' + money(c.free) + '</span></div>' +
+        '</div>' +
+        '<div class="alloc__bars">' +
+          allocRow('safe', c.hasCushion ? t('alloc.safeAlt') : t('alloc.safe')) +
+          allocRow('grow', t('alloc.grow')) +
+          allocRow('swing', t('alloc.swing')) +
+        '</div>' +
+        '<p class="alloc__note" id="m-alloc-note"></p>' +
+      '</div>';
+    updateAlloc();
+  }
+  function allocRow(key, label) {
+    return '<div class="alloc__row"><span>' + escapeHtml(label) + '</span><span class="alloc__track"><span class="t-' + key + '" id="m-bar-' + key + '"></span></span><span class="alloc__val" id="m-val-' + key + '"></span></div>';
+  }
+  function updateAlloc() {
+    const input = document.getElementById('m-alloc');
+    if (!input) return;
+    const c = allocContext();
+    const etf = clamp(Number(input.value) || 0, 0, c.free);
+    state.mission.alloc = etf;
+    const share = c.free > 0 ? etf / c.free : 0;
+    const safe = c.free - etf;
+    setRangeFill(input, document.getElementById('m-alloc-pill'), t('alloc.pill', { amount: money(etf) }));
+    const set = (key, pct, label) => {
+      const bar = document.getElementById('m-bar-' + key);
+      const val = document.getElementById('m-val-' + key);
+      if (bar) bar.style.width = clamp(pct, 0, 100) + '%';
+      if (bar) bar.style.borderRightColor = pct <= 0 ? 'transparent' : '';
+      if (val) val.textContent = label;
+    };
+    set('safe', (1 - share) * 100, money(safe));
+    set('grow', share * 100, Math.round(share * 100) + '%');
+    set('swing', share * 100, Math.round(share * 100) + '%');
+    const series = state.session.projection_series || [];
+    const h = clamp(state.session.default_horizon_years || 10, 1, series.length || 1);
+    const base = Number(c.a.recommended_monthly) || 0;
+    const point = series[h - 1];
+    // The annuity formula is linear in the monthly amount, so we scale the server projection.
+    const value = point && base > 0 ? Math.round((point.etf_real_value * etf) / base) : 0;
+    const note = document.getElementById('m-alloc-note');
+    if (note) note.innerHTML = escapeHtml(t('alloc.note', { years: years(h), amount: '\u0000' })).replace('\u0000', '<b>' + escapeHtml(money(value)) + '</b>');
+  }
+  function checkAlloc() {
+    const c = allocContext();
+    const etf = state.mission.alloc || 0;
+    let ok;
+    let text;
+    if (!c.hasCushion) {
+      ok = etf <= c.free * 0.3 + 0.001;
+      text = ok ? t('alloc.okNoCushion') : t('alloc.tooMuchNoCushion');
+    } else {
+      const lo = Number(c.a.min_monthly) || c.free * 0.3;
+      const hi = Number(c.a.max_monthly) || c.free * 0.7;
+      ok = etf >= lo && etf <= hi;
+      text = ok ? t('alloc.okCushion') : etf < lo ? t('alloc.tooLowCushion') : t('alloc.tooHighCushion');
+    }
+    setAnswersDisabled(true);
+    if (!ok) replayClass(els.mStage.querySelector('.alloc'), 'shake');
+    practiceFeedback(ok, 'alloc', ok ? t('alloc.okTitle') : t('alloc.tryTitle'), text, true);
+  }
+
+  // --- practice: myth vs reality (rapid tap) ---
+  function mythTopic() {
+    const concern = (state.session && state.session.main_concern) || 'freeze_money';
+    return { concern, answer: concern === 'lose_money' ? 'reality' : 'myth' };
+  }
+  function renderMythBeat() {
+    const mt = mythTopic();
+    els.mStage.innerHTML =
+      sceneHTML(t('myth.intro')) +
+      '<div class="myth" id="m-myth">' +
+        '<span class="myth__tag">' + escapeHtml(t('myth.tag')) + '</span>' +
+        '<p class="myth__quote">“' + escapeHtml(t('myth.' + mt.concern + '.s')) + '”</p>' +
+        '<div class="myth__btns">' +
+          '<button type="button" class="btn btn--ghost" data-action="myth" data-v="myth">' + icon('x') + escapeHtml(t('myth.myth')) + '</button>' +
+          '<button type="button" class="btn btn--ghost" data-action="myth" data-v="reality">' + icon('check') + escapeHtml(t('myth.reality')) + '</button>' +
+        '</div>' +
+      '</div>';
+  }
+  function pickMyth(v, btn) {
+    const m = state.mission;
+    if (m.phase !== 'answer') return;
+    const mt = mythTopic();
+    const ok = v === mt.answer;
+    const verdict = t(mt.answer === 'myth' ? 'myth.vMyth' : 'myth.vReality');
+    setAnswersDisabled(true);
+    btn.classList.remove('btn--ghost');
+    btn.classList.add(ok ? 'btn--green' : 'btn--ink', 'is-picked');
+    const card = document.getElementById('m-myth');
+    replayClass(card, ok ? 'is-flip' : 'shake');
+    practiceFeedback(ok, 'myth', t(ok ? 'myth.rightTitle' : 'myth.wrongTitle', { v: verdict }), t('myth.' + mt.concern + '.e'), false);
+  }
+
+  // --- practice: spot the detail (fund fees) ---
+  function renderSpotBeat() {
+    const pct = (v) => (state.lang === 'pl' ? v.replace('.', ',') : v) + '%';
+    const rows = (side, companies, ter) =>
+      '<button type="button" class="fund__row" data-action="spot" data-row="companies-' + side + '"><span>' + escapeHtml(t('spot.companies')) + '</span><b>' + formatNumber(companies) + '</b></button>' +
+      '<button type="button" class="fund__row" data-action="spot" data-row="region-' + side + '"><span>' + escapeHtml(t('spot.region')) + '</span><b>' + escapeHtml(t('spot.regionVal')) + '</b></button>' +
+      '<button type="button" class="fund__row" data-action="spot" data-row="ter-' + side + '"><span>' + escapeHtml(t('spot.ter')) + '</span><b>' + pct(ter) + '</b></button>' +
+      '<button type="button" class="fund__row" data-action="spot" data-row="div-' + side + '"><span>' + escapeHtml(t('spot.div')) + '</span><b>' + escapeHtml(t('spot.divVal')) + '</b></button>';
+    els.mStage.innerHTML =
+      sceneHTML(t('spot.q'), { mood: 'idle' }) +
+      '<div class="spot">' +
+        '<div class="fund"><p class="fund__name">' + escapeHtml(t('spot.fundA')) + '</p>' + rows('a', 1500, '0.10') + '</div>' +
+        '<div class="fund"><p class="fund__name">' + escapeHtml(t('spot.fundB')) + '</p>' + rows('b', 1450, '0.90') + '</div>' +
+      '</div>';
+    state.mission.spotPick = null;
+  }
+  function pickSpot(row, btn) {
+    const m = state.mission;
+    if (m.phase !== 'answer') return;
+    m.spotPick = row;
+    els.mStage.querySelectorAll('.fund__row').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    updateCheck();
+  }
+  function checkSpot() {
+    const m = state.mission;
+    const ok = /^ter-/.test(m.spotPick || '');
+    const btn = els.mStage.querySelector('.fund__row[data-row="' + CSS.escape(m.spotPick || '') + '"]');
+    if (btn) btn.classList.add(ok ? 'is-right' : 'is-wrong');
+    if (!ok) {
+      els.mStage.querySelectorAll('.fund__row[data-row^="ter-"]').forEach((b) => b.classList.add('is-right'));
+      replayClass(els.mStage.querySelector('.spot'), 'shake');
+    }
+    setAnswersDisabled(true);
+    practiceFeedback(ok, 'spot', t(ok ? 'spot.rightTitle' : 'spot.wrongTitle'), t(ok ? 'spot.right' : 'spot.wrong'), false);
+  }
+
+  function explainTopicForBeat() {
+    const beat = currentBeat();
+    const concern = (state.session && state.session.main_concern) || 'freeze_money';
+    const byConcern = { freeze_money: 'cushion', no_time: 'etf', lose_money: 'diversification', too_late: 'inflation' };
+    if (!beat) return 'general';
+    if (beat.kind === 'alloc') return 'cushion';
+    if (beat.kind === 'myth') return byConcern[concern];
+    if (beat.kind === 'spot') return 'fees';
+    if (state.day === 1) return beat.step === 1 ? 'diversification' : beat.step === 2 ? byConcern[concern] : 'dip';
+    if (state.day === 2) return 'fees';
+    if (state.day === 4) return 'etf';
+    return 'general';
+  }
+
+  function markDayComplete() {
+    state.completedDays.add(state.day);
+    const server = state.turn && state.turn.completed_days;
+    if (Array.isArray(server)) server.forEach((d) => { if (d >= 1 && d <= PLAYABLE_DAYS) state.completedDays.add(d); });
+  }
+
+  function finishMission() {
+    closeDrawer();
+    markDayComplete();
+    state.summary = state.summary || freshSummary();
+    renderDone({ animate: true });
+    showScreen(SCREENS.DONE);
+    Sound.fanfare();
+    fireConfetti('full');
+  }
+  function openDone() {
+    if (!state.turn || !state.turn.mission_completed) { renderHub(); showScreen(SCREENS.HUB); return; }
+    renderDone({ animate: false });
+    showScreen(SCREENS.DONE);
+  }
+
+  async function startDay(n, opts) {
+    const o = opts || {};
+    if (!state.session || state.busy) return false;
+    state.busy = true;
+    const token = state.token;
     try {
-      const data = await withSessionRecovery((sessionId) => api.dayStart(sessionId, target));
-      if (token !== state.mission.token) return false;
-      state.session.current_day = data.day;
-      if (Array.isArray(data.micro_lessons) && data.micro_lessons.length) {
-        state.session.micro_lessons = data.micro_lessons;
-      }
-      state.turn = data.initial_mission_turn;
+      const res = await withSessionRecovery((sid) => api.dayStart({ session_id: sid, day: n, lang: state.lang }));
+      if (token !== state.token) return false;
+      state.log.push({ kind: 'day', body: { day: n, lang: state.lang } });
+      state.day = res.day || n;
+      state.turn = res.initial_mission_turn;
+      state.dayLessons = res.micro_lessons || [];
+      state.mission = freshMissionState();
       state.summary = freshSummary();
-      state.checkpoint = { answers: {}, busy: false, result: null, passed: state.checkpoint.passed };
-      state.mission.log = [];
-      state.mission.lastAnswer = null;
-      state.mission.renderedValue = 0;
-      if (els.msInput) els.msInput.value = '';
-      syncMissionCounter();
-      clearSummary();
-      resetHeaderBaseline();
-      renderHeader({ animate: false });
-      renderMission({ animate: true });
-      showScreen(SCREENS.MISSION);
-      showToast(t('dayStartedToast', { day: data.day }), 'info', 2000);
+      // Jumping ahead in Demo Mode: the skipped days count as done on the map.
+      for (let d = 1; d < state.day; d++) state.completedDays.add(d);
+      closeModal();
+      renderHub();
+      showScreen(SCREENS.HUB);
+      updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false });
+      Sound.pop();
       return true;
     } catch (err) {
-      showToast(t('errorDayStart'), 'warn');
+      if (isRouteMissing(err)) toast(o.demo ? t('judges.noMultiDay') : t('hub.tomorrow', { n }), 'info', 4200);
+      else toast(describeApiError(err), 'warn');
       return false;
     } finally {
-      state.dayBusy = false;
+      state.busy = false;
     }
   }
 
-  // Demo Mode: jeśli nie ma sesji, najpierw analiza domyślnej persony `young_20`.
-  const DEFAULT_DEMO_PROFILE = Object.freeze({
-    age: 22,
-    net_income: 4500,
-    free_cash: 1000,
-    has_emergency_fund: false,
-    main_concern: 'freeze_money',
-    self_confidence_start: 2,
-  });
-
-  async function ensureDemoSession() {
-    if (state.session) return true;
-    if (state.busy) return false;
-    let persona = findPersona('young_20');
-    if (!persona) {
-      await loadPersonas();
-      persona = findPersona('young_20');
-    }
-    const profile = persona ? profileFromPersona(persona) : Object.assign({}, DEFAULT_DEMO_PROFILE);
-    if (persona) {
-      state.activePersonaId = persona.id;
-      renderPersonaPills();
-      fillOnboardingForm(profile);
-    }
-    const data = await analyzeProfile(profile);
-    return !!data;
-  }
-
-  async function demoJumpToDay(day) {
-    if (!(await ensureDemoSession())) return;
-    await startDay(Number(day) || PLAYABLE_DAYS);
-  }
-
-  async function demoOpenCheckpoint() {
-    if (!(await ensureDemoSession())) return;
-    showScreen(SCREENS.CHECKPOINT);
-  }
-
-  // Aktualizacja XP/poziomu po odpowiedzi serwera (wyzwanie, Checkpoint #1).
-  function applyServerXp(xp, leveledUp) {
-    const prev = currentGamification();
-    const total = Number(xp);
-    const next = Object.assign({}, prev, levelForXp(Number.isFinite(total) ? total : prev.xp), {
-      xp: Number.isFinite(total) ? total : prev.xp,
-      leveled_up: !!leveledUp,
-    });
-    if (state.turn) state.turn = Object.assign({}, state.turn, { gamification: next });
-    renderHeader();
-  }
-
-  function checkpointQuestions() {
-    return (state.session && state.session.checkpoint_questions) || [];
-  }
-
-  function checkpointAnsweredCount() {
-    const answers = state.checkpoint.answers || {};
-    return checkpointQuestions().filter((q) => !!answers[q.id]).length;
-  }
-
-  function cpQuestionIndex(question) {
-    const id = question.id;
-    return checkpointQuestions().findIndex((q) => q.id === id);
-  }
-
-  function cpOptionText(questionId, optionId) {
-    const question = checkpointQuestions().find((q) => q.id === questionId);
-    const option = question && (question.options || []).find((o) => o.id === optionId);
-    return option ? option.text : optionId;
-  }
-
-  function renderCheckpointHead(total) {
-    const answered = checkpointAnsweredCount();
-    const pct = total ? Math.round((answered / total) * 100) : 0;
-    const passed = !!state.checkpoint.passed;
-    els.cpHead.innerHTML =
-      '<div class="rounded-3xl bg-brand-dark p-5 text-white shadow-xl shadow-slate-200/60 sm:p-6">' +
-        '<div class="flex flex-wrap items-start justify-between gap-3">' +
-          '<div class="min-w-0">' +
-            '<h3 class="text-xl font-extrabold leading-tight tracking-tight text-brand-yellow sm:text-2xl">' +
-              escapeHtml(t('cpIntroTitle')) + '</h3>' +
-            '<p class="mt-1 text-sm leading-relaxed text-white/80">' + escapeHtml(t('cpIntroBody')) + '</p>' +
-            '<p class="mt-2 text-xs font-bold text-white/60">' + escapeHtml(t('cpThreshold')) + '</p>' +
-          '</div>' +
-          (passed
-            ? '<span class="inline-flex items-center gap-1.5 rounded-full bg-etf-green px-3 py-1 text-xs font-extrabold text-white">' +
-                '<i data-lucide="check" class="h-3.5 w-3.5" aria-hidden="true"></i>' + escapeHtml(t('roadmapCheckpoint1')) + '</span>'
-            : '<span class="fq-phase-badge" data-badge-state="available">' + escapeHtml(t('roadmapCheckpoint1')) + '</span>') +
-        '</div>' +
-        '<div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-white/70">' +
-          '<span>' + escapeHtml(t('cpProgress', { answered, total })) + '</span>' +
-          '<span class="tabular-nums">' + pct + '%</span>' +
-        '</div>' +
-        '<div class="mt-2 fq-cp-progress" role="progressbar" aria-label="' + escapeHtml(t('cpProgress', { answered, total })) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '">' +
-          '<span style="width: ' + pct + '%"></span>' +
-        '</div>' +
-      '</div>';
-  }
-
-  function renderCheckpointQuestion(question, index) {
-    const chosen = state.checkpoint.answers[question.id];
-    const options = (question.options || []).map((option, i) =>
-      '<label class="fq-cp-option' + (chosen === option.id ? ' is-selected' : '') + '">' +
-        '<input type="radio" name="cp_' + escapeHtml(question.id) + '" value="' + escapeHtml(option.id) + '" class="sr-only"' +
-          (chosen === option.id ? ' checked' : '') + '>' +
-        '<span class="fq-cp-key" aria-hidden="true">' + (REPLY_KEYS[i] || i + 1) + '</span>' +
-        '<span class="min-w-0">' + escapeHtml(option.text) + '</span>' +
-      '</label>'
-    ).join('');
-    return (
-      '<fieldset class="fq-cp-question" data-question-id="' + escapeHtml(question.id) + '">' +
-        '<legend class="flex flex-wrap items-center gap-2">' +
-          '<span class="rounded-full bg-brand-dark/5 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">' +
-            escapeHtml(t('cpQuestion', { n: index + 1 })) + '</span>' +
-          '<span class="text-base font-extrabold leading-snug">' + escapeHtml(question.question) + '</span>' +
-        '</legend>' +
-        '<div class="mt-3 grid gap-2">' + options + '</div>' +
-      '</fieldset>'
-    );
-  }
-
-  function renderCheckpoint() {
-    if (!els.cpQuestions || !els.cpHead) return;
-    const questions = checkpointQuestions();
-    const result = state.checkpoint.result;
-    els.cpResult.hidden = true;
-    els.cpResult.innerHTML = '';
-    els.cpAfter14.innerHTML = '';
-
-    if (!questions.length) {
-      els.cpHead.innerHTML =
-        '<div class="rounded-3xl border border-slate-200 bg-white p-5 text-sm font-semibold text-slate-600">' +
-          escapeHtml(t('cpEmpty')) + '</div>';
-      els.cpQuestions.innerHTML = '';
-      els.cpSubmit.disabled = true;
-      refreshIcons();
+  function onNode(key, btn) {
+    if (key === 'cp') {
+      const st = checkpointState();
+      if (st === 'locked') { replayClass(btn, 'shake'); toast(t('hub.lockedCp'), 'info', 2600); return; }
+      openCheckpoint();
       return;
     }
-
-    renderCheckpointHead(questions.length);
-    els.cpQuestions.innerHTML = questions.map(renderCheckpointQuestion).join('');
-    els.cpSubmit.disabled = false;
-    renderAfter14(els.cpAfter14, state.session.post_14_paths);
-    if (result) renderCheckpointResult(result);
-    refreshIcons();
+    const d = Number(key);
+    const st = nodeState(d);
+    if (st === 'locked') { replayClass(btn, 'shake'); toast(t('hub.locked', { n: d - 1 }), 'info', 2600); return; }
+    if (st === 'active') { openMission(); return; }
+    if (st === 'next') { startDay(d); return; }
+    if (st === 'done' && d === state.day) openDone();
   }
-
-  function setCheckpointBusy(isBusy) {
-    if (!els.cpSubmit) return;
-    els.cpSubmit.disabled = isBusy;
-    els.cpQuestions.querySelectorAll('input[type="radio"]').forEach((input) => {
-      input.disabled = isBusy;
-    });
-    const label = els.cpSubmit.querySelector('[data-label]');
-    if (label) label.textContent = isBusy ? t('cpSubmitting') : t('cpSubmit');
-    const spinner = els.cpSubmit.querySelector('.fq-spinner');
-    const idleIcon = els.cpSubmit.querySelector('[data-idle-icon]');
-    if (spinner) spinner.hidden = !isBusy;
-    if (idleIcon) idleIcon.toggleAttribute('hidden', isBusy);
-  }
-
-  async function submitCheckpoint(event) {
-    if (event) event.preventDefault();
-    const questions = checkpointQuestions();
-    if (!questions.length || state.checkpoint.busy) return;
-    const missing = questions.some((q) => !state.checkpoint.answers[q.id]);
-    if (missing) {
-      showToast(t('cpIncomplete'), 'warn');
-      return;
-    }
-    state.checkpoint.busy = true;
-    setCheckpointBusy(true);
-    try {
-      const res = await withSessionRecovery((sessionId) =>
-        api.checkpointSubmit(sessionId, state.checkpoint.answers)
-      );
-      state.checkpoint.result = res;
-      state.checkpoint.passed = !!res.passed;
-      state.summary.leaderboard = Array.isArray(res.leaderboard) ? res.leaderboard : state.summary.leaderboard;
-      applyServerXp(res.xp, res.leveled_up);
-      if (res.passed) state.completedDays.add(PLAYABLE_DAYS);
-      renderCheckpointResult(res);
-      if (res.passed) fireConfetti('full');
-    } catch (err) {
-      showToast(t('cpErrorMessage'), 'warn');
-    } finally {
-      state.checkpoint.busy = false;
-      setCheckpointBusy(false);
-    }
-  }
-
-  function renderCheckpointResult(res) {
-    if (!els.cpResult) return;
-    const passed = !!res.passed;
-    const results = res.results || [];
-    const rows = results.map((item, i) => {
-      const question = checkpointQuestions().find((q) => q.id === item.id);
-      const correctText = cpOptionText(item.id, item.correct_option_id);
-      return (
-        '<li class="rounded-2xl border p-3 ' + (item.correct ? 'border-etf-green/50 bg-etf-green/5' : 'border-inflation-red/40 bg-rose-50') + '">' +
-          '<div class="flex flex-wrap items-center gap-2">' +
-            '<span class="rounded-full px-2 py-0.5 text-[11px] font-extrabold ' +
-              (item.correct ? 'bg-etf-green text-white' : 'bg-inflation-red text-white') + '">' +
-              escapeHtml(item.correct ? t('cpCorrect') : t('cpIncorrect')) + '</span>' +
-            '<span class="text-xs font-bold text-slate-500">' + escapeHtml(t('cpQuestion', { n: i + 1 })) + '</span>' +
-          '</div>' +
-          (question ? '<p class="mt-1.5 font-extrabold leading-snug">' + escapeHtml(question.question) + '</p>' : '') +
-          '<p class="mt-1 text-sm leading-snug text-slate-600">' + escapeHtml(item.explanation) + '</p>' +
-          '<p class="mt-1 text-xs font-bold text-slate-500">' +
-            escapeHtml(t('cpCorrectAnswer', { answer: correctText })) + '</p>' +
-        '</li>'
-      );
-    }).join('');
-
-    els.cpResult.hidden = false;
-    els.cpResult.innerHTML =
-      '<div class="rounded-3xl border-2 p-5 shadow-xl shadow-slate-200/60 sm:p-6 ' +
-        (passed ? 'border-etf-green/60 bg-white' : 'border-stress-amber/60 bg-white') + '">' +
-        '<div class="flex flex-wrap items-start justify-between gap-3">' +
-          '<div class="min-w-0">' +
-            '<h3 class="text-xl font-extrabold leading-tight tracking-tight sm:text-2xl ' +
-              (passed ? 'text-emerald-700' : 'text-amber-700') + '">' +
-              (passed ? '🎉 ' : '') + escapeHtml(passed ? t('cpPassed') : t('cpFailed')) + '</h3>' +
-            '<p class="mt-1 text-3xl font-extrabold tabular-nums text-brand-dark">' + escapeHtml(String(res.score_pct)) + '%</p>' +
-            '<p class="mt-0.5 text-sm font-bold text-slate-600">' +
-              escapeHtml(t('cpCorrectCount', { correct: res.correct_count, total: res.total_questions })) + '</p>' +
-          '</div>' +
-          (passed
-            ? '<span class="inline-flex items-center gap-1.5 rounded-full bg-brand-dark px-3 py-1.5 text-xs font-extrabold text-brand-yellow">' +
-                '<i data-lucide="award" class="h-4 w-4" aria-hidden="true"></i>' +
-                escapeHtml(t('cpBadgeEarned', { badge: res.badge_title })) + '</span>'
-            : '<span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">' +
-                escapeHtml(t('cpThreshold')) + '</span>') +
-        '</div>' +
-        '<div class="mt-3 flex flex-wrap items-center gap-2">' +
-          (res.reward_xp > 0
-            ? '<span class="fq-pill fq-pill--xp tabular-nums">' + escapeHtml(t('cpReward', { xp: res.reward_xp })) + '</span>'
-            : '') +
-          '<span class="fq-pill tabular-nums">' + formatNumber(res.xp) + NBSP + 'XP</span>' +
-        '</div>' +
-        '<h4 class="mt-5 font-extrabold">' + escapeHtml(t('cpResultsTitle')) + '</h4>' +
-        '<ol class="mt-3 space-y-2">' + rows + '</ol>' +
-        '<div class="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">' +
-          (passed ? '' :
-            '<button type="button" data-action="retry-checkpoint" class="btn-3d w-full sm:w-auto">' +
-              '<i data-lucide="rotate-ccw" class="h-5 w-5" aria-hidden="true"></i>' +
-              '<span>' + escapeHtml(t('cpRetry')) + '</span></button>') +
-          '<button type="button" data-goto="screen_checklist" class="inline-flex min-h-tap w-full items-center justify-center rounded-2xl border-2 border-brand-dark/10 bg-white px-4 font-extrabold transition hover:border-brand-yellow hover:bg-brand-yellow/10 sm:w-auto">' +
-            escapeHtml(t('cpBackToSummary')) + '</button>' +
-        '</div>' +
-      '</div>';
-    refreshIcons();
-  }
-
-  function retryCheckpoint() {
-    state.checkpoint = { answers: {}, busy: false, result: null, passed: state.checkpoint.passed };
-    renderCheckpoint();
-  }
-
 
   // ------------------------------------------------------------------------
-  // 11. Ekran 4 — ukończenie dnia, wyzwanie, checklista, plan, ranking (docs/01 §7 Ekran 4)
+  // 13. Screen 4 — mission complete & real-world action bridge
   // ------------------------------------------------------------------------
-
-  const CARD_CLASS = 'rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6';
-  // „Przetestuj inne pokolenie (Demo)": 22 l. -> 56 l. (Golden Path), 56 l. -> 38 l., 38 l. -> 22 l.
-  const NEXT_GENERATION = Object.freeze({ '20+': 'senior_56', '50+': 'mid_38', '30-50': 'young_20' });
-
-  function freshSummary() {
-    return {
-      challengeBusy: false,
-      challengeAccepted: false,
-      challengeReward: 0,
-      leveledViaChallenge: false, // próg 100/250 XP przekroczony dopiero dzięki wyzwaniu (+50 XP)
-      leaderboard: null,          // ranking z POST /api/challenge/accept (nadpisuje ten z tury)
-      checked: new Set(),
-      celebrated: false,
-      selfAfter: null,
-      bankOption: 'a',
-      bankDone: false,
-    };
+  const LEVEL_TITLES = {
+    en: { 1: 'Observer', 2: 'Confident Start', 3: 'Steady Builder' },
+    pl: { 1: 'Obserwator', 2: 'Świadomy Start', 3: 'Konsekwentny Start' },
+  };
+  function levelFor(xp) {
+    const titles = LEVEL_TITLES[state.lang] || LEVEL_TITLES.en;
+    if (xp >= LEVEL_FLOOR[3]) return { level: 3, level_title: titles[3], next_level_xp: 500 };
+    if (xp >= LEVEL_FLOOR[2]) return { level: 2, level_title: titles[2], next_level_xp: 250 };
+    return { level: 1, level_title: titles[1], next_level_xp: 100 };
   }
 
-  // Poziomy wg docs/02 §3G (używane po wyzwaniu, które zwraca samo xp).
-  function levelForXp(xp) {
-    if (xp >= LEVEL_FLOOR_XP[3]) return { level: 3, level_title: t('levelSteady'), next_level_xp: 500 };
-    if (xp >= LEVEL_FLOOR_XP[2]) return { level: 2, level_title: t('levelConfident'), next_level_xp: 250 };
-    return { level: 1, level_title: t('levelObserver'), next_level_xp: 100 };
-  }
-
-  function summaryTurn() {
-    const turn = state.turn;
-    return turn && turn.mission_completed ? turn : null;
-  }
-
-  // Awans: z tury finałowej (gamification.leveled_up) albo dzięki +50 XP z wyzwania.
-  function userLeveledUp(turn) {
-    return !!(turn && turn.gamification && turn.gamification.leveled_up) || state.summary.leveledViaChallenge;
-  }
-
-  function renderSummary(options) {
-    const turn = summaryTurn();
-    if (!turn || !els.cardLevelup) return;
-    const animate = !!(options && options.animate);
-    const dayForTitle = Number(turn.day) || currentDay();
-    const checklistTitle = document.getElementById('screen_checklist_title');
-    if (checklistTitle) checklistTitle.textContent = t('screenChecklistTitleDynamic', { day: dayForTitle });
-    renderLevelBanner(turn, { pop: animate });
-    renderNextStepCard(turn);
-    renderChallengeCard(turn);
-    renderChecklistCard(turn);
-    renderBankCard(turn);
-    renderLeaderboardCard(turn);
-    renderAfter14(els.cardAfter14, (state.session && state.session.post_14_paths) || turn.post_14_paths);
-    els.complianceFooter.innerHTML =
-      '<div class="space-y-2 rounded-2xl border border-slate-200 bg-white/70 p-4 text-xs leading-relaxed text-slate-500">' +
-        '<p><i data-lucide="scale" class="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true"></i>' +
-          escapeHtml(t('complianceText')) + '</p>' +
-        '<p class="fq-ai-disclaimer font-bold"><i data-lucide="sparkles" class="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true"></i>' +
-          escapeHtml(t('aiDisclaimer')) + '</p>' +
-      '</div>';
-    refreshIcons();
-  }
-
-  // CTA wielodniowe: Continue to Day X (Dni 1–3) albo Checkpoint #1 (po Dniu 4).
-  function renderNextStepCard(turn) {
-    if (!els.cardNextStep) return;
-    const day = Number(turn.day) || currentDay();
-    if (!turn.mission_completed) {
-      els.cardNextStep.innerHTML = '';
-      return;
-    }
-    const done = completedDaySet();
-    const progress = t('nextStepProgress', { done: done.size });
-    const progressBar =
-      '<div class="mt-3 fq-cp-progress" aria-hidden="true"><span style="width: ' +
-        Math.round((Math.min(done.size, PLAYABLE_DAYS) / PLAYABLE_DAYS) * 100) + '%"></span></div>';
-
-    let action = '';
-    if (day >= PLAYABLE_DAYS) {
-      const passed = !!state.checkpoint.passed;
-      action =
-        '<button type="button" data-action="open-checkpoint" class="btn-3d mt-4 w-full text-base sm:w-auto">' +
-          '<i data-lucide="clipboard-check" class="h-5 w-5" aria-hidden="true"></i>' +
-          '<span>' + escapeHtml(t(passed ? 'nextStepCheckpointReview' : 'nextStepCheckpoint')) + '</span>' +
-          '<i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i></button>' +
-        '<p class="mt-2 text-sm leading-relaxed text-slate-600">' + escapeHtml(t('nextStepCheckpointHint')) + '</p>';
-    } else {
-      const next = day + 1;
-      const unlocked = isDayUnlocked(next);
-      action =
-        '<button type="button" data-action="start-day" data-day="' + next + '" class="btn-3d mt-4 w-full text-base sm:w-auto"' +
-          (unlocked ? '' : ' disabled') + '>' +
-          '<i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i>' +
-          '<span>' + escapeHtml(t('nextStepContinue', { day: next })) + '</span></button>' +
-        '<p class="mt-2 text-sm leading-relaxed text-slate-600">' + escapeHtml(t('nextStepContinueHint', { day: next })) + '</p>';
-    }
-
-    els.cardNextStep.innerHTML =
-      '<div class="rounded-3xl border-2 border-brand-yellow/70 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">' +
-        '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('nextStepTitle')) + '</h3>' +
-          '<span class="inline-flex items-center gap-1.5 rounded-full bg-etf-green/10 px-3 py-1 text-xs font-extrabold text-emerald-700">' +
-            '<i data-lucide="check" class="h-3.5 w-3.5" aria-hidden="true"></i>' +
-            escapeHtml(t('nextStepDayDone', { day })) + '</span>' +
-        '</div>' +
-        '<p class="mt-1 text-xs font-bold uppercase tracking-wider text-slate-500">' + escapeHtml(progress) + '</p>' +
-        progressBar +
-        '<div class="mt-4 flex flex-wrap gap-2">' + Array.from({ length: PLAYABLE_DAYS }, (_, i) => dayChipHtml(i + 1)).join('') + '</div>' +
-        action +
-        '<button type="button" data-goto="screen_filter_and_timemachine" class="mt-3 inline-flex min-h-tap items-center gap-1.5 text-sm font-bold text-slate-500 underline decoration-dotted underline-offset-4 hover:text-brand-dark">' +
-          escapeHtml(t('nextStepReviewMap')) + '</button>' +
-      '</div>';
-    refreshIcons();
-  }
-
-  // Baner (pełna szerokość): awans albo „brakuje X XP", Gotowość start -> wynik, samoocena „po".
-  function renderLevelBanner(turn, options) {
-    const pop = !!(options && options.pop);
-    const g = turn.gamification;
-    const s = state.session;
-    const leveled = userLeveledUp(turn);
-    const dayNum = s ? s.current_day : 1;
-    const totalDays = s ? s.total_program_days : 14;
-    const title = leveled
-      ? t('levelBannerLeveled', { day: dayNum, total: totalDays, title: levelTitleFor(g.level, g.level_title) })
-      : t('levelBannerDone', { day: dayNum, total: totalDays });
-    const start = clamp(Number(turn.confidence_start) || 0, 0, 100);
-    const score = clamp(Number(turn.confidence_score) || 0, start, 100);
-    const missing = Math.max(0, LEVEL_FLOOR_XP[2] - g.xp);
-    const bonus = state.microLessonBonusXp;
-    const streakMessage = dayNum >= PLAYABLE_DAYS
-      ? t(state.checkpoint.passed ? 'streakContinuous' : 'streakCheckpoint')
-      : t('streakNextDay', { day: dayNum + 1 });
-    const missingLine = g.level < 2 && !leveled
-      ? '<p class="mt-3 font-semibold text-white/85">' + t('missingXp', { xp: missing }) + '</p>'
-      : '';
-    const pill = (text, extra) =>
-      '<span class="inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold sm:text-sm ' +
-        (extra || 'bg-white/10 text-white') + '">' + text + '</span>';
-
-    els.cardLevelup.innerHTML =
-      '<div data-summary-banner class="' + (pop ? 'level-pop ' : '') + 'rounded-3xl bg-brand-dark p-5 text-white shadow-xl shadow-slate-200/60 sm:p-7">' +
-        '<h3 class="text-xl font-extrabold leading-tight tracking-tight text-brand-yellow sm:text-2xl">' + escapeHtml(title) + '</h3>' +
-        '<div class="mt-3 flex flex-wrap items-center gap-2">' +
-          pill(escapeHtml(t('pillLevel', { level: g.level })), 'bg-brand-yellow text-brand-dark') +
-          pill('<span class="tabular-nums">' + formatNumber(g.xp) + NBSP + 'XP</span>') +
-          (bonus > 0 ? pill(escapeHtml(t('pillMicroXp', { xp: bonus })), 'bg-white/5 text-white/70') : '') +
-          pill(escapeHtml(t('pillStreak', { days: g.streak_days, dayWord: pluralDays(g.streak_days) })), 'bg-streak-orange/20 text-orange-200') +
-        '</div>' +
-        (leveled ? '' : missingLine) +
-        '<p class="mt-2 text-sm font-bold text-orange-200">' + escapeHtml(streakMessage) + '</p>' +
-        '<div class="mt-5 grid grid-cols-1 gap-5 border-t border-white/10 pt-5 md:grid-cols-2 md:gap-8">' +
-          '<div>' +
-            '<p class="text-sm font-bold text-white/70">' + escapeHtml(t('readiness')) + '</p>' +
-            '<p class="mt-0.5 text-2xl font-extrabold tabular-nums">' + start + '% <span class="text-brand-yellow" aria-hidden="true">→</span>' +
-              '<span class="sr-only">' + escapeHtml(t('readinessTo')) + '</span> ' + score + '%</p>' +
-            '<div class="relative mt-2 h-3 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-label="' + escapeHtml(t('readiness')) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '">' +
-              '<div data-readiness-fill data-target="' + score + '" class="fq-progress-fill absolute inset-y-0 left-0 rounded-full bg-etf-green" style="width: ' + (pop ? start : score) + '%"></div>' +
-              '<div class="absolute inset-y-0 left-0 rounded-full bg-white/60" style="width: ' + start + '%"></div>' +
-            '</div>' +
-            '<p class="mt-2 text-xs text-white/60">' + escapeHtml(t('readinessNote')) + '</p>' +
-          '</div>' +
-          renderSelfAssessment() +
-        '</div>' +
-      '</div>';
-
-    if (pop) {
-      const fill = els.cardLevelup.querySelector('[data-readiness-fill]');
-      // Dwie klatki: przeglądarka najpierw rysuje szerokość startową, potem animuje do wyniku.
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (fill) fill.style.width = fill.dataset.target + '%';
-      }));
-    }
-  }
-
-  // Samoocena „po" (1–5) — tylko frontend; w produkcie metryka dla banku (docs/01 §4).
-  function renderSelfAssessment() {
-    const after = state.summary.selfAfter;
-    const tiles = [1, 2, 3, 4, 5].map((n) =>
-      '<label class="block cursor-pointer"><input type="radio" name="self_confidence_after" value="' + n + '" class="sr-only"' +
-        (after === n ? ' checked' : '') + '><span class="fq-tile fq-tile--center min-h-[48px] text-lg tabular-nums">' + n + '</span></label>'
-    ).join('');
-    return (
-      '<fieldset class="fq-field">' +
-        '<legend class="text-sm font-bold text-white/70">' + escapeHtml(t('selfQuestion')) + '</legend>' +
-        '<div class="mt-2 grid grid-cols-5 gap-2">' + tiles + '</div>' +
-        '<p data-self-compare class="mt-2 text-sm font-bold" aria-live="polite">' + selfCompareHtml() + '</p>' +
-      '</fieldset>'
-    );
-  }
-
-  function selfCompareHtml() {
+  function renderDone(opts) {
+    const tt = state.turn;
+    if (!tt || !tt.mission_completed) return;
+    const animate = !!(opts && opts.animate);
+    const s = state.summary || (state.summary = freshSummary());
+    const gs = tt.gamification || DEFAULT_G;
+    const m = state.mission || freshMissionState();
+    const earned = Math.max(0, gs.xp - m.xpAtStart - s.reward) + Math.max(0, state.practiceXp - m.practiceAtStart);
+    const leveled = gs.leveled_up || s.leveledViaChallenge;
+    const start = clamp(Number(tt.confidence_start) || 0, 0, 100);
+    const score = clamp(Number(tt.confidence_score) || 0, start, 100);
+    const nextFloor = gs.level >= 3 ? null : LEVEL_FLOOR[gs.level + 1];
     const before = state.lastProfile ? state.lastProfile.self_confidence_start : null;
-    const after = state.summary.selfAfter;
-    if (after == null) {
-      return before != null
-        ? '<span class="text-white/60">' + escapeHtml(t('selfBeforeHint', { before })) + '</span>'
-        : '<span class="text-white/60">' + escapeHtml(t('selfMarkNow')) + '</span>';
+
+    let nextCta;
+    if (state.day < PLAYABLE_DAYS) nextCta = '<button type="button" class="btn btn--primary btn--lg" data-action="start-day" data-day="' + (state.day + 1) + '">' + escapeHtml(t('done.next', { n: state.day + 1 })) + icon('arrow-right') + '</button>';
+    else if (!state.checkpointPassed) nextCta = '<button type="button" class="btn btn--primary btn--lg" data-action="open-checkpoint">' + icon('trophy') + escapeHtml(t('done.checkpoint')) + '</button>';
+    else nextCta = '';
+
+    const selfTiles = [1, 2, 3, 4, 5].map((n) =>
+      '<label class="tile-wrap"><input type="radio" name="self_after" value="' + n + '" class="sr-only"' + (s.selfAfter === n ? ' checked' : '') + '><span class="tile tile--center">' + n + '</span></label>'
+    ).join('');
+
+    const hero =
+      '<div class="card card--raised win">' +
+        coraHTML('celebrating') +
+        '<h1 class="h1 win__title">' + escapeHtml(t('done.title', { d: state.day })) + '</h1>' +
+        '<div class="win__xp">' + icon('bolt', 'ic--lg') + '<span><span data-earned="' + earned + '">+' + (animate ? 0 : earned) + '</span> XP</span> <span class="small" style="font-family:var(--font-ui);font-weight:700">' + escapeHtml(t('done.earned')) + '</span></div>' +
+        '<div>' + (leveled
+          ? '<span class="levelup">' + icon('trophy', 'ic--sm') + escapeHtml(t('done.levelUp', { title: gs.level_title })) + '</span>'
+          : nextFloor != null && displayedXp() < nextFloor ? '<span class="levelup" style="background:var(--paper-2)">' + escapeHtml(t('done.toNext', { n: nextFloor - displayedXp(), l: gs.level + 1 })) + '</span>' : '') + '</div>' +
+        '<div class="win__row">' +
+          '<div class="badge-art' + (animate ? ' badge-pop' : '') + '" title="' + escapeHtml(gs.level_title) + '">' + badgeSVG(gs.level) +
+            '<p class="tiny strong" style="text-align:center;margin-top:4px">' + escapeHtml(t('done.badgeLabel')) + '<br>' + escapeHtml(gs.level_title) + '</p></div>' +
+          '<div><p class="win__label">' + escapeHtml(t('done.readiness')) + '</p>' +
+            '<p class="win__big">' + start + '% <span aria-hidden="true">→</span><span class="sr-only">,</span> <span data-ready-target="' + score + '">' + (animate ? start : score) + '</span>%</p>' +
+            '<div class="meter meter--lg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '" aria-label="' + escapeHtml(t('done.readiness')) + '" style="margin-top:8px">' +
+              '<div class="meter__fill" data-ready-fill="' + score + '" style="width:' + (animate ? start : score) + '%"></div></div>' +
+            '<p class="tiny muted" style="margin-top:6px">' + escapeHtml(t('done.readinessNote')) + '</p></div>' +
+          '<fieldset><legend class="win__label">' + escapeHtml(t('done.selfQ')) + '</legend>' +
+            '<div class="selfscale">' + selfTiles + '</div>' +
+            '<p class="small strong" id="self-compare" style="margin-top:8px" aria-live="polite">' + escapeHtml(selfCompare(before, s.selfAfter)) + '</p></fieldset>' +
+        '</div>' +
+        '<div class="win__actions">' + nextCta +
+          '<button type="button" class="btn btn--ghost btn--lg" data-action="go-home">' + icon('peak') + escapeHtml(t('done.toMap')) + '</button></div>' +
+        '<p class="small strong done-streak">' + icon('flame', 'ic--sm') + '<span>' + escapeHtml(t('done.streak')) + '</span></p>' +
+      '</div>';
+
+    els.doneRoot.innerHTML =
+      hero +
+      '<div class="complete-grid">' +
+        '<div id="done-first"></div>' +
+        '<div class="hub__col"><div class="card" id="done-bank"></div><div class="card" id="done-board"></div></div>' +
+      '</div>' +
+      '<div class="card after14 after14--wide" style="margin-top:22px"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3>' +
+        '<p class="small" style="color:var(--ink-2);margin-top:4px">' + escapeHtml(t('hub.after14.sub')) + '</p>' +
+        '<div class="after14__grid">' + after14Paths().map((p) =>
+          '<div class="after14__tile">' + icon(p.icon || 'chat') + '<h4 style="margin-top:8px">' + escapeHtml(p.title) + '</h4><p>' + escapeHtml(p.description || '') + '</p>' +
+          '<p class="strong" style="color:var(--ink-2)">' + escapeHtml(p.cadence || '') + '</p></div>').join('') + '</div></div>' +
+      '<div class="compliance"><p>' + escapeHtml(t('compliance.mifid')) + '</p><p>' + escapeHtml(t('ai.disclaimer')) + '</p></div>';
+
+    renderFirstStep();
+    renderBankCard();
+    renderBoard();
+
+    if (animate) {
+      animateNumber(els.doneRoot.querySelector('[data-earned]'), 0, earned, { duration: 1100, format: (v) => '+' + formatNumber(v) });
+      const fill = els.doneRoot.querySelector('[data-ready-fill]');
+      const val = els.doneRoot.querySelector('[data-ready-target]');
+      // A short timeout (not rAF) so the start width paints first and the end state
+      // is always reached, even when the tab is throttled.
+      setTimeout(() => {
+        if (fill) fill.style.width = score + '%';
+        animateNumber(val, start, score, { duration: 1100, format: (v) => String(Math.round(v)) });
+      }, 80);
     }
-    const delta = before != null ? after - before : 0;
-    const deltaPill = before != null && delta > 0
-      ? ' <span class="ml-1 rounded-full bg-etf-green px-2 py-0.5 text-xs text-white">+' + delta + '</span>'
+  }
+  function selfCompare(before, after) {
+    if (after == null) return before != null ? t('done.selfBefore', { n: before }) : '';
+    return t('done.selfCompare', { a: before != null ? before : '?', b: after });
+  }
+
+  function renderFirstStep() {
+    const tt = state.turn;
+    const c = tt.real_world_challenge;
+    const s = state.summary;
+    const items = tt.final_checklist || [];
+    const done = items.filter((i) => s.checked.has(i.id)).length;
+    const all = items.length > 0 && done === items.length;
+    const challenge = c
+      ? '<div class="challenge">' +
+          '<span class="chip chip--tangerine">' + icon('target', 'ic--sm') + escapeHtml(t('first.challenge')) + '</span>' +
+          '<h3 class="h3" style="margin-top:10px">' + escapeHtml(c.title) + '</h3>' +
+          '<p class="small" style="margin-top:6px;color:var(--ink-2)">' + escapeHtml(c.description) + '</p>' +
+          (c.amount_pln > 0 ? '<p class="challenge__amount"><b>' + escapeHtml(money(c.amount_pln)) + '</b>' + icon('arrow-right', 'ic--sm') + escapeHtml(c.target_account) + '</p>'
+            : '<p class="challenge__amount">' + icon('landmark', 'ic--sm') + escapeHtml(c.target_account) + '</p>') +
+          '<div style="margin-top:14px">' + (s.accepted
+            ? '<span class="chip chip--green" role="status" style="min-height:44px;padding:0 16px">' + icon('check', 'ic--sm') + escapeHtml(t('first.accepted')) + (s.reward ? ' +' + s.reward + ' XP' : '') + '</span>'
+            : '<button type="button" class="btn btn--primary" data-action="accept-challenge"' + (s.challengeBusy ? ' disabled' : '') + '>' +
+                (s.challengeBusy ? '<span class="spinner"></span>' : icon('flame')) + escapeHtml(t('first.accept', { n: c.reward_xp })) + '</button>') + '</div>' +
+        '</div>'
       : '';
-    return (before != null ? escapeHtml(t('selfBefore', { before })) +
-      ' <span class="text-brand-yellow" aria-hidden="true">→</span><span class="sr-only">,</span> ' : '') +
-      escapeHtml(t('selfAfter', { after })) + deltaPill;
-  }
-
-  function setSelfAfter(value) {
-    const n = clamp(Math.round(Number(value) || 0), 1, 5);
-    state.summary.selfAfter = n;
-    const out = els.cardLevelup.querySelector('[data-self-compare]');
-    if (out) out.innerHTML = selfCompareHtml();
-  }
-
-  // Karta 1 — codzienne mini-wyzwanie bieżącego dnia (złota ramka, +50 XP per dzień).
-  function renderChallengeCard(turn) {
-    const c = turn.real_world_challenge;
-    if (!c) {
-      els.cardChallenge.innerHTML = '';
-      return;
-    }
-    const day = Number(turn.day) || currentDay();
-    const accepted = state.challenges.acceptedDays.has(day);
-    const reward = Number(state.challenges.rewards[day]) || 0;
-    const action = accepted
-      ? '<p class="mt-4 inline-flex min-h-tap items-center gap-2 rounded-2xl bg-etf-green px-4 py-2 font-extrabold text-white" role="status">' +
-          escapeHtml(t('challengeAccepted')) + (reward > 0 ? ' +' + reward + NBSP + 'XP' : '') + '</p>'
-      : '<button type="button" data-action="accept-challenge" data-day="' + day + '" class="btn-3d mt-4 w-full sm:w-auto"' +
-          (state.summary.challengeBusy ? ' disabled' : '') + '>' +
-          (state.summary.challengeBusy ? '<span class="fq-spinner"></span>' : '<i data-lucide="flame" class="h-5 w-5" aria-hidden="true"></i>') +
-          '<span>' + escapeHtml(t('challengeAccept', { xp: c.reward_xp })) + '</span></button>';
-    els.cardChallenge.innerHTML =
-      '<div class="rounded-3xl border-2 border-brand-yellow bg-gradient-to-br from-brand-yellow/20 via-white to-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">' +
-        '<p class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-brand-yellow-dark">' +
-          '<i data-lucide="target" class="h-4 w-4" aria-hidden="true"></i>' + escapeHtml(t('challengeBadge')) + '</p>' +
-        '<h3 class="mt-2 text-lg font-extrabold leading-snug tracking-tight sm:text-xl">' + escapeHtml(c.title) + '</h3>' +
-        '<p class="mt-2 text-sm leading-relaxed text-slate-600">' + escapeHtml(c.description) + '</p>' +
-        '<p class="mt-3 inline-flex flex-wrap items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm font-bold shadow-sm">' +
-          '<span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span>' +
-          '<i data-lucide="arrow-right" class="h-4 w-4 text-slate-400" aria-hidden="true"></i> ' + escapeHtml(c.target_account) + '</p>' +
-        '<div>' + action + '</div>' +
+    const checks = items.map((i) =>
+      '<button type="button" class="check" role="checkbox" aria-checked="' + s.checked.has(i.id) + '" data-action="toggle-check" data-id="' + escapeHtml(i.id) + '">' +
+        '<span class="check__box">' + icon('check') + '</span>' +
+        '<span><span class="check__text">' + escapeHtml(i.text) + '</span><span class="check__detail">' + escapeHtml(i.detail) + '</span></span>' +
+      '</button>'
+    ).join('');
+    document.getElementById('done-first').innerHTML =
+      '<div class="card firststep">' +
+        coraHTML('confident', 'firststep__cora') +
+        '<h2 class="h2">' + escapeHtml(t('first.title')) + '</h2>' +
+        '<p class="small" style="margin-top:6px;color:var(--ink-2);max-width:46ch">' + escapeHtml(t('first.sub')) + '</p>' +
+        challenge +
+        (items.length ? '<div class="card__head" style="margin-top:22px"><h3 class="h3">' + escapeHtml(t('first.checklist')) + '</h3>' +
+          '<span class="strong num"><span data-check-count>' + done + '</span>/' + items.length + '</span></div>' +
+          '<div class="meter" style="margin-top:8px" aria-hidden="true"><div class="meter__fill" data-check-bar style="width:' + (items.length ? (done / items.length) * 100 : 0) + '%"></div></div>' +
+          '<div class="checks">' + checks + '</div>' +
+          '<p class="small strong" data-check-done style="margin-top:12px;color:var(--green-text)"' + (all ? '' : ' hidden') + '>' + escapeHtml(t('first.allDone')) + '</p>' : '') +
+        (tt.bank_draft ? '<button type="button" class="btn btn--ink btn--block' + (all ? ' glow-pulse' : '') + '" data-action="open-bank" style="margin-top:18px">' + icon('landmark') + escapeHtml(t('first.toBank')) + '</button>' : '') +
       '</div>';
   }
 
-  async function acceptChallenge(day) {
+  async function acceptChallenge() {
     const s = state.summary;
-    const turn = summaryTurn();
-    const targetDay = Number(day) || (turn && Number(turn.day)) || currentDay();
-    if (!turn || !turn.real_world_challenge || s.challengeBusy || state.challenges.acceptedDays.has(targetDay)) return;
-    const token = state.mission.token;
+    const tt = state.turn;
+    if (!tt || !tt.real_world_challenge || s.accepted || s.challengeBusy) return;
+    const token = state.token;
     s.challengeBusy = true;
-    renderChallengeCard(turn);
-    refreshIcons();
+    renderFirstStep();
     try {
-      const res = await withSessionRecovery((sessionId) => api.acceptChallenge(sessionId, targetDay));
-      if (token !== state.mission.token) return;
-      const g = turn.gamification;
-      // Awans dzięki wyzwaniu: próg 100 XP (Poziom 2) albo 250 XP (Poziom 3).
-      const crossed = levelForXp(res.xp).level > levelForXp(g.xp).level;
-      state.turn = Object.assign({}, turn, {
-        gamification: Object.assign({}, g, levelForXp(res.xp), { xp: res.xp, xp_gained: res.reward_xp }),
-      });
+      const body = { day: state.day, lang: state.lang };
+      const res = await withSessionRecovery((sid) => api.challenge(Object.assign({ session_id: sid }, body)));
+      if (token !== state.token) return;
+      state.log.push({ kind: 'challenge', body });
+      state.completedChallenges.add(state.day);
+      const before = tt.gamification || DEFAULT_G;
+      const lvl = levelFor(res.xp);
+      const crossed = lvl.level > before.level;
+      state.turn = Object.assign({}, tt, { gamification: Object.assign({}, before, lvl, { xp: res.xp, xp_gained: res.reward_xp }) });
       s.challengeBusy = false;
-      s.challengeReward = res.reward_xp;
-      state.challenges.acceptedDays.add(targetDay);
-      state.challenges.rewards[targetDay] = res.reward_xp;
+      s.accepted = true;
+      s.reward = res.reward_xp;
       s.leaderboard = Array.isArray(res.leaderboard) ? res.leaderboard : s.leaderboard;
       if (crossed) s.leveledViaChallenge = true;
-
-      const currentTurn = state.turn;
-      renderHeader();
-      renderLevelBanner(currentTurn, { pop: crossed });
-      renderChallengeCard(currentTurn);
-      renderLeaderboardCard(currentTurn, { highlight: true });
-      refreshIcons();
-      fireConfetti('micro');
+      renderHud();
+      if (crossed) renderDone({ animate: false });
+      else { renderFirstStep(); renderBoard(true); }
+      const anchor = document.querySelector('#done-first .chip--green') || els.hudXpPill;
+      xpFloat(res.reward_xp, anchor, 'green');
+      Sound.correct();
+      fireConfetti(crossed ? 'full' : 'micro');
     } catch (err) {
-      if (token !== state.mission.token) return;
+      if (token !== state.token) return;
       s.challengeBusy = false;
-      renderChallengeCard(summaryTurn() || turn);
-      refreshIcons();
-      showToast(describeMissionError(err), 'warn');
+      renderFirstStep();
+      toast(isSessionMissing(err) ? t('toast.sessionLost') : describeApiError(err), 'warn');
     }
   }
 
-  // Karta 2 — checklista Dnia 1 (4 pozycje); komplet -> pełne konfetti i .glow-pulse na przycisku bankowym.
-  function renderChecklistCard(turn) {
-    const items = turn.final_checklist || [];
+  function toggleCheck(id, btn) {
+    const tt = state.turn;
+    const items = (tt && tt.final_checklist) || [];
+    if (!items.some((i) => i.id === id)) return;
     const s = state.summary;
-    const done = items.filter((item) => s.checked.has(item.id)).length;
-    const list = items.map((item) => {
-      const checked = s.checked.has(item.id);
-      return (
-        '<li><button type="button" role="checkbox" aria-checked="' + checked + '" data-action="toggle-check" data-check-id="' + escapeHtml(item.id) + '" class="fq-check">' +
-          '<span class="fq-check-box" aria-hidden="true"><i data-lucide="check" class="h-4 w-4"></i></span>' +
-          '<span class="min-w-0"><span class="block font-bold leading-snug">' + escapeHtml(item.text) + '</span>' +
-          '<span class="mt-1 block text-sm leading-snug text-slate-600">' + escapeHtml(item.detail) + '</span></span>' +
-        '</button></li>'
-      );
-    }).join('');
-    els.cardChecklist.innerHTML =
-      '<div class="' + CARD_CLASS + '">' +
-        '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('checklistTitleDynamic', { day: Number(turn.day) || 1 })) + '</h3>' +
-          '<span class="text-sm font-extrabold tabular-nums text-slate-500"><span data-check-count>' + done + '</span>/' + items.length + '</span>' +
-        '</div>' +
-        '<div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">' +
-          '<div data-check-bar class="fq-progress-fill h-full rounded-full bg-etf-green" style="width: ' + (items.length ? (done / items.length) * 100 : 0) + '%"></div>' +
-        '</div>' +
-        '<ul class="mt-4 space-y-3">' + list + '</ul>' +
-        '<p data-check-done class="mt-4 text-sm font-extrabold text-emerald-700" role="status"' + (items.length && done === items.length ? '' : ' hidden') + '>' +
-          escapeHtml(t('checklistDone')) + '</p>' +
-      '</div>';
+    if (s.checked.has(id)) s.checked.delete(id); else s.checked.add(id);
+    btn.setAttribute('aria-checked', String(s.checked.has(id)));
+    replayClass(btn, 'bump');
+    const root = document.getElementById('done-first');
+    const done = items.filter((i) => s.checked.has(i.id)).length;
+    const all = done === items.length;
+    root.querySelector('[data-check-count]').textContent = String(done);
+    root.querySelector('[data-check-bar]').style.width = (done / items.length) * 100 + '%';
+    root.querySelector('[data-check-done]').hidden = !all;
+    const bank = root.querySelector('[data-action="open-bank"]');
+    if (bank) bank.classList.toggle('glow-pulse', all);
+    if (s.checked.has(id)) Sound.pop();
+    if (all && !s.celebrated) { s.celebrated = true; Sound.fanfare(); fireConfetti('full'); }
   }
 
-  function toggleChecklistItem(id, button) {
-    const turn = summaryTurn();
-    if (!turn) return;
-    const items = turn.final_checklist || [];
-    if (!items.some((item) => item.id === id)) return;
-    const s = state.summary;
-    if (s.checked.has(id)) s.checked.delete(id);
-    else s.checked.add(id);
-    const checked = s.checked.has(id);
-    if (button) {
-      button.setAttribute('aria-checked', String(checked));
-      replayClass(button, 'fq-bounce');
-    }
-    const done = items.filter((item) => s.checked.has(item.id)).length;
-    const all = done === items.length && items.length > 0;
-    const count = els.cardChecklist.querySelector('[data-check-count]');
-    const bar = els.cardChecklist.querySelector('[data-check-bar]');
-    const doneMsg = els.cardChecklist.querySelector('[data-check-done]');
-    if (count) count.textContent = String(done);
-    if (bar) bar.style.width = (done / items.length) * 100 + '%';
-    if (doneMsg) doneMsg.hidden = !all;
-    syncBankGlow();
-    if (all && !s.celebrated) {
-      s.celebrated = true;
-      fireConfetti('full');
-    }
-  }
-
-  function checklistComplete() {
-    const turn = summaryTurn();
-    const items = (turn && turn.final_checklist) || [];
-    return items.length > 0 && items.every((item) => state.summary.checked.has(item.id));
-  }
-
-  function syncBankGlow() {
-    const btn = els.cardBank && els.cardBank.querySelector('[data-action="open-bank-modal"]');
-    if (btn) btn.classList.toggle('glow-pulse', checklistComplete());
-  }
-
-  // Karta 3 — przykładowy plan w Commerzbanku (bank_draft); savings_first: plan poduszki, ETF „na później".
-  function renderBankCard(turn) {
-    const d = turn.bank_draft;
-    if (!d) {
-      els.cardBank.innerHTML = '';
-      return;
-    }
-    const c = turn.real_world_challenge;
-    const advice = (state.session && state.session.safe_investment) || {};
-    const savingsFirst = advice.plan_type === 'savings_first';
-    const cushion = Number(advice.emergency_savings_monthly) || 0;
-    const step = (num, label, body) =>
-      '<li class="flex gap-3">' +
-        '<span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-dark text-sm font-extrabold text-brand-yellow">' + num + '</span>' +
-        '<div class="min-w-0"><p class="text-xs font-extrabold uppercase tracking-wider text-slate-500">' + label + '</p>' + body + '</div>' +
-      '</li>';
-
-    const today = c
-      ? '<p class="mt-0.5 font-extrabold">' + escapeHtml(t('bankMicroMove')) + ' <span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span> ' + escapeHtml(t('bankOn')) + ' ' + escapeHtml(c.target_account) + '</p>'
-      : '';
+  function renderBankCard() {
+    const tt = state.turn;
+    const d = tt.bank_draft;
+    const box = document.getElementById('done-bank');
+    if (!d) { box.hidden = true; return; }
+    box.hidden = false;
+    const c = tt.real_world_challenge;
+    const a = state.session.safe_investment || {};
+    const savingsFirst = a.plan_type === 'savings_first';
+    const cushion = Number(a.emergency_savings_monthly) || 0;
+    const step = (n, label, html) =>
+      '<li class="plan-step"><span class="plan-step__n">' + n + '</span><div><p class="plan-step__label">' + escapeHtml(label) + '</p>' + html + '</div></li>';
+    const today = c ? '<p class="strong">' + escapeHtml(c.amount_pln > 0 ? t('bankcard.micro', { amount: money(c.amount_pln), account: c.target_account }) : c.target_account) + '</p>' : '';
     const target = savingsFirst
-      ? '<p class="mt-0.5 font-extrabold">' + escapeHtml(t('bankBuffer')) + ' <span class="tabular-nums">' + formatPLN(cushion) + escapeHtml(t('splitPerMonth')) + '</span> ' + escapeHtml(t('bankSavingsAccount')) + '</p>' +
-        '<span class="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">' +
-          '<i data-lucide="clock" class="h-3.5 w-3.5" aria-hidden="true"></i>' + escapeHtml(t('bankEtfLater', { amount: formatPLN(d.monthly_amount) })) + '</span>'
-      : '<p class="mt-0.5 font-extrabold"><span class="tabular-nums">' + formatPLN(d.monthly_amount) + escapeHtml(t('splitPerMonth')) + '</span> • ' + escapeHtml(t('bankHorizon')) + ' ' + yearsLabel(d.horizon_years) + '</p>' +
-        '<p class="mt-0.5 text-sm text-slate-600">' + escapeHtml(d.instrument_category) + '</p>' +
-        (cushion > 0 ? '<p class="mt-1 text-sm text-slate-600">' + escapeHtml(t('bankParallelBuffer')) + ' <span class="font-bold tabular-nums">' + formatPLN(cushion) + escapeHtml(t('splitPerMonth')) + '</span> ' + escapeHtml(t('bankSavingsAccount')) + '.</p>' : '');
-
-    els.cardBank.innerHTML =
-      '<div class="' + CARD_CLASS + '">' +
-        '<div class="flex flex-wrap items-center justify-between gap-2">' +
-          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('bankTitle')) + '</h3>' +
-          '<span class="rounded-full bg-brand-dark px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-yellow">Demo</span>' +
-        '</div>' +
-        '<ol class="mt-4 space-y-4">' +
-          step(1, escapeHtml(t('bankToday')), today) +
-          step(2, escapeHtml(t('bankTarget')), target) +
-        '</ol>' +
-        '<div class="mt-5 rounded-2xl bg-slate-50 p-4">' +
-          '<p class="text-xs font-bold text-slate-500">' + (savingsFirst ? escapeHtml(t('bankLaterPrefix')) : '') +
-            escapeHtml(t('bankEstimate')) + ' ' + yearsLabel(d.horizon_years) + '</p>' +
-          '<div class="mt-2 grid grid-cols-2 gap-3">' +
-            '<div><p class="text-xs font-bold text-emerald-700">' + escapeHtml(t('bankEtfReal')) + '</p>' +
-              '<p class="text-xl font-extrabold tabular-nums sm:text-2xl">' + formatPLN(d.projected_etf_real_value) + '</p></div>' +
-            '<div><p class="text-xs font-bold text-rose-600">' + escapeHtml(t('bankCashReal')) + '</p>' +
-              '<p class="text-xl font-extrabold tabular-nums sm:text-2xl">' + formatPLN(d.projected_cash_real_value) + '</p></div>' +
-          '</div>' +
-          '<p class="mt-1.5 text-xs text-slate-500">' + escapeHtml(t('bankNominal')) + ' <span class="tabular-nums">' + formatPLN(d.projected_etf_nominal_value) + '</span></p>' +
-        '</div>' +
-        '<p class="mt-3 text-[11px] leading-relaxed text-slate-500">' + escapeHtml(d.assumptions_text) + ' ' + escapeHtml(d.costs_note) + '</p>' +
-        '<button type="button" data-action="open-bank-modal" class="btn-3d mt-5 w-full text-base">' +
-          '<span>' + escapeHtml(t('bankCtaDynamic', { day: Number(turn.day) || 1 })) + '</span>' +
-          '<i data-lucide="arrow-right" class="h-5 w-5 shrink-0" aria-hidden="true"></i></button>' +
-      '</div>';
-    syncBankGlow();
+      ? '<p class="strong">' + escapeHtml(t('bankcard.cushion', { amount: money(cushion) })) + '</p><p class="small muted">' + escapeHtml(t('bankcard.etfLater', { amount: money(d.monthly_amount) })) + '</p>'
+      : '<p class="strong">' + escapeHtml(t('bankcard.monthly', { amount: money(d.monthly_amount), years: years(d.horizon_years) })) + '</p>' +
+        '<p class="small muted">' + escapeHtml(d.instrument_category) + '</p>' +
+        (cushion > 0 ? '<p class="small muted">' + escapeHtml(t('bankcard.parallel', { amount: money(cushion) })) + '</p>' : '');
+    box.innerHTML =
+      '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('bankcard.title')) + '</h3><span class="chip chip--ink">' + escapeHtml(t('bankcard.demo')) + '</span></div>' +
+      '<ol class="plan-steps">' + step(1, t('bankcard.today'), today) + step(2, t('bankcard.day14'), target) + '</ol>' +
+      '<div class="plan-num"><p class="tiny muted" style="grid-column:1/-1">' + escapeHtml(t(savingsFirst ? 'bankcard.estimateLater' : 'bankcard.estimate', { years: years(d.horizon_years) })) + '</p>' +
+        '<div><span class="tiny strong" style="color:var(--green-text)">' + escapeHtml(t('bankcard.etfReal')) + '</span><b>' + escapeHtml(money(d.projected_etf_real_value)) + '</b></div>' +
+        '<div><span class="tiny strong" style="color:var(--coral-text)">' + escapeHtml(t('bankcard.cashReal')) + '</span><b>' + escapeHtml(money(d.projected_cash_real_value)) + '</b></div>' +
+        '<p class="tiny muted" style="grid-column:1/-1">' + escapeHtml(t('bankcard.nominal', { amount: money(d.projected_etf_nominal_value) })) + '</p></div>' +
+      '<p class="tiny muted" style="margin-top:10px">' + escapeHtml(d.assumptions_text) + ' ' + escapeHtml(d.costs_note) + '</p>';
   }
 
-  // Karta 4 — ranking (przykładowi znajomi, demo); „⬆️ Awans!" tylko przy awansie.
-  function renderLeaderboardCard(turn, options) {
-    const rows = state.summary.leaderboard || turn.leaderboard || [];
-    const leveled = userLeveledUp(turn);
-    const me = rows.find((r) => r.is_current_user) || null;
-    const leader = rows[0] || null;
+  function renderBoard(highlight) {
+    const tt = state.turn;
+    // The HUD shows server XP + local lesson/practice XP, so "You" uses the same number
+    // and the board is re-ranked locally (one consistent XP everywhere on screen).
+    const bonus = bonusXp();
+    const rows = (state.summary.leaderboard || tt.leaderboard || [])
+      .map((r) => (r.is_current_user ? Object.assign({}, r, { xp: r.xp + bonus }) : r))
+      .sort((a, b) => b.xp - a.xp)
+      .map((r, i) => Object.assign({}, r, { rank: i + 1 }));
+    const box = document.getElementById('done-board');
+    if (!rows.length) { box.hidden = true; return; }
+    box.hidden = false;
+    const leveled = (tt.gamification && tt.gamification.leveled_up) || state.summary.leveledViaChallenge;
+    const me = rows.find((r) => r.is_current_user);
+    const leader = rows[0];
     const list = rows.map((r) => {
       const isMe = r.is_current_user === true;
-      // Backend dopisuje „(Awans!)" / „(Level Up!)" do nazwy — w UI pokazujemy osobny badge.
-      const name = isMe ? String(r.name).replace(/\s*\((?:Awans!|Level Up!)\)\s*$/, '') : r.name;
-      return (
-        '<li' + (isMe ? ' data-me' : '') + ' class="flex items-center gap-3 rounded-2xl px-3 py-2.5 ' +
-          (isMe ? 'bg-brand-yellow/15 ring-2 ring-brand-yellow' : 'odd:bg-slate-50') + '">' +
-          '<span class="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-extrabold tabular-nums ' +
-            (r.rank === 1 ? 'bg-brand-yellow text-brand-dark' : 'bg-white text-slate-600 ring-1 ring-slate-200') + '">' + escapeHtml(r.rank) + '</span>' +
-          '<div class="min-w-0 flex-1">' +
-            '<p class="flex flex-wrap items-center gap-1.5 font-extrabold leading-tight">' + escapeHtml(name) +
-              (isMe && leveled ? '<span class="rounded-full bg-etf-green px-2 py-0.5 text-[11px] font-extrabold text-white">' + escapeHtml(t('leaderboardLeveled')) + '</span>' : '') + '</p>' +
-            '<p class="text-xs text-slate-500">' + escapeHtml(r.level_title) + '</p>' +
-          '</div>' +
-          '<span class="shrink-0 text-xs font-bold text-streak-orange" title="' + escapeHtml(t('leaderboardStreakTitle')) + '">🔥' + NBSP + escapeHtml(r.streak_days) + '</span>' +
-          '<span class="w-20 shrink-0 text-right font-extrabold tabular-nums">' + formatNumber(r.xp) + NBSP + 'XP</span>' +
-        '</li>'
-      );
+      const name = isMe ? String(r.name).replace(/\s*\((Level Up!|Awans!)\)\s*$/, '') : r.name;
+      return '<li class="' + (isMe ? 'is-me' : '') + '"' + (isMe ? ' data-me' : '') + '>' +
+        '<span class="board__rank">' + escapeHtml(r.rank) + '</span>' +
+        '<span><span class="board__name">' + escapeHtml(name) + (isMe && leveled ? ' <span class="chip chip--green" style="min-height:24px;padding:0 8px;font-size:.7rem">' + escapeHtml(t('board.levelUp')) + '</span>' : '') + '</span>' +
+          '<span class="board__lvl">' + escapeHtml(r.level_title) + '</span></span>' +
+        '<span class="board__streak">' + icon('flame', 'ic--sm') + escapeHtml(r.streak_days) + '</span>' +
+        '<span class="board__xp">' + escapeHtml(formatNumber(r.xp)) + ' XP</span></li>';
     }).join('');
-
-    let hint = '';
-    if (me && leader && !leader.is_current_user) {
-      hint = t('leaderboardMissing', { xp: formatNumber(leader.xp - me.xp) });
-    } else if (me) {
-      hint = escapeHtml(t('leaderboardLeading'));
-    }
-
-    els.cardLeaderboard.innerHTML =
-      '<div class="' + CARD_CLASS + '">' +
-        '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('leaderboardTitle')) + '</h3>' +
-          '<span class="text-xs font-semibold text-slate-500">' + escapeHtml(t('leaderboardDemo')) + '</span>' +
-        '</div>' +
-        '<ol class="mt-4 space-y-1.5">' + list + '</ol>' +
-        (hint ? '<p class="mt-3 text-sm font-semibold text-slate-600" aria-live="polite">' + hint + '</p>' : '') +
-        '<button type="button" data-action="challenge-friend" class="mt-4 inline-flex min-h-tap w-full items-center justify-center gap-2 rounded-2xl border-2 border-brand-dark/10 bg-white px-4 font-extrabold transition hover:border-brand-yellow hover:bg-brand-yellow/10 sm:w-auto">' +
-          escapeHtml(t('leaderboardChallenge')) + '</button>' +
-      '</div>';
-
-    if (options && options.highlight) {
-      const row = els.cardLeaderboard.querySelector('[data-me]');
-      if (row) replayClass(row, 'fq-bounce');
-    }
+    const hint = me && leader && !leader.is_current_user ? t('board.gap', { n: formatNumber(leader.xp - me.xp) }) : me ? t('board.lead') : '';
+    box.innerHTML =
+      '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('board.title')) + '</h3><span class="tiny muted">' + escapeHtml(t('board.demo')) + '</span></div>' +
+      '<ol class="board">' + list + '</ol>' +
+      (hint ? '<p class="small strong" style="margin-top:12px;color:var(--ink-2)" aria-live="polite">' + escapeHtml(hint) + '</p>' : '') +
+      '<button type="button" class="btn btn--ghost btn--sm" data-action="challenge-friend" style="margin-top:12px">' + icon('users', 'ic--sm') + escapeHtml(t('board.challenge')) + '</button>';
+    if (highlight) { const row = box.querySelector('[data-me]'); if (row) replayClass(row, 'bump'); }
   }
 
-  async function copyToClipboard(text) {
+  async function copyText(text) {
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-    } catch (err) {
-      // przejście do metody zapasowej poniżej
-    }
+      if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+    } catch (e) { /* fall back */ }
     try {
       const area = document.createElement('textarea');
       area.value = text;
@@ -3213,370 +2923,611 @@
       const ok = document.execCommand('copy');
       area.remove();
       return ok;
-    } catch (err) {
-      return false;
-    }
+    } catch (e) { return false; }
   }
-
   async function challengeFriend() {
-    const text = t('friendText', { xp: displayedXp() });
-    const ok = await copyToClipboard(text);
-    if (ok) showToast(t('friendCopied'), 'success');
-    else showToast(t('friendCopyFailed', { text }), 'warn', 6000);
+    const text = t('board.invite', { d: state.day, xp: displayedXp() });
+    const ok = await copyText(text);
+    toast(ok ? t('board.copied') : t('board.copyFail', { text }), ok ? 'ok' : 'warn', ok ? 3000 : 6000);
   }
 
-  // ------------------------------------------------------------------------
-  // 12. Modal bankowy — Zero-Friction Handoff (DEMO, docs/01 §7)
-  // ------------------------------------------------------------------------
-
-  function bankOptionSummary(turn, option) {
-    const c = turn.real_world_challenge;
-    const d = turn.bank_draft;
-    const advice = (state.session && state.session.safe_investment) || {};
-    if (option === 'b') {
-      return advice.plan_type === 'savings_first'
-        ? t('modalTargetPlan') + ' ' + escapeHtml(t('modalBuffer')) + ' ' + formatPLN(advice.emergency_savings_monthly || 0) + escapeHtml(t('splitPerMonth'))
-        : t('modalTargetPlan') + ' ' + formatPLN(d ? d.monthly_amount : 0) + escapeHtml(t('splitPerMonth'));
-    }
-    return c
-      ? t('modalTransfer', { amount: formatPLN(c.amount_pln), account: c.target_account })
-      : t('modalTodayStep');
-  }
-
+  // Bank modal — zero-friction handoff (DEMO)
   function renderBankModal() {
-    const turn = summaryTurn();
-    if (!turn || !els.bankOrderContent) return;
+    const tt = state.turn;
+    if (!tt) return;
     const s = state.summary;
-    const c = turn.real_world_challenge;
-    const d = turn.bank_draft;
-    const advice = (state.session && state.session.safe_investment) || {};
-
+    const c = tt.real_world_challenge;
+    const d = tt.bank_draft;
+    const a = state.session.safe_investment || {};
+    const box = els.bankContent;
     if (s.bankDone) {
-      els.bankOrderContent.innerHTML =
-        '<div class="text-center" role="status">' +
-          '<div class="level-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-etf-green text-white">' +
-            '<i data-lucide="check" class="h-8 w-8" aria-hidden="true"></i></div>' +
-          '<p class="mt-4 text-lg font-extrabold leading-snug">' + escapeHtml(t('modalDone')) + '</p>' +
-          '<p class="mt-2 text-sm text-slate-600">' + escapeHtml(t('modalDoneNote', { summary: bankOptionSummary(turn, s.bankOption) })) + '</p>' +
-          '<button type="button" data-action="next-generation" class="btn-3d mt-6 w-full">' +
-            '<i data-lucide="users" class="h-5 w-5" aria-hidden="true"></i><span>' + escapeHtml(t('modalNextGeneration')) + '</span></button>' +
-          '<button type="button" data-action="close-modal" class="mt-2 inline-flex min-h-tap w-full items-center justify-center rounded-2xl font-bold text-slate-600 transition hover:bg-slate-100">' + escapeHtml(t('modalClose')) + '</button>' +
+      const what = s.bankOption === 'b'
+        ? t('bank.whatB', { amount: money(a.plan_type === 'savings_first' ? a.emergency_savings_monthly : d ? d.monthly_amount : 0) })
+        : c ? t('bank.whatA', { amount: money(c.amount_pln), account: c.target_account }) : '';
+      box.innerHTML =
+        '<div style="text-align:center" role="status">' + coraHTML('celebrating') +
+          '<p class="h3" style="margin-top:8px">' + escapeHtml(t('bank.success', { d: state.day })) + '</p>' +
+          '<p class="small muted" style="margin-top:8px">' + escapeHtml(t('bank.successNote', { what })) + '</p>' +
+          '<button type="button" class="btn btn--primary btn--block" data-action="next-gen" style="margin-top:20px">' + icon('users') + escapeHtml(t('bank.nextGen')) + '</button>' +
+          '<button type="button" class="btn btn--ghost btn--block" data-action="close-modal" style="margin-top:10px">' + escapeHtml(t('common.close')) + '</button>' +
         '</div>';
-      refreshIcons();
+      const cora = box.querySelector('.cora');
+      if (cora) cora.style.setProperty('--cora-size', '120px');
       return;
     }
-
-    const optionB = advice.plan_type === 'savings_first'
-      ? '<span class="mt-1 block text-sm font-semibold text-slate-600">' + escapeHtml(t('modalBuffer')) +
-        ' <span class="tabular-nums">' + formatPLN(advice.emergency_savings_monthly || 0) + escapeHtml(t('splitPerMonth')) + '</span> ' +
-        escapeHtml(t('modalSavings', { amount: formatPLN(d ? d.monthly_amount : 0) })) + '</span>'
-      : '<span class="mt-1 block text-sm font-semibold text-slate-600"><span class="tabular-nums">' + formatPLN(d ? d.monthly_amount : 0) + escapeHtml(t('splitPerMonth')) + '</span> • ' +
-          (d ? yearsLabel(d.horizon_years) : '') + '</span>' +
-        '<span class="mt-0.5 block text-xs font-medium text-slate-500">' + escapeHtml(d ? d.instrument_category : '') + '</span>';
+    const optB = a.plan_type === 'savings_first'
+      ? escapeHtml(t('bank.optBSavings', { amount: money(a.emergency_savings_monthly || 0), etf: money(d ? d.monthly_amount : 0) }))
+      : escapeHtml(t('bankcard.monthly', { amount: money(d ? d.monthly_amount : 0), years: years(d ? d.horizon_years : 0) })) + '<br><span class="tiny muted">' + escapeHtml(d ? d.instrument_category : '') + '</span>';
     const option = (value, title, badge, body) =>
-      '<label class="block cursor-pointer"><input type="radio" name="bank_option" value="' + value + '" class="sr-only"' + (s.bankOption === value ? ' checked' : '') + '>' +
-        '<span class="fq-tile fq-tile--top"><span class="fq-radio-dot" aria-hidden="true"></span><span class="min-w-0">' +
-          '<span class="flex flex-wrap items-center gap-2">' + escapeHtml(title) + badge + '</span>' + body +
-        '</span></span></label>';
-
-    els.bankOrderContent.innerHTML =
-      '<div class="rounded-2xl bg-brand-dark p-4 text-white">' +
-        '<div class="flex items-center justify-between gap-3">' +
-          '<span class="inline-flex items-center gap-2 font-extrabold"><span class="grid h-7 w-7 place-items-center rounded-lg bg-brand-yellow text-brand-dark">' +
-            '<i data-lucide="landmark" class="h-4 w-4" aria-hidden="true"></i></span>Commerzbank</span>' +
-          '<span class="rounded-full bg-brand-yellow px-2 py-0.5 text-[11px] font-extrabold text-brand-dark">DEMO</span>' +
-        '</div>' +
-        '<p class="mt-2 text-xs text-white/70">' + escapeHtml(t('modalBankPreview')) + '</p>' +
-      '</div>' +
-      '<fieldset class="fq-field mt-4"><legend class="text-sm font-bold text-slate-600">' + escapeHtml(t('modalChooseStep')) + '</legend>' +
-        '<div class="mt-2 grid gap-3">' +
-          option('a', t('modalOptionA'),
-            '<span class="rounded-full bg-etf-green px-2 py-0.5 text-[11px] font-extrabold text-white">' + escapeHtml(t('modalRecommended')) + '</span>',
-            '<span class="mt-1 block text-sm font-semibold text-slate-600">' +
-              (c ? escapeHtml(t('modalTransfer', { amount: formatPLN(c.amount_pln), account: c.target_account })) : '') + '</span>') +
-          option('b', t('modalOptionB'), '', optionB) +
-        '</div>' +
-      '</fieldset>' +
-      '<p class="mt-4 flex items-start gap-2 rounded-2xl border border-stress-amber/50 bg-amber-50 p-3 text-xs font-semibold leading-relaxed text-slate-700">' +
-        '<i data-lucide="shield-alert" class="mt-0.5 h-4 w-4 shrink-0 text-stress-amber" aria-hidden="true"></i>' +
-        escapeHtml(t('modalKyc')) + '</p>' +
-      '<button type="button" data-action="simulate-bank" class="btn-3d mt-5 w-full">' +
-        '<span>' + escapeHtml(t('modalSimulate')) + '</span></button>';
-    refreshIcons();
+      '<label class="option"><input type="radio" name="bank_option" value="' + value + '" class="sr-only"' + (s.bankOption === value ? ' checked' : '') + '>' +
+        '<span class="tile"><span class="radio-dot" aria-hidden="true"></span><span><span class="strong">' + escapeHtml(title) + '</span> ' + badge +
+        '<span class="small" style="display:block;margin-top:4px;font-weight:600;color:var(--ink-2)">' + body + '</span></span></span></label>';
+    box.innerHTML =
+      '<div class="bank-head"><span><span class="bank-head__mark">' + icon('landmark', 'ic--sm') + '</span>Commerzbank</span><span class="chip chip--yellow" style="min-height:26px">DEMO</span></div>' +
+      '<p class="tiny muted" style="margin-top:8px">' + escapeHtml(t('bank.preview')) + '</p>' +
+      '<fieldset style="margin-top:14px"><legend class="small strong">' + escapeHtml(t('bank.choose')) + '</legend><div class="tiles" style="margin-top:8px">' +
+        option('a', t('bank.optA'), '<span class="chip chip--green" style="min-height:24px;padding:0 8px;font-size:.7rem">' + escapeHtml(t('bank.recommended')) + '</span>',
+          c ? escapeHtml(c.amount_pln > 0 ? t('bank.transfer', { amount: money(c.amount_pln), account: c.target_account }) : c.title) : '') +
+        option('b', t('bank.optB'), '', optB) +
+      '</div></fieldset>' +
+      '<p class="kyc">' + icon('shield', 'ic--sm') + '<span>' + escapeHtml(t('bank.kyc')) + '</span></p>' +
+      '<button type="button" class="btn btn--primary btn--block btn--lg" data-action="simulate-bank" style="margin-top:18px">' + escapeHtml(t('bank.simulate')) + '</button>';
   }
-
-  function openBankModal() {
-    if (!summaryTurn()) return;
+  function openBank() {
+    if (!state.turn || !state.turn.mission_completed) return;
     state.summary.bankDone = false;
     renderBankModal();
     openModal('modal_bank_order');
   }
-
-  function simulateBankStep() {
+  function simulateBank() {
     state.summary.bankDone = true;
     renderBankModal();
+    Sound.fanfare();
     fireConfetti('full');
-    const next = els.bankOrderContent.querySelector('[data-action="next-generation"]');
+    const next = els.bankContent.querySelector('[data-action="next-gen"]');
     if (next) next.focus();
   }
-
-  function testNextGeneration() {
-    const group = state.session && state.session.age_group;
-    const personaId = NEXT_GENERATION[group] || 'young_20';
-    closeModal('modal_bank_order');
-    selectPersona(personaId);
+  function nextGeneration() {
+    closeModal();
+    const next = NEXT_STAGE[state.stageId] || 'pre';
+    selectStage(next);
   }
 
   // ------------------------------------------------------------------------
-  // 13. Toasty, modal, konfetti
+  // 14. Checkpoint #1 (after Day 4)
   // ------------------------------------------------------------------------
-
-  const TOAST_TONES = {
-    info: 'bg-brand-dark text-white',
-    success: 'bg-etf-green text-white',
-    warn: 'bg-amber-50 text-brand-dark border border-stress-amber/60',
-  };
-
-  function showToast(message, tone, durationMs) {
-    if (!els.toastRoot) return;
-    const toast = document.createElement('div');
-    toast.className = 'toast-in pointer-events-auto max-w-md rounded-2xl px-4 py-3 text-sm font-semibold shadow-xl ' + (TOAST_TONES[tone] || TOAST_TONES.info);
-    toast.setAttribute('role', tone === 'warn' ? 'alert' : 'status');
-    toast.textContent = message;
-    els.toastRoot.appendChild(toast);
-    setTimeout(() => {
-      toast.classList.replace('toast-in', 'toast-out');
-      toast.addEventListener('animationend', () => toast.remove(), { once: true });
-    }, durationMs || 3600);
+  function checkpointQuestions() {
+    return (state.session && state.session.checkpoint_questions) || [];
+  }
+  function openCheckpoint() {
+    const qs = checkpointQuestions();
+    if (!qs.length) { toast(t('cp.unavailable'), 'info', 3600); return; }
+    state.cp = { i: 0, answers: {}, result: null, busy: false };
+    renderCheckpoint();
+    showScreen(SCREENS.CHECKPOINT);
+  }
+  function renderCheckpoint() {
+    const cp = state.cp;
+    const qs = checkpointQuestions();
+    if (!cp || !qs.length) return;
+    const total = qs.length;
+    const top =
+      '<div class="mbar"><div class="wrap wrap--narrow"><div class="mbar__row">' +
+        '<button type="button" class="icon-btn" data-action="go-home" aria-label="' + escapeHtml(t('common.close')) + '">' + icon('x') + '</button>' +
+        '<div class="progress" aria-hidden="true"><div class="progress__fill" style="width:' + ((cp.result ? total : cp.i) / total) * 100 + '%"></div></div>' +
+        '<span class="mbar__xp">' + icon('trophy') + escapeHtml(t('hub.checkpoint')) + '</span>' +
+      '</div></div></div>';
+    if (cp.result) {
+      const r = cp.result;
+      const items = (r.results || []).map((x, i) => {
+        const q = qs.find((qq) => qq.id === x.id) || qs[i] || { question: '' };
+        return '<li class="quiz-item ' + (x.correct ? 'is-right' : 'is-wrong') + '">' + icon(x.correct ? 'check' : 'x') +
+          '<div><p class="strong">' + escapeHtml(q.question) + '</p><p class="small" style="margin-top:4px;color:var(--ink-2)">' +
+          escapeHtml((x.correct ? t('cp.correct') : t('cp.incorrect')) + '. ' + x.explanation) + '</p></div></li>';
+      }).join('');
+      els.cpRoot.innerHTML = top +
+        '<div class="wrap wrap--narrow"><div class="card card--raised quiz-result" style="margin-top:12px">' +
+          coraHTML(r.passed ? 'celebrating' : 'coaching') +
+          '<p class="quiz-score" style="margin-top:8px">' + escapeHtml(r.score_pct) + '%</p>' +
+          '<p class="h2" style="margin-top:6px">' + escapeHtml(r.badge_title) + '</p>' +
+          (r.reward_xp ? '<p style="margin-top:10px"><span class="pill-xp">+' + escapeHtml(r.reward_xp) + ' XP</span></p>' : '') +
+          (r.passed ? '<div class="badge-art badge-pop" style="margin-top:14px">' + badgeSVG(levelFor(r.xp).level) + '</div>' : '') +
+          '<ul class="quiz-list">' + items + '</ul>' +
+          '<div class="win__actions">' +
+            (!r.passed ? '<button type="button" class="btn btn--primary" data-action="open-checkpoint">' + escapeHtml(t('cp.retry')) + '</button>' : '') +
+            '<button type="button" class="btn btn--ghost" data-action="go-home">' + escapeHtml(t('cp.back')) + '</button>' +
+          '</div></div></div>';
+      return;
+    }
+    const q = qs[cp.i];
+    const picked = cp.answers[q.id];
+    const last = cp.i === total - 1;
+    els.cpRoot.innerHTML = top +
+      '<div class="wrap wrap--narrow">' +
+        '<div class="scene">' + coraHTML('idle') + '<div class="bubble bubble--left"><p class="scene__who">' + escapeHtml(t('cp.q', { i: cp.i + 1, n: total })) + '</p>' +
+          '<p class="scene__q" style="margin-top:0">' + escapeHtml(q.question) + '</p>' +
+          (cp.i === 0 ? '<p class="small" style="margin-top:8px;color:var(--ink-2)">' + escapeHtml(t('cp.sub')) + '</p>' : '') + '</div></div>' +
+        '<div class="answers">' + (q.options || []).map((o, i) =>
+          '<button type="button" class="answer" data-action="cp-pick" data-id="' + escapeHtml(o.id) + '" aria-pressed="' + (picked === o.id) + '" style="grid-template-columns:auto 1fr">' +
+            '<span class="answer__icon" style="font-family:var(--font-display);font-weight:800">' + 'ABCD'.charAt(i) + '</span><span>' + escapeHtml(o.text) + '</span></button>').join('') + '</div>' +
+        '<div style="margin-top:22px;display:flex;justify-content:flex-end">' +
+          '<button type="button" class="btn btn--primary btn--lg" data-action="' + (last ? 'cp-submit' : 'cp-next') + '"' + (picked ? '' : ' disabled') + '>' +
+            (cp.busy ? '<span class="spinner"></span>' : '') + escapeHtml(last ? t('cp.submit') : t('cp.next')) + '</button></div>' +
+      '</div>';
+  }
+  function cpPick(id) {
+    const cp = state.cp;
+    const q = checkpointQuestions()[cp.i];
+    if (!q || cp.busy) return;
+    cp.answers[q.id] = id;
+    renderCheckpoint();
+  }
+  async function cpSubmit() {
+    const cp = state.cp;
+    if (!cp || cp.busy) return;
+    cp.busy = true;
+    renderCheckpoint();
+    const token = state.token;
+    try {
+      const body = { answers: Object.assign({}, cp.answers), lang: state.lang };
+      const res = await withSessionRecovery((sid) => api.checkpoint(Object.assign({ session_id: sid }, body)));
+      if (token !== state.token) return;
+      state.log.push({ kind: 'checkpoint', body });
+      cp.result = res;
+      if (res.passed) state.checkpointPassed = true;
+      const before = g();
+      if (state.turn && typeof res.xp === 'number') {
+        state.turn = Object.assign({}, state.turn, { gamification: Object.assign({}, before, levelFor(res.xp), { xp: res.xp, xp_gained: res.reward_xp || 0, leveled_up: !!res.leveled_up }) });
+      }
+      if (Array.isArray(res.leaderboard) && state.summary) state.summary.leaderboard = res.leaderboard;
+      renderHud();
+      if (res.passed) { Sound.fanfare(); fireConfetti('full'); } else Sound.retry();
+    } catch (err) {
+      if (token !== state.token) return;
+      toast(isRouteMissing(err) ? t('cp.unavailable') : describeApiError(err), 'warn');
+    } finally {
+      cp.busy = false;
+      renderCheckpoint();
+    }
   }
 
+  // ------------------------------------------------------------------------
+  // 15. Ask Kita — explain simpler with a real-life example + mini drill
+  // ------------------------------------------------------------------------
+  function localExplain(question, topicKey) {
+    let key = topicKey && EXPLAIN_LOCAL.en[topicKey] ? topicKey : null;
+    if (!key) {
+      const hit = EXPLAIN_PATTERNS.find((p) => p[1].test(question || ''));
+      key = hit ? hit[0] : 'general';
+    }
+    const d = (EXPLAIN_LOCAL[state.lang] || EXPLAIN_LOCAL.en)[key];
+    return { simple_explanation: d.s, real_life_example: d.e, drill_question: d.q, drill_options: d.o.slice(), correct_option_index: d.c, drill_feedback: d.f, is_fallback: true };
+  }
+  function validExplain(r) {
+    return r && typeof r.simple_explanation === 'string' && Array.isArray(r.drill_options) && r.drill_options.length === 3 &&
+      Number.isInteger(r.correct_option_index) && r.correct_option_index >= 0 && r.correct_option_index <= 2;
+  }
+  let coraReturnFocus = null;
+  function openCora(opts) {
+    const o = opts || {};
+    coraReturnFocus = document.activeElement;
+    els.coraSheet.hidden = false;
+    document.body.classList.add('no-scroll');
+    state.cora.result = null;
+    state.cora.picked = null;
+    renderCoraBody();
+    if (o.topic || o.question) askCora(o.question || o.label || o.topic, o.topic);
+    else setTimeout(() => { const i = document.getElementById('cora-input'); if (i) i.focus(); }, 60);
+  }
+  function closeCora() {
+    if (!els.coraSheet || els.coraSheet.hidden) return;
+    els.coraSheet.hidden = true;
+    document.body.classList.remove('no-scroll');
+    if (coraReturnFocus && typeof coraReturnFocus.focus === 'function') coraReturnFocus.focus();
+    coraReturnFocus = null;
+  }
+  function renderCoraBody() {
+    const c = state.cora;
+    setMood(els.coraSheetCora, c.busy ? 'thinking' : c.result && c.picked != null ? (c.picked === c.result.correct_option_index ? 'celebrating' : 'coaching') : 'idle');
+    const chips = '<div><p class="small strong" style="margin-bottom:8px">' + escapeHtml(t('cora.topics')) + '</p><div class="topic-chips">' +
+      EXPLAIN_TOPICS.map((k) => '<button type="button" data-action="cora-topic" data-topic="' + k + '">' + escapeHtml(t('cora.topic.' + k)) + '</button>').join('') + '</div></div>';
+    const form =
+      '<form id="cora-form"><label for="cora-input" class="small strong" style="display:block;margin-bottom:8px">' + escapeHtml(t('cora.label')) + '</label>' +
+        '<div class="ask-row"><textarea id="cora-input" class="textarea" rows="2" maxlength="400" placeholder="' + escapeHtml(t('cora.placeholder')) + '">' + escapeHtml(c.question || '') + '</textarea>' +
+        '<button type="submit" class="btn btn--primary" ' + (c.busy ? 'disabled' : '') + '>' + (c.busy ? '<span class="spinner"></span>' : icon('send')) + '<span class="sr-only">' + escapeHtml(t('cora.send')) + '</span></button></div></form>';
+    if (c.busy) {
+      els.coraBody.innerHTML = form + '<p class="strong" role="status">' + escapeHtml(t('cora.thinking')) + '<span class="thinking-dots" aria-hidden="true"><span></span><span></span><span></span></span></p>';
+      return;
+    }
+    if (!c.result) { els.coraBody.innerHTML = form + chips; return; }
+    const r = c.result;
+    const answered = c.picked != null;
+    const opts = r.drill_options.map((o, i) => {
+      let cls = '';
+      if (answered && i === r.correct_option_index) cls = ' is-right';
+      else if (answered && i === c.picked) cls = ' is-wrong';
+      return '<button type="button" class="answer' + cls + '" data-action="cora-drill" data-i="' + i + '"' + (answered ? ' disabled' : '') + '>' +
+        '<span class="answer__key" aria-hidden="true">' + 'ABC'.charAt(i) + '</span><span>' + escapeHtml(o) + '</span></button>';
+    }).join('');
+    els.coraBody.innerHTML =
+      (r.is_fallback ? '<span class="chip chip--soft" style="justify-self:start">' + icon('info', 'ic--sm') + escapeHtml(t('cora.offline')) + '</span>' : '') +
+      '<div class="explain-block"><h4>' + icon('chat', 'ic--sm') + escapeHtml(t('cora.simple')) + '</h4><p>' + escapeHtml(r.simple_explanation) + '</p></div>' +
+      '<div class="explain-block explain-block--example"><h4>' + icon('bulb', 'ic--sm') + escapeHtml(t('cora.example')) + '</h4><p>' + escapeHtml(r.real_life_example) + '</p></div>' +
+      '<div class="drill"><h4 class="strong" style="display:flex;gap:8px;align-items:center">' + icon('target', 'ic--sm') + escapeHtml(t('cora.drill')) + '</h4>' +
+        '<p style="margin-top:6px;font-weight:700">' + escapeHtml(r.drill_question) + '</p><div class="answers">' + opts + '</div>' +
+        (answered ? '<p class="drill__fb ' + (c.picked === r.correct_option_index ? 'drill__fb--ok' : 'drill__fb--no') + '" role="status">' +
+          escapeHtml((c.picked === r.correct_option_index ? t('cora.right') : t('cora.wrong')) + ' ' + r.drill_feedback) + '</p>' : '') + '</div>' +
+      '<button type="button" class="btn btn--ghost" data-action="cora-reset">' + icon('help', 'ic--sm') + escapeHtml(t('cora.again')) + '</button>';
+  }
+  async function askCora(question, topicKey) {
+    const q = String(question || '').trim().slice(0, 400);
+    if (!q || state.cora.busy) return;
+    state.cora.busy = true;
+    state.cora.question = q;
+    state.cora.result = null;
+    state.cora.picked = null;
+    renderCoraBody();
+    let result = null;
+    try {
+      if (state.session) {
+        const res = await withSessionRecovery((sid) => api.explain({ session_id: sid, question: q, topic_hint: topicKey || null, lang: state.lang }));
+        if (validExplain(res)) result = res;
+      }
+    } catch (err) {
+      if (!isRouteMissing(err)) console.info('[Finance Quest] /api/coach/explain failed (' + err.message + '), using the offline explanation.');
+    }
+    state.cora.busy = false;
+    state.cora.result = result || localExplain(q, topicKey);
+    renderCoraBody();
+  }
+  function pickDrill(i) {
+    const c = state.cora;
+    if (!c.result || c.picked != null) return;
+    c.picked = i;
+    if (i === c.result.correct_option_index) { Sound.correct(); fireConfetti('micro'); } else Sound.retry();
+    renderCoraBody();
+  }
+
+  // ------------------------------------------------------------------------
+  // 16. Modals, menu, toasts, confetti
+  // ------------------------------------------------------------------------
   let modalReturnFocus = null;
-
   function openModal(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
     modalReturnFocus = document.activeElement;
     modal.hidden = false;
-    document.body.style.overflow = 'hidden';
-    const closeBtn = modal.querySelector('button[data-action="close-modal"]');
-    if (closeBtn) closeBtn.focus();
+    document.body.classList.add('no-scroll');
+    const btn = modal.querySelector('.modal__head [data-action="close-modal"]');
+    if (btn) btn.focus();
   }
-
   function closeModal(id) {
-    const modal = id ? document.getElementById(id) : document.querySelector('[role="dialog"]:not([hidden])');
-    if (!modal) return;
-    modal.hidden = true;
-    document.body.style.overflow = '';
-    if (modalReturnFocus && typeof modalReturnFocus.focus === 'function') modalReturnFocus.focus();
+    const list = id ? [document.getElementById(id)] : Array.from(document.querySelectorAll('.modal:not([hidden])'));
+    let closed = false;
+    list.forEach((m) => { if (m && !m.hidden) { m.hidden = true; closed = true; } });
+    if (!closed) return;
+    if (els.coraSheet.hidden) document.body.classList.remove('no-scroll');
+    if (modalReturnFocus && typeof modalReturnFocus.focus === 'function' && document.contains(modalReturnFocus)) modalReturnFocus.focus();
     modalReturnFocus = null;
   }
+  function renderJudges() {
+    const sections = blocks().judges.map((s) =>
+      '<section class="judge judge--' + s.tone + (s.wide ? ' judge--wide' : '') + '"><h3>' + icon(s.icon, 'ic--sm') + escapeHtml(s.title) + '</h3>' +
+        (s.list ? '<ul>' + s.list.map((li) => '<li>' + escapeHtml(li) + '</li>').join('') + '</ul>' : '<p>' + escapeHtml(s.text) + '</p>') + '</section>'
+    ).join('');
+    const has = !!state.session;
+    els.judgesContent.innerHTML =
+      '<div class="judges">' + sections + '</div>' +
+      '<div class="card__head" style="margin-top:18px"><p class="small strong">' + escapeHtml(t('judges.shortcuts')) + '</p></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-action="demo-day4"' + (has ? '' : ' disabled') + '>' + icon('target', 'ic--sm') + escapeHtml(t('judges.jumpDay4')) + '</button>' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-action="demo-cp"' + (has ? '' : ' disabled') + '>' + icon('trophy', 'ic--sm') + escapeHtml(t('judges.openCp')) + '</button>' +
+      '</div>' +
+      '<p class="disclaimer" style="margin-top:14px">' + icon('info') + '<span>' + escapeHtml(t('ai.disclaimer')) + '</span></p>';
+  }
+  function toggleMenu(force) {
+    const open = force != null ? force : els.hudMenu.hidden;
+    els.hudMenu.hidden = !open;
+    document.querySelectorAll('[data-action="toggle-menu"]').forEach((b) => b.setAttribute('aria-expanded', String(open)));
+  }
+  function closeMenu() { if (els.hudMenu && !els.hudMenu.hidden) toggleMenu(false); }
 
-  // 'micro' — dobra odpowiedź (docs/01 §7 Ekran 3); 'full' — komplet checklisty (Ekran 4).
+  function toast(message, tone, ms) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (tone === 'warn' ? ' toast--warn' : tone === 'ok' ? ' toast--ok' : '');
+    el.setAttribute('role', tone === 'warn' ? 'alert' : 'status');
+    el.textContent = message;
+    els.toastRoot.appendChild(el);
+    setTimeout(() => {
+      el.classList.add('is-out');
+      el.addEventListener('animationend', () => el.remove(), { once: true });
+      setTimeout(() => el.remove(), 600);
+    }, ms || 3400);
+  }
   function fireConfetti(kind) {
     if (typeof window.confetti !== 'function') return;
+    const colors = [C.yellow, C.green, C.tangerine, C.sky, C.ink];
     if (kind === 'full') {
-      window.confetti({
-        particleCount: 160,
-        spread: 100,
-        origin: { y: 0.6 },
-        colors: [COLORS.brandYellow, COLORS.brandDark, COLORS.etfGreen],
-        disableForReducedMotion: true,
-      });
+      window.confetti({ particleCount: 150, spread: 100, startVelocity: 42, origin: { y: 0.55 }, colors, disableForReducedMotion: true });
+      setTimeout(() => window.confetti({ particleCount: 60, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors, disableForReducedMotion: true }), 180);
+      setTimeout(() => window.confetti({ particleCount: 60, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors, disableForReducedMotion: true }), 260);
       return;
     }
-    window.confetti({ particleCount: 35, spread: 60, origin: { y: 0.7 }, disableForReducedMotion: true });
+    window.confetti({ particleCount: 40, spread: 62, origin: { y: 0.75 }, colors, disableForReducedMotion: true });
   }
 
   // ------------------------------------------------------------------------
-  // 14. Zdarzenia i start
+  // 17. Language, events & init
   // ------------------------------------------------------------------------
+  function applyStaticI18n() {
+    document.documentElement.lang = state.lang;
+    document.title = t('meta.title');
+    document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-aria]').forEach((el) => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => el.setAttribute('title', t(el.dataset.i18nTitle)));
+    document.querySelectorAll('[data-i18n-content]').forEach((el) => el.setAttribute('content', t(el.dataset.i18nContent)));
+    document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === state.lang)));
+  }
+
+  async function setLang(lang) {
+    if (lang !== 'en' && lang !== 'pl') return;
+    if (lang === state.lang) { closeMenu(); return; }
+    state.lang = lang;
+    storageSet(LS_LANG, lang);
+    applyStaticI18n();
+    renderSoundButton();
+    renderStageCards();
+    syncFormOutputs();
+    renderHud({ animate: false });
+    if (!els.modalJudges.hidden) renderJudges();
+    loadPersonas();
+    // Nothing answered yet -> refresh server content in the new language (docs/01 §9).
+    if (state.session && state.log.length === 0 && state.lastProfile && (state.screen === SCREENS.HUB)) {
+      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), year: state.tm.year };
+      const data = await analyzeProfile(state.lastProfile, { stay: true, quick: true, stageId: state.stageId });
+      if (data) {
+        state.lessonsXp = keep.lessonsXp;
+        state.completedLessons = keep.completedLessons;
+        renderLessonsCard();
+        renderHud({ animate: false });
+        if (keep.year) updateTimeMachine(keep.year, { animate: false });
+      }
+      return;
+    }
+    if (state.session) {
+      if (state.screen === SCREENS.HUB) { renderHub(); updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false }); }
+      if (state.screen === SCREENS.MISSION && state.mission && state.mission.phase === 'answer') renderBeat();
+      else if (state.screen === SCREENS.MISSION) renderMissionBar();
+      if (state.screen === SCREENS.DONE) renderDone({ animate: false });
+      if (state.screen === SCREENS.CHECKPOINT) renderCheckpoint();
+    }
+    if (!els.coraSheet.hidden) renderCoraBody();
+  }
+
+  function goHome() {
+    if (!state.session) { showScreen(SCREENS.ONBOARDING); return; }
+    closeDrawer();
+    renderHub();
+    showScreen(SCREENS.HUB);
+    updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false });
+  }
 
   function bindEvents() {
-    document.addEventListener('click', (event) => {
-      const target = event.target.closest('[data-persona-id], [data-action], [data-goto]');
-      if (!target || target.disabled) return;
-      if (target.dataset.personaId) {
-        selectPersona(target.dataset.personaId);
-      } else if (target.dataset.goto) {
-        showScreen(target.dataset.goto);
-      } else if (target.dataset.action === 'set-lang') {
-        setLanguage(target.dataset.lang);
-      } else if (target.dataset.action === 'reset-demo') {
-        resetDemo();
-      } else if (target.dataset.action === 'submit-onboarding') {
-        submitOnboarding();
-      } else if (target.dataset.action === 'complete-lesson') {
-        completeLesson(target.dataset.lessonId);
-      } else if (target.dataset.action === 'quick-reply') {
-        answerWithQuickReply(target.dataset.replyId);
-      } else if (target.dataset.action === 'start-day') {
-        startDay(target.dataset.day);
-      } else if (target.dataset.action === 'accept-challenge') {
-        acceptChallenge(target.dataset.day);
-      } else if (target.dataset.action === 'open-checkpoint') {
-        showScreen(SCREENS.CHECKPOINT);
-      } else if (target.dataset.action === 'retry-checkpoint') {
-        retryCheckpoint();
-      } else if (target.dataset.action === 'demo-jump') {
-        demoJumpToDay(target.dataset.day);
-      } else if (target.dataset.action === 'demo-checkpoint') {
-        demoOpenCheckpoint();
-      } else if (target.dataset.action === 'toggle-check') {
-        toggleChecklistItem(target.dataset.checkId, target);
-      } else if (target.dataset.action === 'challenge-friend') {
-        challengeFriend();
-      } else if (target.dataset.action === 'open-bank-modal') {
-        openBankModal();
-      } else if (target.dataset.action === 'simulate-bank') {
-        simulateBankStep();
-      } else if (target.dataset.action === 'next-generation') {
-        testNextGeneration();
-      } else if (target.dataset.action === 'open-modal') {
-        openModal(target.dataset.target);
-      } else if (target.dataset.action === 'close-modal') {
-        closeModal(target.closest('[role="dialog"]') && target.closest('[role="dialog"]').id);
+    document.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.btn, .answer, .node, .stage-card, .stage-pill, .tile-wrap, .icon-btn, .tool-btn, .check, .fund__row, .seg button, .topic-chips button, .cora-dock')) Sound.click();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (els.hudMenu && !els.hudMenu.hidden && !e.target.closest('#hud-menu, [data-action="toggle-menu"]')) toggleMenu(false);
+      const el = e.target.closest('[data-action], [data-stage], [data-lang]');
+      if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true' && el.dataset.action !== 'node') return;
+      if (el.dataset.lang) { setLang(el.dataset.lang); closeMenu(); return; }
+      if (el.dataset.stage) { selectStage(el.dataset.stage); return; }
+      const a = el.dataset.action;
+      switch (a) {
+        case 'go-home': goHome(); break;
+        case 'reset': resetToProfile(); break;
+        case 'toggle-sound': Sound.setMuted(!Sound.isMuted()); renderSoundButton(); if (!Sound.isMuted()) Sound.pop(); break;
+        case 'toggle-menu': toggleMenu(); break;
+        case 'open-judges': closeMenu(); renderJudges(); openModal('modal_judges'); break;
+        case 'close-modal': closeModal(el.closest('.modal') ? el.closest('.modal').id : null); break;
+        case 'toggle-tailor': openTailor(); break;
+        case 'node': onNode(el.dataset.node, el); break;
+        case 'open-mission': openMission(); break;
+        case 'start-day': startDay(Number(el.dataset.day)); break;
+        case 'open-checkpoint': openCheckpoint(); break;
+        case 'open-done': openDone(); break;
+        case 'lesson': completeLesson(el.dataset.lessonId, el); break;
+        case 'close-mission': closeMission(); break;
+        case 'pick': pickAnswer(el.dataset.id, el); break;
+        case 'check': check(); break;
+        case 'continue': continueMission(); break;
+        case 'myth': pickMyth(el.dataset.v, el); break;
+        case 'spot': pickSpot(el.dataset.row, el); break;
+        case 'accept-challenge': acceptChallenge(); break;
+        case 'toggle-check': toggleCheck(el.dataset.id, el); break;
+        case 'challenge-friend': challengeFriend(); break;
+        case 'open-bank': openBank(); break;
+        case 'simulate-bank': simulateBank(); break;
+        case 'next-gen': nextGeneration(); break;
+        case 'cp-pick': cpPick(el.dataset.id); break;
+        case 'cp-next': if (state.cp) { state.cp.i += 1; renderCheckpoint(); window.scrollTo(0, 0); } break;
+        case 'cp-submit': cpSubmit(); break;
+        case 'open-cora': {
+          if (el.dataset.topic) openCora({ question: el.dataset.topic });
+          else if (state.screen === SCREENS.MISSION) {
+            const k = explainTopicForBeat();
+            openCora({ topic: k, question: EXPLAIN_TOPICS.indexOf(k) >= 0 ? t('cora.topic.' + k) : t('hub.phase1.title') });
+          }
+          else openCora();
+          break;
+        }
+        case 'close-cora': closeCora(); break;
+        case 'cora-topic': askCora(t('cora.topic.' + el.dataset.topic), el.dataset.topic); break;
+        case 'cora-drill': pickDrill(Number(el.dataset.i)); break;
+        case 'cora-reset': state.cora.result = null; state.cora.picked = null; state.cora.question = ''; renderCoraBody(); break;
+        case 'demo-day4': closeModal(); startDay(4, { demo: true }); break;
+        case 'demo-cp': closeModal(); openCheckpoint(); break;
+        default: break;
       }
     });
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') closeModal();
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (!els.coraSheet.hidden) closeCora();
+        else if (document.querySelector('.modal:not([hidden])')) closeModal();
+        else closeMenu();
+      }
+      if (e.target && e.target.id === 'm-input' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        if (!els.mCheck.disabled) check();
+      }
+      if (e.target && e.target.id === 'cora-input' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        askCora(e.target.value);
+      }
     });
-    // Radia poza ankietą: samoocena „po", opcja w modalu bankowym i odpowiedzi Checkpointu.
-    document.addEventListener('change', (event) => {
-      const input = event.target;
+
+    document.addEventListener('input', (e) => {
+      const id = e.target && e.target.id;
+      if (id === 'm-input') syncOwn();
+      else if (id === 'm-alloc') updateAlloc();
+      else if (id === 'tm-years') updateTimeMachine(e.target.value);
+    });
+    document.addEventListener('change', (e) => {
+      const input = e.target;
       if (!input || input.type !== 'radio') return;
-      if (input.name === 'self_confidence_after') setSelfAfter(input.value);
-      else if (input.name === 'bank_option') state.summary.bankOption = input.value === 'b' ? 'b' : 'a';
-      else if (input.name.indexOf('cp_') === 0) {
-        const question = input.name.slice(3);
-        state.checkpoint.answers[question] = input.value;
-        if (state.checkpoint.result) {
-          // Zmiana odpowiedzi po wyniku = nowa próba (wynik przestaje być aktualny).
-          state.checkpoint.result = null;
-          els.cpResult.hidden = true;
-          els.cpResult.innerHTML = '';
-        }
-        const questions = checkpointQuestions();
-        renderCheckpointHead(questions.length);
+      if (input.name === 'self_after') {
+        state.summary.selfAfter = Number(input.value);
+        const out = document.getElementById('self-compare');
+        if (out) out.textContent = selfCompare(state.lastProfile ? state.lastProfile.self_confidence_start : null, state.summary.selfAfter);
+      } else if (input.name === 'bank_option') {
+        state.summary.bankOption = input.value === 'b' ? 'b' : 'a';
       }
     });
-    if (els.cpForm) {
-      els.cpForm.addEventListener('submit', submitCheckpoint);
-    }
-    if (els.form) {
-      els.form.addEventListener('input', onFormInput);
-      els.form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        submitOnboarding();
-      });
-    }
-    if (els.tmYears) {
-      els.tmYears.addEventListener('input', () => updateTimeMachine(els.tmYears.value));
-    }
-    if (els.msForm) {
-      els.msForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        submitFreeText();
-      });
-      els.msInput.addEventListener('input', syncMissionCounter);
-      // Enter = wyślij, Shift+Enter = nowa linia (bez przerywania kompozycji IME).
-      els.msInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
-          event.preventDefault();
-          submitFreeText();
-        }
-      });
-    }
+    document.addEventListener('submit', (e) => {
+      if (e.target.id === 'cora-form') {
+        e.preventDefault();
+        const input = document.getElementById('cora-input');
+        askCora(input ? input.value : '');
+      }
+    });
+    els.form.addEventListener('input', onFormInput);
+    els.form.addEventListener('submit', (e) => { e.preventDefault(); submitForm(); });
   }
 
-  function configureChartDefaults() {
+  function cacheElements() {
+    const $ = (id) => document.getElementById(id);
+    els.screens = Array.from(document.querySelectorAll('main .screen'));
+    els.hudDayNum = $('hud-day-num');
+    els.hudDayTotal = $('hud-day-total');
+    els.hudStreak = $('hud-streak');
+    els.hudXp = $('hud-xp');
+    els.hudXpPill = $('hud-xp-pill');
+    els.hudLevel = $('hud-level');
+    els.hudReady = $('hud-ready');
+    els.hudReadyRow = $('hud-ready-row');
+    els.hudSound = $('hud-sound');
+    els.hudMenu = $('hud-menu');
+    els.stageGrid = $('stage-grid');
+    els.tailorBody = $('tailor-body');
+    els.form = $('onboarding-form');
+    els.fAge = $('f-age');
+    els.fAgeOut = $('f-age-out');
+    els.fAgeGroup = $('f-age-group');
+    els.fNet = $('f-net');
+    els.fNetOut = $('f-net-out');
+    els.fFree = $('f-free');
+    els.fFreeOut = $('f-free-out');
+    els.fFreeHint = $('f-free-hint');
+    els.ctaOnboarding = $('cta-onboarding');
+    els.stagebar = $('stagebar');
+    els.hubPathCol = $('hub-path-col');
+    els.cardPlan = $('card-plan');
+    els.cardSkipped = $('card-skipped');
+    els.cardLessons = $('card-lessons');
+    els.hubMobileCta = $('hub-mobile-cta');
+    els.tmMonthly = $('tm-monthly');
+    els.tmYears = $('tm-years');
+    els.tmPill = $('tm-pill');
+    els.tmMin = $('tm-min');
+    els.tmMax = $('tm-max');
+    els.kpiCash = $('kpi-cash');
+    els.kpiPaid = $('kpi-paid');
+    els.kpiEtf = $('kpi-etf');
+    els.kpiEtfNominal = $('kpi-etf-nominal');
+    els.kpiWin = $('kpi-win');
+    els.kpiWinText = $('kpi-win-text');
+    els.tmChart = $('tm-chart');
+    els.tmAssumptions = $('tm-assumptions');
+    els.mProgress = $('m-progress');
+    els.mProgressFill = $('m-progress-fill');
+    els.mTicks = $('m-ticks');
+    els.mXp = $('m-xp');
+    els.mXpPill = $('m-xp-pill');
+    els.mMeta = $('m-meta');
+    els.mStage = $('m-stage');
+    els.mCheckbar = $('m-checkbar');
+    els.mCheck = $('m-check');
+    els.mDrawer = $('m-drawer');
+    els.mDrawerCora = $('m-drawer-cora');
+    els.mDrawerTitle = $('m-drawer-title');
+    els.mDrawerAnswer = $('m-drawer-answer');
+    els.mDrawerText = $('m-drawer-text');
+    els.mDrawerPills = $('m-drawer-pills');
+    els.mContinue = $('m-continue');
+    els.doneRoot = $('done-root');
+    els.cpRoot = $('cp-root');
+    els.coraSheet = $('cora-sheet');
+    els.coraSheetCora = $('cora-sheet-cora');
+    els.coraBody = $('cora-body');
+    els.bankContent = $('bank-content');
+    els.modalJudges = $('modal_judges');
+    els.judgesContent = $('judges-content');
+    els.toastRoot = $('toast-root');
+  }
+
+  function setupMobileReadiness() {
+    const val = document.getElementById('hud-ready-val');
+    if (val) val.setAttribute('data-ready-val', '');
+    if (!els.hudReady || !els.hudReadyRow) return;
+    const clone = els.hudReady.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+    els.hudReadyRow.appendChild(clone);
+    els.hudReadyMobile = clone;
+  }
+
+  function configureChart() {
     if (!window.Chart) return;
     window.Chart.defaults.font.family = "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif";
     window.Chart.defaults.font.size = 12;
-    window.Chart.defaults.color = '#475569';
-  }
-
-  function reportMissingVendors() {
-    const vendors = { tailwind: window.tailwind, Chart: window.Chart, confetti: window.confetti, lucide: window.lucide };
-    const missing = Object.keys(vendors).filter((name) => !vendors[name]);
-    if (missing.length) {
-      console.warn('[Finance Quest] Brak lokalnych bibliotek w /static/vendor/: ' + missing.join(', '));
-    }
+    window.Chart.defaults.font.weight = '600';
+    window.Chart.defaults.color = C.ink3;
   }
 
   function init() {
     cacheElements();
-    applyStaticTranslations();
-    refreshIcons();
-    configureChartDefaults();
-    reportMissingVendors();
+    const saved = storageGet(LS_LANG);
+    state.lang = saved === 'pl' || saved === 'en' ? saved : 'en';
+    setupMobileReadiness();
+    hydrateIcons();
+    hydrateCora();
+    applyStaticI18n();
+    renderSoundButton();
+    configureChart();
     bindEvents();
+    renderStageCards();
     syncFormOutputs();
-    renderPersonaPills();
-    renderHeader({ animate: false });
+    renderHud({ animate: false });
     loadPersonas();
+    const missing = ['Chart', 'confetti'].filter((n) => !window[n]);
+    if (missing.length) console.warn('[Finance Quest] Missing local libraries in /static/vendor/: ' + missing.join(', '));
   }
 
-  // Publiczne API modułu (dla kolejnych Issues #9–#12 i debugowania w konsoli).
-  window.FQ = {
-    API_BASE,
-    SCREENS,
-    COLORS,
-    LANG_STORAGE_KEY,
-    I18N,
-    get COMPLIANCE_TEXT() {
-      return t('complianceText');
-    },
-    t,
-    setLanguage,
-    resetDemo,
-    applyStaticTranslations,
-    state,
-    api,
-    ApiError,
-    describeApiError,
-    showScreen,
-    renderHeader,
-    resetHeaderBaseline,
-    applyOnboardingResponse,
-    applyMissionTurn,
-    renderMission,
-    sendMissionAnswer,
-    withSessionRecovery,
-    renderSummary,
-    renderRoadmap,
-    renderNextStepCard,
-    acceptChallenge,
-    startDay,
-    demoJumpToDay,
-    demoOpenCheckpoint,
-    renderCheckpoint,
-    submitCheckpoint,
-    retryCheckpoint,
-    currentDay,
-    openBankModal,
-    addMicroLessonBonusXp,
-    analyzeProfile,
-    selectPersona,
-    loadPersonas,
-    fillOnboardingForm,
-    readOnboardingForm,
-    updateTimeMachine,
-    showToast,
-    openModal,
-    closeModal,
-    fireConfetti,
-    refreshIcons,
-    replayClass,
-    animateNumber,
-    formatNumber,
-    formatPLN,
-    yearsLabel,
-    escapeHtml,
-  };
+  // Debug handle for the console (no globals beyond this).
+  window.FQ = { state, api, t, showScreen, selectStage, startDay, openCheckpoint, openCora, Sound };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();

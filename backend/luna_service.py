@@ -1,4 +1,4 @@
-"""AI Coach Cora — procesor tury misji Dnia 1 (SSOT v4).
+"""AI Coach Kita — procesor tury misji Dnia 1 (SSOT v4).
 
 Zasada (docs/03 §1): całą misję (teksty, opcje, liczby, XP, checklistę, plan
 bankowy) generuje deterministycznie Python z ``backend/demo_data.py``. LLM jest
@@ -300,7 +300,7 @@ def _invalid_assessment(lang: Language) -> LunaAssessment:
 
 # System prompt oceny (docs/03 §3) — 1:1 z SSOT, składany ``.format(...)``.
 # Odpowiedź użytkownika jest osadzana jako DANE między znacznikami.
-LUNA_ASSESS_PROMPT: Final[str] = """Jesteś Cora — ciepłym, ultrakonkretnym codziennym AI Coachem finansowym w aplikacji edukacyjnej Finance Quest (14-Day Confidence Sprint, obecnie DZIEŃ {active_day}).
+LUNA_ASSESS_PROMPT: Final[str] = """Jesteś Kita — ciepłym, ultrakonkretnym codziennym AI Coachem finansowym w aplikacji edukacyjnej Finance Quest (14-Day Confidence Sprint, obecnie DZIEŃ {active_day}).
 Twoje jedyne zadanie: rygorystycznie ocenić, czy odpowiedź użytkownika wykazuje realne zrozumienie mechanizmu z tego kroku. Nigdy nie liczysz pieniędzy i nie podajesz własnych liczb.
 
 KONTEKST KROKU {answered_step} Z {total_steps}
@@ -334,7 +334,7 @@ ODPOWIEDZ WYŁĄCZNIE CZYSTYM JSON:
 
 # Angielski wariant promptu oceny (docs/03 §3 i §10) — te same kryteria kroku,
 # ten sam ścisły JSON, feedback po angielsku, ten sam słownik compliance.
-LUNA_ASSESS_PROMPT_EN: Final[str] = """You are Cora — a warm, ultra-concrete daily AI financial coach in the educational app Finance Quest (14-Day Confidence Sprint, currently DAY {active_day}).
+LUNA_ASSESS_PROMPT_EN: Final[str] = """You are Kita — a warm, ultra-concrete daily AI financial coach in the educational app Finance Quest (14-Day Confidence Sprint, currently DAY {active_day}).
 Your only job: strictly assess whether the user's answer shows genuine understanding of the mechanism in this step. You never calculate money and you never give your own numbers.
 
 STEP CONTEXT {answered_step} OF {total_steps}
@@ -384,12 +384,12 @@ _USER_INSTRUCTION: dict[str, str] = {
 
 
 # --------------------------------------------------------------------------- #
-# Tryb „Ask Cora / Explain with real-life example + mini-drill” (docs/03 §11)
+# Tryb „Ask Kita / Explain with real-life example + mini-drill” (docs/03 §11)
 # --------------------------------------------------------------------------- #
 
 
 class CoachExplainResult(BaseModel):
-    """Wynik wyjaśnienia Cory z 3-opcyjnym mini-drillem.
+    """Wynik wyjaśnienia Kity z 3-opcyjnym mini-drillem.
 
     Brak wartości domyślnych jest wymogiem ``strict: true`` w JSON Schema.
     """
@@ -424,7 +424,7 @@ def _explain_json_schema() -> dict:
     return schema
 
 
-CORA_EXPLAIN_PROMPT_EN: Final[str] = """You are Cora — a warm, concrete daily AI financial coach in the educational app Finance Quest (14-Day Confidence Sprint).
+CORA_EXPLAIN_PROMPT_EN: Final[str] = """You are Kita — a warm, concrete daily AI financial coach in the educational app Finance Quest (14-Day Confidence Sprint).
 A beginner asks you to explain something more simply. You never give investment advice and you never calculate money.
 
 USER CONTEXT
@@ -456,7 +456,7 @@ REPLY WITH CLEAN JSON ONLY:
   "drill_feedback": "1–2 sentences."
 }}"""
 
-CORA_EXPLAIN_PROMPT: Final[str] = """Jesteś Cora — ciepłym, konkretnym codziennym AI Coachem finansowym w aplikacji edukacyjnej Finance Quest (14-Day Confidence Sprint).
+CORA_EXPLAIN_PROMPT: Final[str] = """Jesteś Kita — ciepłym, konkretnym codziennym AI Coachem finansowym w aplikacji edukacyjnej Finance Quest (14-Day Confidence Sprint).
 Początkujący prosi Cię o prostsze wyjaśnienie. Nigdy nie udzielasz porad inwestycyjnych i nigdy nie liczysz pieniędzy.
 
 KONTEKST UŻYTKOWNIKA
@@ -828,7 +828,7 @@ def explain_with_drill(
     topic_hint: str | None = None,
     lang: Language | None = None,
 ) -> dict:
-    """Cora tłumaczy pojęcie na przykładzie z życia i dodaje mini-drill.
+    """Kita tłumaczy pojęcie na przykładzie z życia i dodaje mini-drill.
 
     Nigdy nie rzuca wyjątku. ``DEMO_OFFLINE=1``, brak klucza, puste pytanie,
     błąd sieci/timeout, ``refusal``, niepełna lub niepoprawna odpowiedź LLM

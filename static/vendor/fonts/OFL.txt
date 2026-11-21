@@ -1,3 +1,6 @@
+Bricolage Grotesque: Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
+Plus Jakarta Sans: Copyright 2020 The Plus Jakarta Sans Project Authors (https://github.com/tokotype/PlusJakartaSans)
+
 Google Inc.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
