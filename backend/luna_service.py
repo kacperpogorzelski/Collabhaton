@@ -136,6 +136,7 @@ AnswerQuality = Literal["optimal", "partial", "invalid"]
 # Lokalna pre-walidacja śmieciowych odpowiedzi (docs/03 §2). Deterministyczna,
 # 0 ms, działa także przy ``DEMO_OFFLINE=1``.
 _VOWELS: Final[frozenset[str]] = frozenset("aeiouyąęóáéíú")
+_PL_ASCII_TRANS: Final[dict[int, int]] = str.maketrans("ąćęłńóśźż", "acelnoszz")
 _FILLER_ANSWERS: Final[frozenset[str]] = frozenset(
     {
         # EN
@@ -219,7 +220,7 @@ def _is_invalid_free_text(text: str) -> bool:
         return True  # same cyfry / interpunkcja / emoji
 
     cleaned = stripped.lower().replace("'", "").replace("’", "")
-    normalized = " ".join(re.sub(r"[^\w\s]", " ", cleaned).split())
+    normalized = " ".join(re.sub(r"[^\w\s]", " ", cleaned).split()).translate(_PL_ASCII_TRANS)
     if normalized in _FILLER_ANSWERS:
         return True
 
@@ -231,8 +232,9 @@ def _is_invalid_free_text(text: str) -> bool:
     if any(token.startswith(_KEYBOARD_PATTERNS) for token in tokens):
         return True  # „asdf", „qwerty", „sdfgh", „zxcv"
 
-    if len(tokens) == 1 and not (set(tokens[0]) & _VOWELS):
-        return True  # pojedyncze słowo bez samogłosek, np. „sdfgh"
+    alpha_tokens = [token for token in tokens if any(char.isalpha() for char in token)]
+    if alpha_tokens and all(not (set(token) & _VOWELS) for token in alpha_tokens):
+        return True  # bełkot bez samogłosek, np. „sdfgh" lub „bcdfg mnpqr"
 
     return False
 
@@ -851,9 +853,10 @@ def process_mission_turn(
         )
 
     # Nowa lista — SQLAlchemy wykryje zmianę kolumny JSON (docs/02 §2D).
+    assistant_reply = feedback if answer_quality == "invalid" else response.luna_message
     session_data["history"] = list(session_data.get("history") or []) + [
         {"role": "user", "content": user_message},
-        {"role": "assistant", "content": response.luna_message},
+        {"role": "assistant", "content": assistant_reply},
     ]
     return response
 
@@ -866,6 +869,10 @@ def _invalid_turn(
     options = _options(session_data)
     if not options:
         options = shuffle_options(block["options"], _session_key(session_data), answered_step)
+    localized_by_id = {
+        opt["id"]: opt for opt in block["options"] if isinstance(opt, dict) and "id" in opt
+    }
+    localized_options = [localized_by_id.get(option.get("id"), option) for option in options]
 
     return MissionTurnResponse(
         step_number=answered_step,
@@ -876,7 +883,9 @@ def _invalid_turn(
         understanding_feedback=feedback,
         is_optimal_choice=False,
         luna_message=block["luna_message"],
-        quick_replies=[QuickReply(id=option["id"], text=option["text"]) for option in options],
+        quick_replies=[
+            QuickReply(id=option["id"], text=option["text"]) for option in localized_options
+        ],
         portfolio_status=PortfolioStatus(
             simulated_value=_simulated_value(session_data, answered_step),
             event_badge=block["badge"],
