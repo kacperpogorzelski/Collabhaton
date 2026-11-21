@@ -49,11 +49,31 @@ __all__ = [
     "DEMO_PERSONAS",
     "SEED_LEADERBOARD",
     "SPEAKLY_FILTER_BY_GROUP",
+    "SPEAKLY_FILTER_BY_GROUP_EN",
     "ROADMAP_BY_GROUP",
+    "ROADMAP_BY_GROUP_EN",
     "MICRO_LESSONS_BY_GROUP",
+    "MICRO_LESSONS_BY_GROUP_EN",
+    "MICRO_LESSONS_BY_DAY",
+    "MICRO_LESSONS_BY_DAY_EN",
     "STEP1_BY_AGE_GROUP",
+    "STEP1_BY_AGE_GROUP_EN",
+    "STEP1_SAVINGS_FIRST",
+    "STEP1_SAVINGS_FIRST_EN",
+    "STEP1_CONFIDENT",
+    "STEP1_CONFIDENT_EN",
     "STEP2_BY_CONCERN",
+    "STEP2_BY_CONCERN_EN",
     "STEP3",
+    "STEP3_EN",
+    "DAY_STEPS",
+    "DAY_STEPS_EN",
+    "CHECKPOINT_1_QUESTIONS",
+    "CHECKPOINT_1_QUESTIONS_EN",
+    "CHECKPOINT_1_PASS_PCT",
+    "CHECKPOINT_1_REWARD_XP",
+    "POST_14_PATHS",
+    "POST_14_PATHS_EN",
     "PLAN_SENTENCE",
     "FINAL_MESSAGE",
     "FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX",
@@ -62,6 +82,7 @@ __all__ = [
     "COSTS_NOTE",
     "INSTRUMENT_CATEGORY",
     "get_age_group_content",
+    "get_day_content",
     "get_demo_personas",
     "get_assumptions_text",
     "get_costs_note",
@@ -75,6 +96,9 @@ __all__ = [
     "get_final_message",
     "get_final_badge",
     "get_level_state",
+    "get_checkpoint_questions",
+    "grade_checkpoint",
+    "get_post_14_paths",
     "build_leaderboard",
 ]
 
@@ -181,77 +205,108 @@ SPEAKLY_FILTER_BY_GROUP: dict[AgeGroup, SpeaklyFilter] = {
 }
 
 # --------------------------------------------------------------------------- #
-# Mapa 14 dni — 4 kamienie milowe na grupę (Dzień 1 aktywny, reszta zablokowana)
+# Mapa 14 dni — 14-Day Confidence Sprint w 3 czytelnych fazach
 # --------------------------------------------------------------------------- #
+
+PHASE_1: str = "Faza 1: Dni 1–4 · Fundamenty i pierwszy krok"
+PHASE_2: str = "Faza 2: Dni 5–9 · Ryzyko, bezpieczeństwo i emocje"
+PHASE_3: str = "Faza 3: Dni 10–14 · Twój prawdziwy plan"
+DURATION_HINT: str = "~5 min/day"
+
+
+def _roadmap_milestone(
+    day: int, title: str, focus: str, phase: str, status: str = "locked"
+) -> RoadmapMilestone:
+    """Buduje kamień milowy; ``phase``/``duration_hint`` tylko gdy schemat je zna."""
+    fields = getattr(RoadmapMilestone, "model_fields", None) or {}
+    kwargs: dict = {"day": day, "title": title, "focus": focus, "status": status}
+    if "phase" in fields:
+        kwargs["phase"] = phase
+    if "duration_hint" in fields:
+        kwargs["duration_hint"] = DURATION_HINT
+    return RoadmapMilestone(**kwargs)
+
 
 ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
     "20+": [
-        RoadmapMilestone(
-            day=1,
-            title="Inflacja, płynność i start",
-            focus="Dziś: 5 min • Przełamanie mitu zamrożonej kasy",
-            status="active",
+        _roadmap_milestone(
+            1,
+            "Inflacja, płynność i start",
+            "Dziś: 5 min • Przełamanie mitu zamrożonej kasy",
+            PHASE_1,
+            "active",
         ),
-        RoadmapMilestone(
-            day=4,
-            title="Symulator pierwszego spadku -15%",
-            focus="Trening zimnej krwi na realnych wykresach",
+        _roadmap_milestone(
+            4,
+            "Symulator pierwszego spadku -15%",
+            "Po Dniu 4: Checkpoint #1 — szybki test wiedzy",
+            PHASE_1,
         ),
-        RoadmapMilestone(
-            day=9,
-            title="Jak wybrać tani, szeroki ETF?",
-            focus="Opłaty (TER) i proste zasady dywersyfikacji",
+        _roadmap_milestone(
+            9,
+            "Jak wybrać tani, szeroki ETF?",
+            "Opłaty (TER), dywersyfikacja i Checkpoint #2",
+            PHASE_2,
         ),
-        RoadmapMilestone(
-            day=14,
-            title="Twoja pierwsza inwestycja",
-            focus="Gotowość 100% • Uruchomienie planu w Commerzbanku",
+        _roadmap_milestone(
+            14,
+            "Twoja pierwsza inwestycja",
+            "Finał sprintu • Uruchomienie planu w Commerzbanku",
+            PHASE_3,
         ),
     ],
     "30-50": [
-        RoadmapMilestone(
-            day=1,
-            title="Inflacja i inwestowanie w tle",
-            focus="Dziś: 5 min • Poduszka osobno, nadwyżki osobno",
-            status="active",
+        _roadmap_milestone(
+            1,
+            "Inflacja i inwestowanie w tle",
+            "Dziś: 5 min • Poduszka osobno, nadwyżki osobno",
+            PHASE_1,
+            "active",
         ),
-        RoadmapMilestone(
-            day=4,
-            title="Automatyzacja bez patrzenia w wykresy",
-            focus="Zlecenia stałe i oszczędność czasu",
+        _roadmap_milestone(
+            4,
+            "Automatyzacja bez patrzenia w wykresy",
+            "Po Dniu 4: Checkpoint #1 — koszty i pierwsze zlecenie",
+            PHASE_1,
         ),
-        RoadmapMilestone(
-            day=9,
-            title="Bezpieczne proporcje dla rodziny",
-            focus="Łączenie szerokiego ETF z bezpieczną częścią",
+        _roadmap_milestone(
+            9,
+            "Bezpieczne proporcje dla rodziny",
+            "Szeroki ETF z bezpieczną częścią i Checkpoint #2",
+            PHASE_2,
         ),
-        RoadmapMilestone(
-            day=14,
-            title="Start automatycznego planu ETF",
-            focus="Gotowość 100% • Konfiguracja w Commerzbanku",
+        _roadmap_milestone(
+            14,
+            "Start automatycznego planu ETF",
+            "Finał sprintu • Konfiguracja w Commerzbanku",
+            PHASE_3,
         ),
     ],
     "50+": [
-        RoadmapMilestone(
-            day=1,
-            title="Tarcza antyinflacyjna w każdym wieku",
-            focus="Dziś: 5 min • Dlaczego gotówka na koncie traci",
-            status="active",
+        _roadmap_milestone(
+            1,
+            "Tarcza antyinflacyjna w każdym wieku",
+            "Dziś: 5 min • Dlaczego gotówka na koncie traci",
+            PHASE_1,
+            "active",
         ),
-        RoadmapMilestone(
-            day=4,
-            title="Spokojne reagowanie na wahania",
-            focus="Jak horyzont 7 lat wygładza spadki rynku",
+        _roadmap_milestone(
+            4,
+            "Spokojne reagowanie na wahania",
+            "Po Dniu 4: Checkpoint #1 — spokój i horyzont",
+            PHASE_1,
         ),
-        RoadmapMilestone(
-            day=9,
-            title="Prosty portfel ochrony kapitału",
-            focus="Niskie koszty, przejrzystość i bezpieczeństwo",
+        _roadmap_milestone(
+            9,
+            "Prosty portfel ochrony kapitału",
+            "Niskie koszty, przejrzystość i Checkpoint #2",
+            PHASE_2,
         ),
-        RoadmapMilestone(
-            day=14,
-            title="Świadomy start w Commerzbanku",
-            focus="Gotowość 100% • Bezstresowe uruchomienie planu",
+        _roadmap_milestone(
+            14,
+            "Świadomy start w Commerzbanku",
+            "Finał sprintu • Bezstresowe uruchomienie planu",
+            PHASE_3,
         ),
     ],
 }
@@ -383,6 +438,30 @@ FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX: str = (
 )
 
 FINAL_BADGE: str = "Dzień 1 ukończony • Cel: {horizon_years} lat"
+
+# Finały Dni 2–4 (PL) — bez nowych liczb i bez obietnic zysku.
+FINAL_MESSAGE_BY_DAY: dict[int, str] = {
+    1: FINAL_MESSAGE,
+    2: (
+        "Dzień 2 z 14 zaliczony! Wiesz już, na co patrzeć w tabeli opłat i po co jest tryb demo. "
+        "Jutro w Dniu 3 ustawimy pierwsze zlecenie stałe."
+    ),
+    3: (
+        "Dzień 3 z 14 zaliczony! Stałe zlecenie i symboliczny test 10 zł to fundament "
+        "regularności. Jutro w Dniu 4 zobaczysz pierwsze mikro-zlecenie na szeroki ETF."
+    ),
+    4: (
+        "Dzień 4 z 14 zaliczony! Fundamenty i praktyka pierwszego zlecenia masz za sobą. "
+        "Czas na Checkpoint #1 — krótki test wiedzy z Dni 1–4."
+    ),
+}
+
+FINAL_BADGE_BY_DAY: dict[int, str] = {
+    1: FINAL_BADGE,
+    2: "Dzień 2 ukończony • Opłaty sprawdzone",
+    3: "Dzień 3 ukończony • Test 10 zł",
+    4: "Dzień 4 ukończony • Gotowość na Checkpoint #1",
+}
 
 ASSUMPTIONS_TEXT: str = (
     "Założenia edukacyjne: 5,7% rocznie po kosztach (przed podatkiem 19%), inflacja 3,5% rocznie, "
@@ -524,6 +603,96 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
             },
         ],
     },
+}
+
+# Warianty personalizacji Kroku 1 (docs/03 §10, docs/02 §9):
+# ``savings_first`` podkreśla priorytet poduszki, ``self_confidence_start >= 4``
+# pogłębia pytanie o koszty i prostotę szerokiego ETF. Persony demo (2/5) oraz
+# brak pola w faktach zachowują dotychczasowy blok wg ``age_group``.
+STEP1_SAVINGS_FIRST: dict = {
+    "badge": "Dzień 1 • Start ({emergency_savings_monthly} zł/mies. na poduszkę)",
+    "step_question": "Od czego zaczynasz, gdy nie masz jeszcze poduszki?",
+    "luna_message": (
+        "Cześć! Jestem Cora, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+        "Zanim pieniądze trafią na rynek, warto mieć bezpieczną poduszkę na awarie. "
+        "Od czego zaczynasz?"
+    ),
+    "optimal_criterion": (
+        "najpierw buduje poduszkę na koncie oszczędnościowym, a inwestowanie startuje później "
+        "i tylko z wolnych nadwyżek"
+    ),
+    "options": [
+        {
+            "id": "a",
+            "text": "Najpierw {emergency_savings_monthly} zł/mies. na poduszkę, ETF później",
+            "is_optimal": True,
+            "feedback": (
+                "Dokładnie! Poduszka chroni codzienny budżet, a szeroki ETF wchodzi spokojnie, "
+                "gdy masz już bezpieczną bazę."
+            ),
+        },
+        {
+            "id": "b",
+            "text": "Od razu całe wolne środki w jeden popularny fundusz",
+            "is_optimal": False,
+            "feedback": (
+                "Bez poduszki każda awaria może zmusić Cię do sprzedaży w złym momencie. "
+                "Najpierw bezpieczna baza, potem inwestowanie."
+            ),
+        },
+        {
+            "id": "c",
+            "text": "Trzymam wszystko na koncie 0% i odkładam decyzję",
+            "is_optimal": False,
+            "feedback": (
+                "Gotówka na koncie 0% traci realnie przez inflację ok. 3,5% rocznie. Poduszka "
+                "jest potrzebna, ale nadwyżki mogą pracować w szerokim ETF."
+            ),
+        },
+    ],
+}
+
+STEP1_CONFIDENT: dict = {
+    "badge": "Dzień 1 • Start ({recommended_monthly} zł/mies.)",
+    "step_question": "Który koszt i nawyk naprawdę decydują o wyniku szerokiego ETF?",
+    "luna_message": (
+        "Cześć! Jestem Cora, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+        "Skoro czujesz się pewniej, wejdźmy głębiej: w długim horyzoncie liczą się koszty "
+        "i prostota, a nie próba pobicia rynku. Który koszt i nawyk naprawdę decydują o wyniku?"
+    ),
+    "optimal_criterion": (
+        "niskie koszty (TER) i regularne wpłaty w szeroki ETF zamiast prób pobicia rynku "
+        "i częstego handlu"
+    ),
+    "options": [
+        {
+            "id": "a",
+            "text": "Niskie TER i regularne wpłaty w szeroki ETF zamiast pobicia rynku",
+            "is_optimal": True,
+            "feedback": (
+                "W punkt! Koszty i regularność działają przez cały horyzont, a próba pobicia "
+                "rynku zwykle zwiększa koszty i stres."
+            ),
+        },
+        {
+            "id": "b",
+            "text": "Wysokie opłaty nie mają znaczenia, jeśli fundusz jest popularny",
+            "is_optimal": False,
+            "feedback": (
+                "Opłaty (TER) obniżają wynik co roku, niezależnie od popularności. W długim "
+                "horyzoncie właśnie one najmocniej odbijają się na kapitale."
+            ),
+        },
+        {
+            "id": "c",
+            "text": "Częste kupowanie i sprzedawanie, żeby trafić lepszy moment",
+            "is_optimal": False,
+            "feedback": (
+                "Częsty handel generuje koszty i emocje, a trafienie momentu jest bardzo trudne. "
+                "Regularne wpłaty rozkładają ryzyko w czasie."
+            ),
+        },
+    ],
 }
 
 STEP2_BY_CONCERN: dict[MainConcern, dict] = {
@@ -732,6 +901,610 @@ STEP3: dict = {
 }
 
 # --------------------------------------------------------------------------- #
+# Dni 2–4 (PL): 2 kroki decyzyjne + 2 mikro-lekcje każdego dnia (docs/03 §2)
+# --------------------------------------------------------------------------- #
+
+DAY2_STEPS: dict[int, dict] = {
+    1: {
+        "badge": "Dzień 2 • Konto i opłaty",
+        "step_question": "Co warto sprawdzić w tabeli opłat, zanim otworzysz konto maklerskie?",
+        "luna_message": (
+            "Dzień 2 z 14 — czas na praktykę. {plan_sentence} Zanim otworzysz konto maklerskie, "
+            "zajrzyj do tabeli opłat. Co warto sprawdzić?"
+        ),
+        "optimal_criterion": (
+            "patrzy na łączny koszt: opłatę za zlecenie i TER szerokiego ETF, a nie tylko na "
+            "darmowe otwarcie konta"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "Łączny koszt: opłata za zlecenie i TER szerokiego ETF",
+                "is_optimal": True,
+                "feedback": (
+                    "Dokładnie. Opłata za zlecenie i TER działają razem — darmowe otwarcie konta "
+                    "nie znaczy darmowe inwestowanie."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Tylko to, czy otwarcie konta jest darmowe",
+                "is_optimal": False,
+                "feedback": (
+                    "Darmowe otwarcie to dopiero początek. Liczy się koszt każdego zlecenia "
+                    "i roczny koszt funduszu (TER)."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Maksymalną dźwignię, żeby szybciej zarobić",
+                "is_optimal": False,
+                "feedback": (
+                    "Dźwignia zwiększa zarówno szansę, jak i ryzyko straty. Na start liczy się "
+                    "prostota i przewidywalne koszty."
+                ),
+            },
+        ],
+    },
+    2: {
+        "badge": "Dzień 2 • Tryb demo",
+        "step_question": "Po co na starcie korzystać z trybu demo?",
+        "luna_message": (
+            "Masz już przed sobą tabelę opłat. Zanim wpłacisz prawdziwe pieniądze, możesz użyć "
+            "trybu demo. Po co jest tryb demo na starcie?"
+        ),
+        "optimal_criterion": (
+            "ćwiczy składanie zleceń bez realnego ryzyka, żeby oswoić proces i sprawdzić koszty"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "Sprawdzam zlecenia bez realnego ryzyka i oswajam proces",
+                "is_optimal": True,
+                "feedback": (
+                    "W punkt! Tryb demo pozwala przejść cały proces bez stresu, a prawdziwe "
+                    "pieniądze wchodzą dopiero, gdy czujesz się pewnie."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Bo w trybie demo zysk jest gwarantowany",
+                "is_optimal": False,
+                "feedback": (
+                    "W trybie demo nic nie jest gwarantowane — to tylko symulacja. Chodzi "
+                    "o oswojenie procesu, nie o obietnicę zysku."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Bo prawdziwe konto nigdy nie ma żadnych opłat",
+                "is_optimal": False,
+                "feedback": (
+                    "Prawdziwe konto zwykle ma opłaty za zlecenia. Właśnie dlatego warto je "
+                    "sprawdzić wcześniej, także w trybie demo."
+                ),
+            },
+        ],
+    },
+}
+
+DAY3_STEPS: dict[int, dict] = {
+    1: {
+        "badge": "Dzień 3 • Zlecenie stałe",
+        "step_question": "Co daje stałe zlecenie ustawione raz?",
+        "luna_message": (
+            "Dzień 3 z 14 — automatyzacja. {plan_sentence} Stałe zlecenie ustawiasz raz, a bank "
+            "realizuje je regularnie. Co dzięki temu zyskujesz?"
+        ),
+        "optimal_criterion": (
+            "regularne wpłaty bez codziennych decyzji; plan działa w tle i ogranicza emocje"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "Regularne wpłaty bez codziennych decyzji — plan działa w tle",
+                "is_optimal": True,
+                "feedback": (
+                    "Tak! Jedna decyzja zamiast codziennego stresu. Regularność zwykle waży "
+                    "więcej niż próba trafienia idealnego momentu."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Gwarancję, że portfel nigdy nie spadnie",
+                "is_optimal": False,
+                "feedback": (
+                    "Gwarancji nie ma — szeroki ETF może spadać. Automatyzacja chroni przed "
+                    "emocjami, nie przed wahaniami rynku."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Możliwość kupowania wyłącznie w idealnym momencie",
+                "is_optimal": False,
+                "feedback": (
+                    "Stałe zlecenie kupuje regularnie, także gdy nikt nie wie, czy to idealny "
+                    "moment. Właśnie to rozkłada ryzyko w czasie."
+                ),
+            },
+        ],
+    },
+    2: {
+        "badge": "Dzień 3 • Test 10 zł",
+        "step_question": "Dlaczego pierwszy przelew testowy to tylko 10 zł?",
+        "luna_message": (
+            "Zlecenie stałe masz ustawione. Zanim ruszysz z pełnym planem, zrób symboliczny "
+            "przelew testowy 10 zł. Dlaczego właśnie taka mała kwota?"
+        ),
+        "optimal_criterion": (
+            "test ma oswoić proces i sprawdzić koszty; mała kwota obniża stres i nie służy "
+            "szybkiemu zyskowi"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "Sprawdzam proces i opłaty bez stresu — kwota jest symboliczna",
+                "is_optimal": True,
+                "feedback": (
+                    "Dokładnie. Chodzi o przełamanie bariery i sprawdzenie kosztów, a nie "
+                    "o szybki zarobek."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Bo 10 zł zawsze przyniesie duży zysk",
+                "is_optimal": False,
+                "feedback": (
+                    "10 zł nie ma szans na duży zysk — i nie o to chodzi. To trening procesu, "
+                    "a nie inwestycyjna szansa."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Bo lepiej od razu wpłacić całość bez żadnego testu",
+                "is_optimal": False,
+                "feedback": (
+                    "Bez testu pierwszy przelew bywa stresujący, a każdy błąd kosztuje więcej. "
+                    "Mała kwota najpierw, pełny plan później."
+                ),
+            },
+        ],
+    },
+}
+
+DAY4_STEPS: dict[int, dict] = {
+    1: {
+        "badge": "Dzień 4 • Pierwsze mikro-zlecenie",
+        "step_question": "Jak w praktyce wygląda pierwsze mikro-zlecenie na szeroki ETF?",
+        "luna_message": (
+            "Dzień 4 z 14 — praktyka i przygotowanie do Checkpoint #1. {plan_sentence} "
+            "Jak wygląda Twoje pierwsze mikro-zlecenie na szeroki globalny ETF?"
+        ),
+        "optimal_criterion": (
+            "wybiera szeroki ETF (cały rynek), małą kwotę i zwykłe zlecenie; nie zgaduje momentu "
+            "i nie kupuje pojedynczych spółek"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "Kupuję szeroki ETF za małą kwotę, bez zgadywania momentu",
+                "is_optimal": True,
+                "feedback": (
+                    "Świetnie! Szeroki ETF daje dywersyfikację, a mała kwota pozwala oswoić "
+                    "proces bez presji."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Czekam na idealny dołek i wtedy wchodzę całością",
+                "is_optimal": False,
+                "feedback": (
+                    "Trafienie dołka jest bardzo trudne, a czekanie może trwać latami. "
+                    "Regularne małe wpłaty rozkładają ryzyko w czasie."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Kupuję akcje jednej spółki, bo tak jest prościej",
+                "is_optimal": False,
+                "feedback": (
+                    "Jedna spółka to wysoka koncentracja ryzyka. Szeroki ETF rozkłada je na "
+                    "setki firm."
+                ),
+            },
+        ],
+    },
+    2: {
+        "badge": "Dzień 4 • Checkpoint #1",
+        "step_question": "Jak najlepiej przygotować się do Checkpoint #1?",
+        "luna_message": (
+            "To ostatni krok Dnia 4. Po nim czeka Cię Checkpoint #1 — krótki test wiedzy. "
+            "Jak najlepiej się do niego przygotować?"
+        ),
+        "optimal_criterion": (
+            "powtarza cztery pojęcia z Dni 1–4 (inflacja, poduszka, koszty, wahania), bez "
+            "wkuwania tickerów"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "Powtarzam 4 pojęcia z Dni 1–4: inflacja, poduszka, koszty, wahania",
+                "is_optimal": True,
+                "feedback": (
+                    "Dokładnie! Test sprawdza rozumienie mechanizmów, a nie pamięciówkę nazw "
+                    "funduszy."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Uczę się na pamięć tickerów i nazw funduszy",
+                "is_optimal": False,
+                "feedback": (
+                    "Tickery nie są potrzebne — test dotyczy zasad, nie produktów. "
+                    "Wystarczy zrozumienie czterech pojęć."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Pomijam powtórkę — test i tak nie ma znaczenia",
+                "is_optimal": False,
+                "feedback": (
+                    "Krótka powtórka zwykle wystarcza, a test pomaga utrwalić wiedzę przed "
+                    "kolejnymi dniami sprintu."
+                ),
+            },
+        ],
+    },
+}
+
+DAY_STEPS: dict[int, dict[int, dict]] = {2: DAY2_STEPS, 3: DAY3_STEPS, 4: DAY4_STEPS}
+
+DAY2_LESSONS: list[MicroLessonCard] = [
+    MicroLessonCard(
+        id="ml_d2_1",
+        title="Konto maklerskie i tryb demo",
+        duration_sec=20,
+        summary=(
+            "Konto maklerskie to miejsce, w którym składasz zlecenia. Tryb demo pozwala "
+            "przećwiczyć cały proces bez realnego ryzyka."
+        ),
+        key_takeaway="Najpierw oswojenie procesu, potem prawdziwe pieniądze.",
+        xp_reward=15,
+    ),
+    MicroLessonCard(
+        id="ml_d2_2",
+        title="Tabela opłat i TER",
+        duration_sec=20,
+        summary=(
+            "Opłata za zlecenie i TER funduszu to koszty, które działają co roku. Darmowe "
+            "otwarcie konta nie znaczy darmowe inwestowanie."
+        ),
+        key_takeaway="Patrz na łączny koszt, nie na jedną pozycję cennika.",
+        xp_reward=15,
+    ),
+]
+
+DAY3_LESSONS: list[MicroLessonCard] = [
+    MicroLessonCard(
+        id="ml_d3_1",
+        title="Zlecenie stałe",
+        duration_sec=20,
+        summary=(
+            "Stałe zlecenie ustawiasz raz, a bank realizuje je regularnie. Decyzja podjęta raz "
+            "chroni przed emocjami i codziennym stresem."
+        ),
+        key_takeaway="Regularność jest ważniejsza niż wyczucie momentu.",
+        xp_reward=15,
+    ),
+    MicroLessonCard(
+        id="ml_d3_2",
+        title="10 zł, które uczy",
+        duration_sec=20,
+        summary=(
+            "Symboliczny pierwszy przelew 10 zł oswaja proces i pozwala sprawdzić opłaty. "
+            "To trening nawyku, nie sposób na szybki zysk."
+        ),
+        key_takeaway="Mała kwota testowa obniża stres i pokazuje realne koszty.",
+        xp_reward=15,
+    ),
+]
+
+DAY4_LESSONS: list[MicroLessonCard] = [
+    MicroLessonCard(
+        id="ml_d4_1",
+        title="Szeroki ETF w praktyce",
+        duration_sec=20,
+        summary=(
+            "Szeroki globalny ETF kupuje się jak każdy instrument: wybierasz kwotę i składasz "
+            "zlecenie. Nie musisz zgadywać dołka ani wybierać pojedynczych spółek."
+        ),
+        key_takeaway="Prostota i dywersyfikacja zamiast trafiania w moment.",
+        xp_reward=15,
+    ),
+    MicroLessonCard(
+        id="ml_d4_2",
+        title="Gotowość na Checkpoint #1",
+        duration_sec=20,
+        summary=(
+            "Cztery pojęcia z Dni 1–4: inflacja, poduszka, koszty i wahania. To wystarczy, "
+            "by spokojnie przejść krótki test wiedzy."
+        ),
+        key_takeaway="Rozumienie mechanizmów, nie pamięciówka tickerów.",
+        xp_reward=15,
+    ),
+]
+
+MICRO_LESSONS_BY_DAY: dict[int, list[MicroLessonCard]] = {
+    2: DAY2_LESSONS,
+    3: DAY3_LESSONS,
+    4: DAY4_LESSONS,
+}
+
+# --------------------------------------------------------------------------- #
+# Checkpoint #1 (po Dniu 4) — 4 pytania ABCD, próg 75%, +100 XP (docs/03 §6D)
+# --------------------------------------------------------------------------- #
+
+_CHECKPOINT_1_QUESTIONS_BY_LANG: dict[str, list[dict]] = {
+    "pl": [
+        {
+            "id": "cp1_inflation",
+            "question": "Dlaczego gotówka na koncie 0% traci w długim horyzoncie?",
+            "options": [
+                {"id": "a", "text": "Bo inflacja co roku zmniejsza jej siłę nabywczą"},
+                {"id": "b", "text": "Bo bank zawsze zabiera całe saldo"},
+                {"id": "c", "text": "Bo gotówka jest zamrożona i nie można jej wypłacić"},
+                {"id": "d", "text": "Bo odsetki na koncie są wyższe niż inflacja"},
+            ],
+            "correct_option_id": "a",
+            "explanation": (
+                "Inflacja ok. 3,5% rocznie oznacza, że za te same pieniądze kupujesz mniej. "
+                "To nie strata nominalna, ale realna."
+            ),
+        },
+        {
+            "id": "cp1_buffer",
+            "question": "Do czego służy poduszka finansowa?",
+            "options": [
+                {"id": "a", "text": "Na nagłe wydatki, żeby nie sprzedawać ETF w złym momencie"},
+                {"id": "b", "text": "Na codzienne zakupy i przyjemności"},
+                {"id": "c", "text": "Do kupowania akcji jednej spółki"},
+                {"id": "d", "text": "Wyłącznie do płacenia podatków"},
+            ],
+            "correct_option_id": "a",
+            "explanation": (
+                "Poduszka jest osobnym buforem na awarie. ETF można sprzedać, ale wypłata "
+                "zajmuje zwykle kilka dni roboczych."
+            ),
+        },
+        {
+            "id": "cp1_costs",
+            "question": "Co jest największą zaletą szerokiego ETF?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Dywersyfikacja na setki firm i niskie koszty w długim horyzoncie",
+                },
+                {"id": "b", "text": "Gwarancja zysku w każdym roku"},
+                {"id": "c", "text": "Możliwość wyboru jednej najlepszej spółki"},
+                {"id": "d", "text": "Brak jakichkolwiek kosztów"},
+            ],
+            "correct_option_id": "a",
+            "explanation": (
+                "Szeroki ETF rozkłada ryzyko na wiele firm, a niskie TER mniej obniża wynik. "
+                "Gwarancji zysku nie ma."
+            ),
+        },
+        {
+            "id": "cp1_drop",
+            "question": "Portfel jest na papierze -20% po 3 latach. Co jest rozsądne?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Trzymać plan i dalej wpłacać — to wahanie do momentu sprzedaży",
+                },
+                {"id": "b", "text": "Sprzedać wszystko, żeby uniknąć dalszych spadków"},
+                {"id": "c", "text": "Przestać wpłacać i czekać na odbicie"},
+                {"id": "d", "text": "Przenieść całość do jednej spółki, żeby szybciej odrobić"},
+            ],
+            "correct_option_id": "a",
+            "explanation": (
+                "Spadek na papierze to wahanie, dopóki nie sprzedasz. Wpłaty po spadku kupują "
+                "więcej jednostek taniej."
+            ),
+        },
+    ],
+    "en": [
+        {
+            "id": "cp1_inflation",
+            "question": "Why does cash in a 0% account lose value over a long horizon?",
+            "options": [
+                {"id": "a", "text": "Because inflation reduces its purchasing power every year"},
+                {"id": "b", "text": "Because the bank always takes the whole balance"},
+                {"id": "c", "text": "Because cash is frozen and cannot be withdrawn"},
+                {"id": "d", "text": "Because interest on the account is higher than inflation"},
+            ],
+            "correct_option_id": "a",
+            "explanation": (
+                "Inflation of about 3.5% a year means the same money buys less. It is a real "
+                "loss, not a nominal one."
+            ),
+        },
+        {
+            "id": "cp1_buffer",
+            "question": "What is a financial buffer for?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Unexpected expenses, so you do not sell an ETF at a bad moment",
+                },
+                {"id": "b", "text": "Everyday shopping and small pleasures"},
+                {"id": "c", "text": "Buying shares of a single company"},
+                {"id": "d", "text": "Paying taxes only"},
+            ],
+            "correct_option_id": "a",
+            "explanation": (
+                "The buffer is a separate safety layer. An ETF can be sold, but the payout "
+                "usually takes a few business days."
+            ),
+        },
+        {
+            "id": "cp1_costs",
+            "question": "What is the biggest advantage of a broad ETF?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Diversification across hundreds of companies and low costs over time",
+                },
+                {"id": "b", "text": "A guarantee of profit every year"},
+                {"id": "c", "text": "The ability to pick one best company"},
+                {"id": "d", "text": "No costs at all"},
+            ],
+            "correct_option_id": "a",
+            "explanation": (
+                "A broad ETF spreads risk across many companies, and a low TER cuts the result "
+                "less. There is no profit guarantee."
+            ),
+        },
+        {
+            "id": "cp1_drop",
+            "question": "Your portfolio is -20% on paper after 3 years. What is sensible?",
+            "options": [
+                {
+                    "id": "a",
+                    "text": "Keep the plan and keep contributing — it is volatility until you sell",
+                },
+                {"id": "b", "text": "Sell everything to avoid further drops"},
+                {"id": "c", "text": "Stop contributing and wait for a rebound"},
+                {"id": "d", "text": "Move everything into one company to recover faster"},
+            ],
+            "correct_option_id": "a",
+            "explanation": (
+                "An on-paper drop is volatility until you sell. Contributions after a drop buy "
+                "more units at a lower price."
+            ),
+        },
+    ],
+}
+
+CHECKPOINT_1_PASS_PCT: int = 75
+CHECKPOINT_1_REWARD_XP: int = 100
+
+
+def _public_checkpoint_questions(lang: Language) -> list[dict]:
+    """Pytania ``id``/``question``/``options`` bez klucza odpowiedzi."""
+    return [
+        {
+            "id": question["id"],
+            "question": question["question"],
+            "options": [
+                {"id": option["id"], "text": option["text"]}
+                for option in question["options"]
+            ],
+        }
+        for question in _CHECKPOINT_1_QUESTIONS_BY_LANG[lang]
+    ]
+
+
+# Publiczne stałe (konwencja repo: ``X`` = PL, ``X_EN`` = EN) — BEZ odpowiedzi.
+CHECKPOINT_1_QUESTIONS: list[dict] = _public_checkpoint_questions("pl")
+CHECKPOINT_1_QUESTIONS_EN: list[dict] = _public_checkpoint_questions("en")
+
+# --------------------------------------------------------------------------- #
+# After Day 14 — Continuous Learning (docs/03 §10, docs/01 §2)
+# --------------------------------------------------------------------------- #
+
+_POST_14_PATHS_BY_LANG: dict[str, list[dict]] = {
+    "pl": [
+        {
+            "id": "rebalancing",
+            "title": "Portfel i rebalansowanie",
+            "description": (
+                "Raz na kwartał sprawdzasz proporcje i delikatnie wracasz do ustalonego planu "
+                "— bez prób trafienia momentu."
+            ),
+            "cadence": "Raz na kwartał · ~10 min",
+            "badge": "Równowaga",
+        },
+        {
+            "id": "tax_accounts",
+            "title": "Konta z ulgą podatkową (IKE / IKZE)",
+            "description": (
+                "Poznajesz zasady kont emerytalnych i sprawdzasz, czy pasują do Twojej sytuacji. "
+                "To materiał edukacyjny, nie rekomendacja produktu."
+            ),
+            "cadence": "Raz w roku · ~15 min",
+            "badge": "Podatki pod kontrolą",
+        },
+        {
+            "id": "bonds",
+            "title": "Obligacje i ochrona przed inflacją",
+            "description": (
+                "Uczysz się, jak obligacje i instrumenty powiązane z inflacją mogą stabilizować "
+                "część portfela — wyłącznie edukacyjnie."
+            ),
+            "cadence": "Raz w roku · ~10 min",
+            "badge": "Stabilność",
+        },
+        {
+            "id": "checkins",
+            "title": "Miesięczne check-iny z Corą",
+            "description": (
+                "Krótka rozmowa o postępach, emocjach i ewentualnych korektach planu. "
+                "Pomaga utrzymać nawyk bez codziennego śledzenia giełdy."
+            ),
+            "cadence": "Co miesiąc · ~5 min",
+            "badge": "Konsekwencja",
+        },
+    ],
+    "en": [
+        {
+            "id": "rebalancing",
+            "title": "Portfolio & Rebalancing",
+            "description": (
+                "Once a quarter you check the proportions and gently return to your plan — "
+                "without trying to time the market."
+            ),
+            "cadence": "Once a quarter · ~10 min",
+            "badge": "Balanced",
+        },
+        {
+            "id": "tax_accounts",
+            "title": "Tax-Advantaged Accounts (IKE / IKZE)",
+            "description": (
+                "Learn the rules of retirement accounts and check whether they fit your "
+                "situation. Educational material, not a product recommendation."
+            ),
+            "cadence": "Once a year · ~15 min",
+            "badge": "Tax Smart",
+        },
+        {
+            "id": "bonds",
+            "title": "Bonds & Inflation Protection",
+            "description": (
+                "Discover how bonds and inflation-linked instruments can stabilise part of a "
+                "portfolio — educational only."
+            ),
+            "cadence": "Once a year · ~10 min",
+            "badge": "Steady",
+        },
+        {
+            "id": "checkins",
+            "title": "Monthly AI Check-ins with Cora",
+            "description": (
+                "A short conversation about progress, emotions and any plan adjustments. "
+                "It keeps the habit alive without watching the market daily."
+            ),
+            "cadence": "Monthly · ~5 min",
+            "badge": "Consistent",
+        },
+    ],
+}
+
+
+POST_14_PATHS: list[dict] = [dict(path) for path in _POST_14_PATHS_BY_LANG["pl"]]
+POST_14_PATHS_EN: list[dict] = [dict(path) for path in _POST_14_PATHS_BY_LANG["en"]]
+
+# --------------------------------------------------------------------------- #
 # Wersja angielska (docs/03 §10) — te same id i wartości liczbowe, kwoty w PLN
 # --------------------------------------------------------------------------- #
 
@@ -790,74 +1563,90 @@ SPEAKLY_FILTER_BY_GROUP_EN: dict[AgeGroup, SpeaklyFilter] = {
     ),
 }
 
+PHASE_1_EN: str = "Phase 1: Days 1–4 · Foundations & First Step"
+PHASE_2_EN: str = "Phase 2: Days 5–9 · Risk, Safety & Emotions"
+PHASE_3_EN: str = "Phase 3: Days 10–14 · Your Real Plan"
+
 ROADMAP_BY_GROUP_EN: dict[AgeGroup, list[RoadmapMilestone]] = {
     "20+": [
-        RoadmapMilestone(
-            day=1,
-            title="Inflation, liquidity and getting started",
-            focus="Today: 5 min • Breaking the frozen-cash myth",
-            status="active",
+        _roadmap_milestone(
+            1,
+            "Inflation, liquidity and getting started",
+            "Today: 5 min • Breaking the frozen-cash myth",
+            PHASE_1_EN,
+            "active",
         ),
-        RoadmapMilestone(
-            day=4,
-            title="Simulator of your first -15% drop",
-            focus="Practising a steady hand on real charts",
+        _roadmap_milestone(
+            4,
+            "Simulator of your first -15% drop",
+            "After Day 4: Checkpoint #1 — a quick knowledge check",
+            PHASE_1_EN,
         ),
-        RoadmapMilestone(
-            day=9,
-            title="How to choose a low-cost, broad ETF?",
-            focus="Fees (TER) and simple diversification rules",
+        _roadmap_milestone(
+            9,
+            "How to choose a low-cost, broad ETF?",
+            "Fees (TER), diversification and Checkpoint #2",
+            PHASE_2_EN,
         ),
-        RoadmapMilestone(
-            day=14,
-            title="Your first investment",
-            focus="100% readiness • Launching the plan at Commerzbank",
+        _roadmap_milestone(
+            14,
+            "Your first investment",
+            "Sprint finale • Launching the plan at Commerzbank",
+            PHASE_3_EN,
         ),
     ],
     "30-50": [
-        RoadmapMilestone(
-            day=1,
-            title="Inflation and investing in the background",
-            focus="Today: 5 min • Buffer separately, surplus separately",
-            status="active",
+        _roadmap_milestone(
+            1,
+            "Inflation and investing in the background",
+            "Today: 5 min • Buffer separately, surplus separately",
+            PHASE_1_EN,
+            "active",
         ),
-        RoadmapMilestone(
-            day=4,
-            title="Automation without watching charts",
-            focus="Standing orders and saved time",
+        _roadmap_milestone(
+            4,
+            "Automation without watching charts",
+            "After Day 4: Checkpoint #1 — fees and your first order",
+            PHASE_1_EN,
         ),
-        RoadmapMilestone(
-            day=9,
-            title="Sensible proportions for a family",
-            focus="Combining a broad ETF with a cash cushion",
+        _roadmap_milestone(
+            9,
+            "Sensible proportions for a family",
+            "A broad ETF plus a safe part, and Checkpoint #2",
+            PHASE_2_EN,
         ),
-        RoadmapMilestone(
-            day=14,
-            title="Start of the automatic ETF plan",
-            focus="100% readiness • Setup at Commerzbank",
+        _roadmap_milestone(
+            14,
+            "Start of the automatic ETF plan",
+            "Sprint finale • Setup at Commerzbank",
+            PHASE_3_EN,
         ),
     ],
     "50+": [
-        RoadmapMilestone(
-            day=1,
-            title="An anti-inflation shield at any age",
-            focus="Today: 5 min • Why cash in an account loses value",
-            status="active",
+        _roadmap_milestone(
+            1,
+            "An anti-inflation shield at any age",
+            "Today: 5 min • Why cash in an account loses value",
+            PHASE_1_EN,
+            "active",
         ),
-        RoadmapMilestone(
-            day=4,
-            title="Reacting calmly to volatility",
-            focus="How a 7-year horizon smooths market drops",
+        _roadmap_milestone(
+            4,
+            "Reacting calmly to volatility",
+            "After Day 4: Checkpoint #1 — calm and horizon",
+            PHASE_1_EN,
         ),
-        RoadmapMilestone(
-            day=9,
-            title="A simple capital-protection portfolio",
-            focus="Low costs, transparency and peace of mind",
+        _roadmap_milestone(
+            9,
+            "A simple capital-protection portfolio",
+            "Low costs, transparency and Checkpoint #2",
+            PHASE_2_EN,
         ),
-        RoadmapMilestone(
-            day=14,
-            title="A confident start at Commerzbank",
-            focus="100% readiness • Stress-free plan launch",
+        _roadmap_milestone(
+            14,
+            "A confident start at Commerzbank",
+            "Sprint finale • Stress-free plan launch",
+            PHASE_3_EN,
         ),
     ],
 }
@@ -992,6 +1781,31 @@ FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX_EN: str = (
 )
 
 FINAL_BADGE_EN: str = "Day 1 complete • Goal: {horizon_years} years"
+
+# Finały Dni 2–4 (EN) — bez nowych liczb i bez obietnic zysku.
+FINAL_MESSAGE_BY_DAY_EN: dict[int, str] = {
+    1: FINAL_MESSAGE_EN,
+    2: (
+        "Day 2 of 14 complete! You know what to look for in a fee table and why demo mode "
+        "exists. Tomorrow on Day 3 we set up your first standing order."
+    ),
+    3: (
+        "Day 3 of 14 complete! A standing order and a symbolic 10 PLN test are the foundation "
+        "of consistency. Tomorrow on Day 4 you will preview your first micro-order into a "
+        "broad ETF."
+    ),
+    4: (
+        "Day 4 of 14 complete! The foundations and your first order practice are done. Time for "
+        "Checkpoint #1 — a short knowledge check from Days 1–4."
+    ),
+}
+
+FINAL_BADGE_BY_DAY_EN: dict[int, str] = {
+    1: FINAL_BADGE_EN,
+    2: "Day 2 complete • Fees checked",
+    3: "Day 3 complete • 10 PLN test done",
+    4: "Day 4 complete • Ready for Checkpoint #1",
+}
 
 ASSUMPTIONS_TEXT_EN: str = (
     "Educational assumptions: 5.7% per year after costs (before 19% tax), 3.5% inflation per year, "
@@ -1130,6 +1944,94 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
             },
         ],
     },
+}
+
+# Krok 1 — warianty personalizacji EN (docs/03 §10).
+STEP1_SAVINGS_FIRST_EN: dict = {
+    "badge": "Day 1 • Start ({emergency_savings_monthly} PLN/mo to the buffer)",
+    "step_question": "Where do you start when you do not have a buffer yet?",
+    "luna_message": (
+        "Hi! I'm Cora, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} "
+        "Before money goes to the market, it is worth having a safe buffer for surprises. "
+        "Where do you start?"
+    ),
+    "optimal_criterion": (
+        "builds the buffer first in a savings account; investing starts later and only with "
+        "free surplus"
+    ),
+    "options": [
+        {
+            "id": "a",
+            "text": "First {emergency_savings_monthly} PLN/mo into the buffer, ETF later",
+            "is_optimal": True,
+            "feedback": (
+                "Exactly! The buffer protects your everyday budget, and a broad ETF comes in "
+                "calmly once you have a safe base."
+            ),
+        },
+        {
+            "id": "b",
+            "text": "Put all free cash into one popular fund right away",
+            "is_optimal": False,
+            "feedback": (
+                "Without a buffer, any surprise may force you to sell at a bad moment. "
+                "A safe base comes first, investing after."
+            ),
+        },
+        {
+            "id": "c",
+            "text": "Keep everything in a 0% account and postpone the decision",
+            "is_optimal": False,
+            "feedback": (
+                "Cash in a 0% account loses about 3.5% a year in real terms. Keep the buffer, "
+                "but the surplus can work in a broad ETF."
+            ),
+        },
+    ],
+}
+
+STEP1_CONFIDENT_EN: dict = {
+    "badge": "Day 1 • Start ({recommended_monthly} PLN/mo)",
+    "step_question": "Which cost and habit really drive the long-term result of a broad ETF?",
+    "luna_message": (
+        "Hi! I'm Cora, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} "
+        "Since you feel more confident, let's go deeper: over a long horizon, costs and "
+        "simplicity matter more than trying to beat the market. Which cost and habit really "
+        "drive the result?"
+    ),
+    "optimal_criterion": (
+        "low costs (TER) and regular contributions into a broad ETF instead of trying to beat "
+        "the market and trading often"
+    ),
+    "options": [
+        {
+            "id": "a",
+            "text": "Low TER and regular contributions into a broad ETF instead of beating the market",
+            "is_optimal": True,
+            "feedback": (
+                "Spot on! Costs and consistency work across the whole horizon, while trying to "
+                "beat the market usually adds costs and stress."
+            ),
+        },
+        {
+            "id": "b",
+            "text": "High fees do not matter as long as the fund is popular",
+            "is_optimal": False,
+            "feedback": (
+                "Fees (TER) reduce the result every year, whatever the popularity. Over a long "
+                "horizon they weigh most on your capital."
+            ),
+        },
+        {
+            "id": "c",
+            "text": "Frequent buying and selling to catch a better moment",
+            "is_optimal": False,
+            "feedback": (
+                "Frequent trading creates costs and emotions, and timing the market is very "
+                "hard. Regular contributions spread the risk over time."
+            ),
+        },
+    ],
 }
 
 STEP2_BY_CONCERN_EN: dict[MainConcern, dict] = {
@@ -1345,6 +2247,350 @@ STEP3_EN: dict = {
 }
 
 # --------------------------------------------------------------------------- #
+# Dni 2–4 (EN): 2 kroki decyzyjne + 2 mikro-lekcje każdego dnia (docs/03 §2/§10)
+# --------------------------------------------------------------------------- #
+
+DAY2_STEPS_EN: dict[int, dict] = {
+    1: {
+        "badge": "Day 2 • Account & fees",
+        "step_question": "What should you check in the fee table before opening a brokerage account?",
+        "luna_message": (
+            "Day 2 of 14 — time for practice. {plan_sentence} Before you open a brokerage "
+            "account, look at the fee table. What should you check?"
+        ),
+        "optimal_criterion": (
+            "looks at the total cost: the per-order fee and the TER of a broad ETF, not only "
+            "at a free account opening"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "The total cost: per-order fee and the TER of a broad ETF",
+                "is_optimal": True,
+                "feedback": (
+                    "Exactly. The per-order fee and the TER work together — a free account "
+                    "opening does not mean free investing."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Only whether opening the account is free",
+                "is_optimal": False,
+                "feedback": (
+                    "A free opening is only the beginning. What matters is the cost of each "
+                    "order and the annual fund cost (TER)."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "The maximum leverage so you can earn faster",
+                "is_optimal": False,
+                "feedback": (
+                    "Leverage increases both the chance and the risk of loss. At the start, "
+                    "simplicity and predictable costs matter most."
+                ),
+            },
+        ],
+    },
+    2: {
+        "badge": "Day 2 • Demo mode",
+        "step_question": "Why use demo mode at the start?",
+        "luna_message": (
+            "You have the fee table in front of you. Before you deposit real money, you can "
+            "use demo mode. Why is demo mode useful at the start?"
+        ),
+        "optimal_criterion": (
+            "practises placing orders without real risk, to get comfortable with the process "
+            "and check the costs"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "I test orders without real risk and get comfortable with the process",
+                "is_optimal": True,
+                "feedback": (
+                    "Spot on! Demo mode lets you go through the whole process stress-free, and "
+                    "real money comes only when you feel confident."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Because demo mode guarantees a profit",
+                "is_optimal": False,
+                "feedback": (
+                    "Nothing is guaranteed in demo mode — it is only a simulation. The point is "
+                    "to get comfortable with the process, not a promise of profit."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Because a real account never has any fees",
+                "is_optimal": False,
+                "feedback": (
+                    "A real account usually charges per-order fees. That is exactly why it is "
+                    "worth checking them in advance, also in demo mode."
+                ),
+            },
+        ],
+    },
+}
+
+DAY3_STEPS_EN: dict[int, dict] = {
+    1: {
+        "badge": "Day 3 • Standing order",
+        "step_question": "What does a standing order set up once give you?",
+        "luna_message": (
+            "Day 3 of 14 — automation. {plan_sentence} You set a standing order once and the "
+            "bank executes it regularly. What do you gain from that?"
+        ),
+        "optimal_criterion": (
+            "regular contributions without daily decisions; the plan runs in the background "
+            "and reduces emotions"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "Regular contributions without daily decisions — the plan runs in the background",
+                "is_optimal": True,
+                "feedback": (
+                    "Yes! One decision instead of daily stress. Consistency usually matters "
+                    "more than trying to catch the perfect moment."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "A guarantee that the portfolio never drops",
+                "is_optimal": False,
+                "feedback": (
+                    "There is no guarantee — a broad ETF can fall. Automation protects you from "
+                    "emotions, not from market volatility."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "The ability to buy only at the perfect moment",
+                "is_optimal": False,
+                "feedback": (
+                    "A standing order buys regularly, also when nobody knows whether it is the "
+                    "perfect moment. That is what spreads risk over time."
+                ),
+            },
+        ],
+    },
+    2: {
+        "badge": "Day 3 • 10 PLN test",
+        "step_question": "Why is the first test transfer only 10 PLN?",
+        "luna_message": (
+            "Your standing order is set. Before the full plan starts, make a symbolic 10 PLN "
+            "test transfer. Why such a small amount?"
+        ),
+        "optimal_criterion": (
+            "the test is to get comfortable with the process and check costs; a small amount "
+            "lowers stress and is not meant for quick profit"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "I check the process and fees without stress — the amount is symbolic",
+                "is_optimal": True,
+                "feedback": (
+                    "Exactly. It is about breaking the barrier and checking the costs, not "
+                    "about a quick gain."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "Because 10 PLN always brings a big profit",
+                "is_optimal": False,
+                "feedback": (
+                    "10 PLN cannot bring a big profit — and that is not the point. It is a "
+                    "process rehearsal, not an investment opportunity."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "Because it is better to deposit everything at once without any test",
+                "is_optimal": False,
+                "feedback": (
+                    "Without a test the first transfer feels stressful and every mistake costs "
+                    "more. A small amount first, the full plan later."
+                ),
+            },
+        ],
+    },
+}
+
+DAY4_STEPS_EN: dict[int, dict] = {
+    1: {
+        "badge": "Day 4 • First micro-order",
+        "step_question": "What does your first micro-order into a broad ETF look like in practice?",
+        "luna_message": (
+            "Day 4 of 14 — practice and Checkpoint #1 preparation. {plan_sentence} What does "
+            "your first micro-order into a broad global ETF look like?"
+        ),
+        "optimal_criterion": (
+            "chooses a broad ETF (whole market), a small amount and a regular order; does not "
+            "time the market and does not buy single companies"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "I buy a broad ETF with a small amount, without timing the market",
+                "is_optimal": True,
+                "feedback": (
+                    "Great! A broad ETF gives diversification, and a small amount lets you get "
+                    "comfortable with the process without pressure."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "I wait for the perfect bottom and then go all in",
+                "is_optimal": False,
+                "feedback": (
+                    "Catching the bottom is very hard and waiting can take years. Regular small "
+                    "contributions spread the risk over time."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "I buy shares of one company because it is simpler",
+                "is_optimal": False,
+                "feedback": (
+                    "One company means high concentration risk. A broad ETF spreads it across "
+                    "hundreds of companies."
+                ),
+            },
+        ],
+    },
+    2: {
+        "badge": "Day 4 • Checkpoint #1",
+        "step_question": "How do you best prepare for Checkpoint #1?",
+        "luna_message": (
+            "This is the last step of Day 4. After it comes Checkpoint #1 — a short knowledge "
+            "check. How do you best prepare for it?"
+        ),
+        "optimal_criterion": (
+            "revises four concepts from Days 1–4 (inflation, buffer, costs, volatility), "
+            "without memorising tickers"
+        ),
+        "options": [
+            {
+                "id": "a",
+                "text": "I revise 4 concepts from Days 1–4: inflation, buffer, costs, volatility",
+                "is_optimal": True,
+                "feedback": (
+                    "Exactly! The check tests understanding of mechanisms, not memorising fund "
+                    "names."
+                ),
+            },
+            {
+                "id": "b",
+                "text": "I memorise tickers and fund names",
+                "is_optimal": False,
+                "feedback": (
+                    "Tickers are not needed — the check is about principles, not products. "
+                    "Understanding four concepts is enough."
+                ),
+            },
+            {
+                "id": "c",
+                "text": "I skip the revision — the check does not matter anyway",
+                "is_optimal": False,
+                "feedback": (
+                    "A short revision is usually enough, and the check helps consolidate "
+                    "knowledge before the next sprint days."
+                ),
+            },
+        ],
+    },
+}
+
+DAY_STEPS_EN: dict[int, dict[int, dict]] = {2: DAY2_STEPS_EN, 3: DAY3_STEPS_EN, 4: DAY4_STEPS_EN}
+
+DAY2_LESSONS_EN: list[MicroLessonCard] = [
+    MicroLessonCard(
+        id="ml_d2_1",
+        title="Brokerage account and demo mode",
+        duration_sec=20,
+        summary=(
+            "A brokerage account is where you place orders. Demo mode lets you rehearse the "
+            "whole process without real risk."
+        ),
+        key_takeaway="Get comfortable with the process first, real money later.",
+        xp_reward=15,
+    ),
+    MicroLessonCard(
+        id="ml_d2_2",
+        title="Fee table and TER",
+        duration_sec=20,
+        summary=(
+            "The per-order fee and the fund's TER are costs that work every year. A free "
+            "account opening does not mean free investing."
+        ),
+        key_takeaway="Look at the total cost, not one line of the price list.",
+        xp_reward=15,
+    ),
+]
+
+DAY3_LESSONS_EN: list[MicroLessonCard] = [
+    MicroLessonCard(
+        id="ml_d3_1",
+        title="Standing order",
+        duration_sec=20,
+        summary=(
+            "You set a standing order once and the bank executes it regularly. One decision "
+            "taken up front protects you from emotions and daily stress."
+        ),
+        key_takeaway="Consistency matters more than timing.",
+        xp_reward=15,
+    ),
+    MicroLessonCard(
+        id="ml_d3_2",
+        title="The 10 PLN lesson",
+        duration_sec=20,
+        summary=(
+            "A symbolic first 10 PLN transfer gets you comfortable with the process and shows "
+            "the real fees. It is a habit rehearsal, not a way to quick profit."
+        ),
+        key_takeaway="A small test amount lowers stress and reveals real costs.",
+        xp_reward=15,
+    ),
+]
+
+DAY4_LESSONS_EN: list[MicroLessonCard] = [
+    MicroLessonCard(
+        id="ml_d4_1",
+        title="A broad ETF in practice",
+        duration_sec=20,
+        summary=(
+            "A broad global ETF is bought like any instrument: you choose an amount and place "
+            "an order. You do not have to time the bottom or pick individual companies."
+        ),
+        key_takeaway="Simplicity and diversification instead of timing.",
+        xp_reward=15,
+    ),
+    MicroLessonCard(
+        id="ml_d4_2",
+        title="Ready for Checkpoint #1",
+        duration_sec=20,
+        summary=(
+            "Four concepts from Days 1–4: inflation, buffer, costs and volatility. That is "
+            "enough to pass a short knowledge check calmly."
+        ),
+        key_takeaway="Understanding mechanisms, not memorising tickers.",
+        xp_reward=15,
+    ),
+]
+
+MICRO_LESSONS_BY_DAY_EN: dict[int, list[MicroLessonCard]] = {
+    2: DAY2_LESSONS_EN,
+    3: DAY3_LESSONS_EN,
+    4: DAY4_LESSONS_EN,
+}
+
+
+
+# --------------------------------------------------------------------------- #
 # Wartości domyślne placeholderów (zabezpieczenie przed brakiem klucza w faktach)
 # --------------------------------------------------------------------------- #
 
@@ -1402,19 +2648,53 @@ def _format_values(session_facts: dict | None, lang: str | None = None) -> dict:
     return values
 
 
-def _select_step_block(step: int, session_facts: dict | None, lang: Language = "en") -> dict:
+TOTAL_STEPS_BY_DAY: dict[int, int] = {1: 3, 2: 2, 3: 2, 4: 2}
+MAX_DAY: int = 4
+
+
+def _normalize_day(day: object) -> int:
+    """Dzień w zakresie 1..4; każda inna wartość wraca do Dnia 1."""
+    value = _as_int(day, 1)
+    return value if 1 <= value <= MAX_DAY else 1
+
+
+def total_steps_for_day(day: int = 1) -> int:
+    """Liczba kroków dnia: 3 dla Dnia 1, 2 dla Dni 2–4 (docs/03 §2)."""
+    return TOTAL_STEPS_BY_DAY[_normalize_day(day)]
+
+
+def _select_step_one(facts: dict, lang: Language) -> dict:
+    """Krok 1 Dnia 1: plan ``savings_first`` > samoocena >= 4 > grupa wiekowa."""
+    if str(facts.get("plan_type", "")) == "savings_first":
+        return STEP1_SAVINGS_FIRST_EN if lang == "en" else STEP1_SAVINGS_FIRST
+    if _as_int(facts.get("self_confidence_start"), 0) >= 4:
+        return STEP1_CONFIDENT_EN if lang == "en" else STEP1_CONFIDENT
+    table = STEP1_BY_AGE_GROUP_EN if lang == "en" else STEP1_BY_AGE_GROUP
+    age_group = str(facts.get("age_group", "20+"))
+    return table.get(age_group, table["20+"])
+
+
+def _select_step_block(
+    step: int, session_facts: dict | None, lang: Language = "en", day: int = 1
+) -> dict:
     facts = session_facts or {}
-    if step == 1:
-        table = STEP1_BY_AGE_GROUP_EN if lang == "en" else STEP1_BY_AGE_GROUP
-        age_group = str(facts.get("age_group", "20+"))
-        return table.get(age_group, table["20+"])
-    if step == 2:
-        table = STEP2_BY_CONCERN_EN if lang == "en" else STEP2_BY_CONCERN
-        concern = str(facts.get("main_concern", "freeze_money"))
-        return table.get(concern, table["freeze_money"])
-    if step == 3:
-        return STEP3_EN if lang == "en" else STEP3
-    raise ValueError("Krok misji musi być liczbą 1, 2 lub 3")
+    active_day = _normalize_day(day)
+    if active_day == 1:
+        if step == 1:
+            return _select_step_one(facts, lang)
+        if step == 2:
+            table = STEP2_BY_CONCERN_EN if lang == "en" else STEP2_BY_CONCERN
+            concern = str(facts.get("main_concern", "freeze_money"))
+            return table.get(concern, table["freeze_money"])
+        if step == 3:
+            return STEP3_EN if lang == "en" else STEP3
+        raise ValueError("Krok misji musi być liczbą 1, 2 lub 3")
+
+    steps = (DAY_STEPS_EN if lang == "en" else DAY_STEPS)[active_day]
+    block = steps.get(step)
+    if block is None:
+        raise ValueError("Krok Dni 2–4 musi być liczbą 1 lub 2")
+    return block
 
 
 def _as_int(value: object, default: int) -> int:
@@ -1486,11 +2766,13 @@ def get_instrument_category(lang: Language = "en") -> str:
     return INSTRUMENT_CATEGORY_EN if _normalize_lang(lang) == "en" else INSTRUMENT_CATEGORY
 
 
-def get_step_block(step: int, session_facts: dict, lang: Language | None = None) -> dict:
+def get_step_block(
+    step: int, session_facts: dict, lang: Language | None = None, day: int = 1
+) -> dict:
     """Zwraca blok kroku z podstawionymi faktami sesji (stałe nie są mutowane)."""
     active = _lang_of(session_facts, lang)
     values = _format_values(session_facts, active)
-    block = _select_step_block(step, session_facts, active)
+    block = _select_step_block(step, session_facts, active, day)
 
     options = [
         {
@@ -1511,6 +2793,33 @@ def get_step_block(step: int, session_facts: dict, lang: Language | None = None)
     }
 
 
+def get_day_content(day: int, session_facts: dict, lang: Language | None = None) -> dict:
+    """Mikro-lekcje, liczba kroków i wyzwanie wybranego dnia (1..4)."""
+    facts = session_facts or {}
+    active = _lang_of(facts, lang)
+    active_day = _normalize_day(day)
+
+    age_group = str(facts.get("age_group", "20+"))
+    if active_day == 1:
+        table = MICRO_LESSONS_BY_GROUP_EN if active == "en" else MICRO_LESSONS_BY_GROUP
+        lessons = table.get(age_group, table["20+"])
+    else:
+        by_day = MICRO_LESSONS_BY_DAY_EN if active == "en" else MICRO_LESSONS_BY_DAY
+        lessons = by_day[active_day]
+
+    return {
+        "day": active_day,
+        "total_steps": total_steps_for_day(active_day),
+        "micro_lessons": [lesson.model_copy(deep=True) for lesson in lessons],
+        "challenge": get_real_world_challenge(
+            bool(facts.get("has_emergency_fund", False)),
+            age_group,
+            lang=active,
+            day=active_day,
+        ),
+    }
+
+
 def shuffle_options(options: list[dict], session_id: str, step: int) -> list[dict]:
     """Deterministycznie tasuje KOPIĘ opcji dla pary ``(session_id, step)``."""
     shuffled = [dict(option) for option in options]
@@ -1521,18 +2830,22 @@ def shuffle_options(options: list[dict], session_id: str, step: int) -> list[dic
 def get_level_state(xp: int, lang: Language = "en") -> tuple[int, str, int]:
     """Zwraca ``(level, level_title, next_level_xp)`` dla danej liczby XP."""
     english = _normalize_lang(lang) == "en"
+    if xp >= 250:
+        return 3, ("Steady Builder" if english else "Konsekwentny Start"), 500
     if xp >= 100:
         return 2, ("Confident Start" if english else "Świadomy Start"), 250
     return 1, ("Observer" if english else "Obserwator"), 100
 
 
 def get_initial_mission_turn(
-    session_facts: dict, lang: Language | None = None
+    session_facts: dict, lang: Language | None = None, day: int = 1
 ) -> tuple[MissionTurnResponse, list[dict]]:
     """Buduje turę startową Kroku 1 oraz opcje do zapisania w ``current_options``."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
-    block = get_step_block(1, facts, active)
+    active_day = _normalize_day(day)
+    total_steps = total_steps_for_day(active_day)
+    block = get_step_block(1, facts, active, active_day)
 
     session_id = facts.get("session_id") or facts.get("id") or "demo-session"
     options = shuffle_options(block["options"], session_id, 1)
@@ -1541,9 +2854,22 @@ def get_initial_mission_turn(
     xp = _as_int(facts.get("xp"), 20)
     level, level_title, next_level_xp = get_level_state(xp, active)
 
+    fields = getattr(MissionTurnResponse, "model_fields", None) or {}
+    extras: dict = {}
+    if "day" in fields:
+        extras["day"] = active_day
+    if "completed_days" in fields:
+        extras["completed_days"] = sorted(
+            {
+                _normalize_day(value)
+                for value in (facts.get("completed_days") or [])
+                if _as_int(value, 0) > 0
+            }
+        )
+
     response = MissionTurnResponse(
         step_number=1,
-        total_steps=3,
+        total_steps=total_steps,
         confidence_score=confidence_start,
         confidence_delta=0,
         confidence_start=confidence_start,
@@ -1563,15 +2889,99 @@ def get_initial_mission_turn(
         ),
         trigger_confetti=False,
         mission_completed=False,
+        **extras,
     )
     return response, options
 
 
 def get_real_world_challenge(
-    has_emergency_fund: bool, age_group: str, lang: Language = "en"
+    has_emergency_fund: bool,
+    age_group: str,
+    lang: Language = "en",
+    day: int = 1,
 ) -> RealWorldChallenge:
-    """Mikro-wyzwanie Dnia 1: 5 PLN (bez poduszki lub 20+) albo 50 PLN (z poduszką, 30-50/50+)."""
+    """Codzienne, compliance-safe mikro-wyzwanie Dni 1–4 (docs/03 §6C)."""
     english = _normalize_lang(lang) == "en"
+    active_day = _normalize_day(day)
+
+    if active_day == 2:
+        return RealWorldChallenge(
+            title=(
+                "Day 2 real-world challenge: Check your brokerage account or demo mode"
+                if english
+                else "Realne wyzwanie Dnia 2: Sprawdź konto maklerskie lub tryb demo"
+            ),
+            description=(
+                "Open or review a brokerage account (or its demo mode) in your bank and read the "
+                "fee table: per-order fees and the ETF's annual TER. No purchase required today."
+                if english
+                else (
+                    "Otwórz lub przejrzyj konto maklerskie (albo tryb demo) w swoim banku i zajrzyj "
+                    "do tabeli opłat: prowizja za zlecenie i roczny koszt TER funduszu. Dziś nie "
+                    "musisz nic kupować."
+                )
+            ),
+            amount_pln=0,
+            target_account=(
+                "Commerzbank Brokerage Account (demo mode)"
+                if english
+                else "Konto Maklerskie Commerzbank (tryb demo)"
+            ),
+            reward_xp=50,
+        )
+
+    if active_day == 3:
+        return RealWorldChallenge(
+            title=(
+                "Day 3 real-world challenge: Fund the account with a 10 PLN test"
+                if english
+                else "Realne wyzwanie Dnia 3: Zasil konto testowymi 10 zł"
+            ),
+            description=(
+                "Transfer a symbolic 10 PLN to your account or subaccount and check how a "
+                "standing order is set up. The goal is the habit and the process, not a profit."
+                if english
+                else (
+                    "Przelej symboliczne 10 zł na konto lub subkonto i zobacz, jak ustawia się "
+                    "zlecenie stałe. Celem jest nawyk i proces, a nie zysk."
+                )
+            ),
+            amount_pln=10,
+            target_account=(
+                "Commerzbank Investment Subaccount"
+                if english
+                else "Subkonto Inwestycyjne Commerzbank"
+            ),
+            reward_xp=50,
+        )
+
+    if active_day == 4:
+        return RealWorldChallenge(
+            title=(
+                "Day 4 real-world challenge: Preview your first micro-ETF order"
+                if english
+                else "Realne wyzwanie Dnia 4: Przećwicz pierwsze mikro-zlecenie na szeroki ETF"
+            ),
+            description=(
+                "In demo mode (or with a symbolic 10 PLN) walk through a preview of an order for "
+                "a broad global ETF. Educational example only — no product or ticker "
+                "recommendation."
+                if english
+                else (
+                    "W trybie demo (lub za symboliczne 10 zł) przejdź podgląd zlecenia na szeroki "
+                    "globalny ETF. To wyłącznie przykład edukacyjny — bez rekomendacji produktu "
+                    "ani tickera."
+                )
+            ),
+            amount_pln=10,
+            target_account=(
+                "Commerzbank Brokerage Account (demo mode)"
+                if english
+                else "Konto Maklerskie Commerzbank (tryb demo)"
+            ),
+            reward_xp=50,
+        )
+
     if not has_emergency_fund or age_group == "20+":
         return RealWorldChallenge(
             title=(
@@ -1774,39 +3184,109 @@ def get_bank_draft(session_facts: dict, lang: Language | None = None) -> BankDra
     )
 
 
-def get_final_message(session_facts: dict, lang: Language | None = None) -> str:
-    """Finałowy komunikat Cory (dla ``savings_first`` z dopiskiem o poduszce)."""
+def get_final_message(session_facts: dict, lang: Language | None = None, day: int = 1) -> str:
+    """Finałowy komunikat Cory dla dnia; ``savings_first`` dopisek tylko w Dniu 1."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
     values = _format_values(facts, active)
+    active_day = _normalize_day(day)
 
-    if active == "en":
-        message = FINAL_MESSAGE_EN.format(**values)
-        if str(facts.get("plan_type", "")) == "savings_first":
-            message = f"{message} {FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX_EN}"
-        return message
-
-    message = FINAL_MESSAGE.format(**values)
-    if str(facts.get("plan_type", "")) == "savings_first":
-        message = f"{message} {FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX}"
+    table = FINAL_MESSAGE_BY_DAY_EN if active == "en" else FINAL_MESSAGE_BY_DAY
+    message = table[active_day].format(**values)
+    if active_day == 1 and str(facts.get("plan_type", "")) == "savings_first":
+        suffix = (
+            FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX_EN
+            if active == "en"
+            else FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX
+        )
+        message = f"{message} {suffix}"
     return message
 
 
-def get_final_badge(session_facts: dict, lang: Language | None = None) -> str:
-    """Badge zdarzenia w turze finałowej (``Dzień 1 ukończony • Cel: X lat``)."""
+def get_final_badge(session_facts: dict, lang: Language | None = None, day: int = 1) -> str:
+    """Badge zdarzenia w turze finałowej wybranego dnia (Dni 1–4)."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
-    template = FINAL_BADGE_EN if active == "en" else FINAL_BADGE
-    return template.format(**_format_values(facts, active))
+    table = FINAL_BADGE_BY_DAY_EN if active == "en" else FINAL_BADGE_BY_DAY
+    return table[_normalize_day(day)].format(**_format_values(facts, active))
+
+
+# --------------------------------------------------------------------------- #
+# Checkpoint #1 i ścieżki po 14 dniach (docs/03 §6D, §10)
+# --------------------------------------------------------------------------- #
+
+
+def get_checkpoint_questions(lang: Language = "en") -> list[dict]:
+    """Pytania Checkpoint #1 BEZ ``correct_option_id`` (bezpieczne dla klienta)."""
+    active = _normalize_lang(lang)
+    public = CHECKPOINT_1_QUESTIONS_EN if active == "en" else CHECKPOINT_1_QUESTIONS
+    return [
+        {
+            "id": question["id"],
+            "question": question["question"],
+            "options": [dict(option) for option in question["options"]],
+        }
+        for question in public
+    ]
+
+
+def grade_checkpoint(answers: dict[str, str], lang: Language = "en") -> dict:
+    """Ocenia Checkpoint #1: próg 75% i bonus +100 XP (idempotencję robi ``main.py``)."""
+    active = _normalize_lang(lang)
+    questions = _CHECKPOINT_1_QUESTIONS_BY_LANG[active]
+    submitted = answers or {}
+
+    results: list[dict] = []
+    correct_count = 0
+    for question in questions:
+        given = str(submitted.get(question["id"], "") or "").strip().lower()
+        is_correct = given == question["correct_option_id"]
+        if is_correct:
+            correct_count += 1
+        results.append(
+            {
+                "id": question["id"],
+                "correct": is_correct,
+                "correct_option_id": question["correct_option_id"],
+                "explanation": question["explanation"],
+            }
+        )
+
+    total = len(questions)
+    score_pct = round(correct_count * 100 / total) if total else 0
+    passed = score_pct >= CHECKPOINT_1_PASS_PCT
+    if passed:
+        badge_title = "Foundation Ready" if active == "en" else "Fundamenty Opanowane"
+    else:
+        badge_title = "Keep practising" if active == "en" else "Warto powtórzyć"
+
+    return {
+        "score_pct": score_pct,
+        "passed": passed,
+        "correct_count": correct_count,
+        "total_questions": total,
+        "reward_xp": CHECKPOINT_1_REWARD_XP if passed else 0,
+        "badge_title": badge_title,
+        "results": results,
+    }
+
+
+def get_post_14_paths(lang: Language = "en") -> list[dict]:
+    """4 moduły „After Day 14 — Continuous Learning” w danym języku."""
+    active = _normalize_lang(lang)
+    source = POST_14_PATHS_EN if active == "en" else POST_14_PATHS
+    return [dict(path) for path in source]
 
 
 _LEVEL_TITLES_EN: dict[str, str] = {
     "Świadomy Start": "Confident Start",
     "Obserwator": "Observer",
+    "Konsekwentny Start": "Steady Builder",
 }
 _LEVEL_TITLES_PL: dict[str, str] = {
     "Confident Start": "Świadomy Start",
     "Observer": "Obserwator",
+    "Steady Builder": "Konsekwentny Start",
 }
 
 
