@@ -1,0 +1,14 @@
+.venv
+venv
+.env
+.env.*
+!.env.example
+.git
+.github
+.idea
+.vscode
+__pycache__
+*.pyc
+assets
+docs
+scripts

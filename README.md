@@ -102,6 +102,20 @@ python scripts/check_math.py
 DEMO_OFFLINE=1 python scripts/smoke_test.py
 ```
 
+## Deploy
+
+1. **Repo on GitHub** and a [Render](https://render.com) account (or any platform that runs a Dockerfile).
+2. **New -> Blueprint**, pick the repo; Render reads `render.yaml` (service `investly`, Docker, health check `/health`).
+3. **Environment variables:** paste `DEEPSEEK_API_KEY` in the Render dashboard (the key never goes into the repo) or set `DEMO_OFFLINE=1`. Without `DATABASE_URL` the app runs on the built-in in-memory SQLite fallback (state is lost on restart). After the deploy, open the service URL.
+
+Locally with Docker:
+
+```bash
+docker build -t investly .
+docker run --rm -e PORT=9000 -p 9000:9000 -e DEMO_OFFLINE=1 investly
+curl http://localhost:9000/health   # {"status":"ok","app":"investly"}
+```
+
 ## Repository layout
 
 ```text

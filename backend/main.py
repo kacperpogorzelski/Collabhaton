@@ -62,6 +62,11 @@ if STATIC_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+@app.get("/health", include_in_schema=False)
+def health():
+    return {"status": "ok", "app": "investly"}
+
+
 @app.get("/", include_in_schema=False)
 def index():
     index_file = STATIC_DIR / "index.html"
