@@ -923,6 +923,92 @@ body[data-screen="screen_filter_and_timemachine"] .cora-dock { display: none; } 
 .cow__delta--gain { color: var(--green-text); }
 .cow__note { margin-top: 10px; font-size: 0.8438rem; color: var(--ink-2); }
 
+/* what-if simulator (Issue #61, rendered by static/simulator.js). Every rule is scoped to
+   #card-timemachine so nothing here reaches the rest of the hub. The asset chips double as
+   the chart legend: the line sample on each chip is the line on the chart. */
+#card-timemachine .sim-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+#card-timemachine .sim-sub { flex: 1 1 260px; max-width: 62ch; font-size: 0.9375rem; color: var(--ink-2); }
+#card-timemachine .sim-hint { font-size: 0.8125rem; color: var(--ink-2); line-height: 1.45; }
+
+#card-timemachine .sim-assets { margin-top: 18px; }
+#card-timemachine .sim-assets__label { padding: 0; font-weight: 800; font-size: 0.9375rem; color: var(--ink); }
+#card-timemachine .sim-assets .sim-hint { margin-top: 2px; }
+#card-timemachine .sim-assets__list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+#card-timemachine .sim-asset { --asset: var(--ink); display: inline-flex; align-items: stretch; min-height: 44px; border: 1.5px solid var(--rule); border-radius: 999px; background: var(--card); transition: border-color var(--t), background-color var(--t), box-shadow var(--t); }
+#card-timemachine .sim-asset.is-on { border-color: var(--asset); }
+#card-timemachine .sim-asset.is-focus { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--asset); }
+#card-timemachine .sim-asset__tick { display: grid; place-items: center; width: 40px; min-height: 41px; border-radius: 999px 0 0 999px; }
+#card-timemachine .sim-asset__tick svg { width: 20px; height: 20px; padding: 2px; border: 2px solid var(--stone-2); border-radius: 6px; color: transparent; background: var(--card); transition: background-color var(--t), border-color var(--t), color var(--t); }
+#card-timemachine .sim-asset.is-on .sim-asset__tick svg { border-color: var(--asset); background: var(--asset); color: #fff; }
+#card-timemachine .sim-asset__name { display: inline-flex; align-items: center; gap: 8px; padding: 0 14px 0 2px; border-radius: 0 999px 999px 0; font-weight: 700; font-size: 0.875rem; color: var(--ink-2); white-space: nowrap; }
+#card-timemachine .sim-asset.is-on .sim-asset__name { color: var(--ink); }
+#card-timemachine .sim-asset__mark { display: none; padding: 2px 8px; border-radius: 999px; background: var(--ink); color: #fff; font-size: 0.75rem; font-weight: 700; }
+#card-timemachine .sim-asset.is-focus .sim-asset__mark { display: inline-block; }
+#card-timemachine .sim-swatch { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--asset); opacity: 0.45; }
+#card-timemachine .sim-asset.is-on .sim-swatch { opacity: 1; }
+#card-timemachine .sim-swatch--bonds { border-top-style: dashed; }
+#card-timemachine .sim-swatch--cash { border-top-style: dashed; }
+#card-timemachine .sim-about { margin-top: 10px; max-width: 70ch; font-size: 0.875rem; line-height: 1.5; color: var(--ink-2); }
+
+#card-timemachine .sim-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px 28px; margin-top: 18px; }
+@container (min-width: 560px) { #card-timemachine .sim-controls, #card-timemachine .sim-more__body { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+#card-timemachine .sim-field { min-width: 0; }
+#card-timemachine .sim-field__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; }
+#card-timemachine .sim-field__label { font-weight: 800; font-size: 0.9063rem; color: var(--ink); }
+#card-timemachine .sim-field__value { font-weight: 800; font-size: 0.9375rem; font-variant-numeric: tabular-nums; color: var(--ink); }
+#card-timemachine .sim-scale { display: flex; justify-content: space-between; font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); }
+#card-timemachine .sim-field--row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
+
+#card-timemachine .sim-amount { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; min-height: 40px; border: 1.5px solid var(--rule); border-radius: var(--r-sm); background: var(--card); }
+#card-timemachine .sim-amount:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(14, 116, 144, .2); }
+#card-timemachine .sim-amount__input { width: 7ch; border: 0; background: transparent; text-align: right; font-weight: 800; font-size: 0.9375rem; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+#card-timemachine .sim-amount__input::-webkit-outer-spin-button, #card-timemachine .sim-amount__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#card-timemachine .sim-amount__input:focus { outline: none; }
+#card-timemachine .sim-amount__unit { font-size: 0.8125rem; font-weight: 700; color: var(--ink-2); }
+
+#card-timemachine .sim-more { margin-top: 16px; border: 1.5px solid var(--rule-2); border-radius: var(--r-md); background: var(--paper); }
+#card-timemachine .sim-more__summary { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; font-weight: 800; font-size: 0.9375rem; cursor: pointer; list-style: none; border-radius: var(--r-md); }
+#card-timemachine .sim-more__summary::-webkit-details-marker { display: none; }
+#card-timemachine .sim-more__summary::before { content: ''; width: 8px; height: 8px; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(-45deg); transition: transform var(--t); }
+#card-timemachine .sim-more[open] .sim-more__summary::before { transform: rotate(45deg); }
+#card-timemachine .sim-more__count { margin-left: auto; font-size: 0.8125rem; font-weight: 700; color: var(--sky-text); }
+#card-timemachine .sim-more__body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px 28px; padding: 4px 14px 16px; }
+#card-timemachine .sim-more .seg { background: var(--card); }
+#card-timemachine .sim-switch__text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px; }
+#card-timemachine .sim-switch { position: relative; flex: 0 0 auto; width: 52px; height: 30px; border-radius: 999px; background: var(--stone-2); transition: background-color var(--t); }
+#card-timemachine .sim-switch::before { content: ''; position: absolute; inset: -7px -2px; }
+#card-timemachine .sim-switch__knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform var(--t); }
+#card-timemachine .sim-switch[aria-checked="true"] { background: var(--orange); }
+#card-timemachine .sim-switch[aria-checked="true"] .sim-switch__knob { transform: translateX(22px); }
+
+#card-timemachine .sim-planbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 12px; min-height: 44px; }
+#card-timemachine .sim-planbar__note { flex: 1 1 220px; font-size: 0.8438rem; color: var(--ink-2); }
+#card-timemachine .sim-planbar .btn:disabled { opacity: 0.5; cursor: default; }
+
+/* KPIs: the asset in focus carries the weight; paid-in and gain sit beside it */
+#card-timemachine .sim-kpis { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 14px; }
+@container (min-width: 560px) { #card-timemachine .sim-kpis { grid-template-columns: 1fr 1.35fr 1fr; } }
+#card-timemachine .sim-kpi { min-width: 0; padding: 14px; border: 1.5px solid var(--rule-2); border-radius: var(--r-md); background: var(--card); }
+@container (max-width: 559px) { #card-timemachine .sim-kpi--focus { order: -1; } }
+#card-timemachine .sim-kpi--focus { --asset: var(--green); border-color: var(--asset); border-left: 5px solid var(--asset); background: var(--paper); }
+#card-timemachine .sim-kpi__label { font-size: 0.8438rem; font-weight: 800; line-height: 1.35; color: var(--ink); }
+#card-timemachine .sim-kpi__value { margin-top: 6px; font-weight: 800; font-size: 1.375rem; line-height: 1.15; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#card-timemachine .sim-kpi--focus .sim-kpi__value { font-size: 1.75rem; }
+#card-timemachine .sim-kpi__value[data-sign="up"] { color: var(--green-text); }
+#card-timemachine .sim-kpi__value[data-sign="down"] { color: var(--coral-text); }
+#card-timemachine .sim-kpi__sub { margin-top: 4px; font-size: 0.8125rem; line-height: 1.45; color: var(--ink-2); }
+
+#card-timemachine .sim-chart { position: relative; width: 100%; min-width: 0; height: 260px; margin-top: 16px; }
+#card-timemachine .sim-chart canvas { max-width: 100%; }
+@media (min-width: 640px) { #card-timemachine .sim-chart { height: 320px; } }
+#card-timemachine .sim-chart__empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; font-weight: 700; color: var(--ink-2); background: var(--paper); border-radius: var(--r-md); }
+#card-timemachine .sim-notes p + p, #card-timemachine .sim-notes div + p { margin-top: 6px; }
+#card-timemachine #sim-note-assume { color: var(--ink); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  #card-timemachine .sim-asset, #card-timemachine .sim-switch, #card-timemachine .sim-switch__knob, #card-timemachine .sim-more__summary::before { transition: none; }
+}
+
 .mobile-cta { display: none; }
 @media (max-width: 899px) {
   .hub-cta-desktop { display: none; }

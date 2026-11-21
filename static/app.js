@@ -3078,7 +3078,26 @@
     });
   }
 
+  // Issue #61: the rich what-if simulator lives in static/simulator.js (window.InvestlySim).
+  // app.js only hands it the session and its formatting helpers, and hears back the chosen
+  // monthly amount and horizon (hub rail text and Cost of Waiting stay in sync).
+  function simHelpers() {
+    return {
+      lang: () => state.lang, money, years, compactMoney, escapeHtml, animateNumber,
+      currency: () => t('unit.currency'),
+      onChange: (sim) => {
+        state.tmAmount = sim.isPlanMonthly ? null : sim.monthly;
+        state.tm = { year: sim.years, point: null };
+        renderCostOfWaiting(projectionFor(currentAmount()));
+        if (state.screen === SCREENS.HUB) renderHubRail();
+      },
+    };
+  }
   function setupTimeMachine() {
+    if (window.InvestlySim && els.simRoot && state.session) {
+      window.InvestlySim.mount({ root: els.simRoot, notes: els.simNotes, session: state.session, helpers: simHelpers() });
+      return;
+    }
     const s = state.session;
     const plan = planAmount();
     const max = Math.max(TM_AMOUNT_MAX, Math.ceil(plan / TM_AMOUNT_STEP) * TM_AMOUNT_STEP);
@@ -3093,6 +3112,7 @@
     syncAmountControls();
   }
   function syncAmountControls() {
+    if (!els.tmAmount) return;   // #61: InvestlySim owns these controls now
     const plan = planAmount();
     const amount = currentAmount();
     els.tmAmount.value = String(amount);
@@ -3115,6 +3135,7 @@
   }
   function updateTimeMachine(year, opts) {
     if (!state.session) return;
+    if (window.InvestlySim && window.InvestlySim.isMounted()) { window.InvestlySim.refresh(opts); return; }
     const series = projectionFor(currentAmount());
     if (!series.length) return;
     const y = clamp(Math.round(Number(year) || 1), 1, series.length);
@@ -4903,6 +4924,8 @@
     els.hubViewQuests = $('hub-view-quests');
     els.hubViewTool = $('hub-view-tool');
     els.hubToolTitle = $('hub-tool-title');
+    els.simRoot = $('sim-root');
+    els.simNotes = $('sim-notes');
     els.tmAmount = $('tm-amount');
     els.tmAmountPill = $('tm-amount-pill');
     els.tmAmountMin = $('tm-amount-min');

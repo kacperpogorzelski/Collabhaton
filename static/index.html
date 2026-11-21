@@ -13,7 +13,7 @@
        ?v= cache-busting: bump after every change to styles.css / app.js. -->
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-500.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-800.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/styles.css?v=26.0">
+  <link rel="stylesheet" href="/static/styles.css?v=27.0">
 </head>
 <body data-screen="screen_bank_entry">
   <a href="#main" class="skip-link" data-i18n="a11y.skip">Skip to content</a>
@@ -263,57 +263,12 @@
           </div>
           <div class="tool-panel tool-panel--sim" id="hub-panel-2" hidden>
           <div class="card" id="card-timemachine">
-            <div class="card__head">
-              <h3 class="card__title" data-i18n="tm.title">Time machine: cash vs a broad ETF</h3>
-              <span class="chip chip--soft" id="tm-monthly"></span>
-            </div>
-            <p class="small muted" style="margin-top:4px" data-i18n="tm.sub">All values in today's money, so both lines compare fairly.</p>
-            <div class="tm-sliders">
-              <div class="range-wrap">
-                <span class="range-pill" id="tm-pill">15</span>
-                <label for="tm-years" class="small strong" data-i18n="tm.slider">Years invested</label>
-                <input id="tm-years" type="range" min="1" max="20" step="1" value="15" class="range">
-                <div class="scale-legend" aria-hidden="true"><span id="tm-min">1</span><span id="tm-max">20</span></div>
-              </div>
-              <div class="range-wrap whatif">
-                <span class="range-pill range-pill--yellow" id="tm-amount-pill">200</span>
-                <label for="tm-amount" class="small strong" data-i18n="tm.whatIf">What if I invest a different amount?</label>
-                <input id="tm-amount" type="range" min="50" max="5000" step="50" value="200" class="range">
-                <div class="scale-legend" aria-hidden="true"><span id="tm-amount-min">50</span><span id="tm-amount-max">5000</span></div>
-              </div>
-            </div>
-            <div class="whatif__bar">
-              <p class="tiny muted" id="tm-amount-note" aria-live="polite"></p>
-              <button type="button" class="btn btn--ghost btn--sm" data-action="tm-reset" id="tm-reset" hidden><span data-icon="reset" data-icon-class="ic--sm"></span><span data-i18n="tm.reset">Reset to my plan</span></button>
-            </div>
-            <div class="kpis">
-              <div class="kpi kpi--cash">
-                <p class="kpi__label" data-i18n="tm.kpiCash">Contributions in a 0% account (real)</p>
-                <p class="kpi__value" id="kpi-cash">0</p>
-                <p class="kpi__sub" id="kpi-paid"></p>
-              </div>
-              <div class="kpi kpi--etf">
-                <p class="kpi__label" data-i18n="tm.kpiEtf">Broad ETF (real, assumptions below)</p>
-                <p class="kpi__value" id="kpi-etf">0</p>
-                <p class="kpi__sub" id="kpi-etf-nominal"></p>
-              </div>
-              <div class="kpi kpi--win">
-                <p class="kpi__label" data-i18n="tm.kpiWin">Illustrative historical windows</p>
-                <p class="kpi__value" id="kpi-win">0%</p>
-                <p class="kpi__sub" id="kpi-win-text"></p>
-              </div>
-            </div>
+            <!-- Issue #61: static/simulator.js (window.InvestlySim) renders the controls, KPIs and chart here -->
+            <div id="sim-root"></div>
             <!-- Cost of Waiting (inflation erosion) — the calm 45+ mode shows it -->
             <div class="cow calm-only" id="tm-cow" aria-live="polite"></div>
-            <div class="chart-box"><canvas id="tm-chart" role="img" data-i18n-aria="tm.chartAria" aria-label="Chart of contributions in a 0% account versus a broad ETF in today's money, with an educational -20% dip in year 3"></canvas></div>
-            <ul class="legend">
-              <li><i class="l-etf"></i><span data-i18n="tm.legendEtf">Broad ETF (real)</span></li>
-              <li><i class="l-cash"></i><span data-i18n="tm.legendCash">0% account (real)</span></li>
-              <li><i class="l-stress"></i><span data-i18n="tm.legendStress">-20% dip in year 3 (educational)</span></li>
-            </ul>
-            <div class="assume">
-              <p><strong id="tm-assumptions"></strong></p>
-              <p data-i18n="tm.history">Historical simulation. Results vary and future returns are not guaranteed.</p>
+            <div class="assume sim-notes">
+              <div id="sim-notes"></div>
               <p data-i18n-define="compliance.mifid">Finance Quest is strictly an educational and simulation tool.</p>
             </div>
           </div>
@@ -468,6 +423,7 @@
 
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
-  <script src="/static/app.js?v=26.0"></script>
+  <script src="/static/simulator.js?v=27.0"></script>
+  <script src="/static/app.js?v=27.0"></script>
 </body>
 </html>
