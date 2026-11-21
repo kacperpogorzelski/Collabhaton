@@ -933,15 +933,10 @@ body[data-screen="screen_filter_and_timemachine"] .cora-dock { display: none; } 
 #card-timemachine .sim-h { font-weight: 800; font-size: 0.9688rem; line-height: 1.35; color: var(--ink); }
 #card-timemachine .sim-hint { font-size: 0.8125rem; color: var(--ink-2); line-height: 1.45; }
 
-/* guided questions */
-#card-timemachine .sim-lessons { margin-top: 16px; }
-#card-timemachine .sim-lessons__list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-#card-timemachine .sim-lesson { min-height: 44px; padding: 8px 14px; border: 1.5px solid var(--rule); border-radius: var(--r-md); background: var(--card); font-weight: 700; font-size: 0.875rem; line-height: 1.3; text-align: left; color: var(--ink); transition: border-color var(--t), background-color var(--t); }
-#card-timemachine .sim-lesson:hover { border-color: var(--ink-2); }
-#card-timemachine .sim-lesson[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: #fff; }
-#card-timemachine .sim-notice { margin-top: 10px; padding: 12px 14px; border-radius: var(--r-md); background: var(--yellow-soft); border: 1.5px solid var(--gold-line); }
-#card-timemachine .sim-notice__label { font-weight: 800; font-size: 0.8125rem; color: var(--amber-text); }
-#card-timemachine .sim-notice__text { margin-top: 2px; max-width: 70ch; font-size: 0.9375rem; line-height: 1.5; color: var(--ink); }
+/* quiet way into the Atlas drawer */
+#card-timemachine .sim-ask { margin-top: 6px; font-size: 0.875rem; color: var(--ink-2); }
+#card-timemachine .sim-ask__link { min-height: 32px; padding: 0 2px; font-weight: 700; color: var(--sky-strong); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+#card-timemachine .sim-ask__link:hover { color: var(--ink); }
 
 /* controls */
 #card-timemachine .sim-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px 28px; margin-top: 18px; }
@@ -1061,7 +1056,7 @@ body[data-screen="screen_filter_and_timemachine"] .cora-dock { display: none; } 
 #card-timemachine #sim-note-assume { color: var(--ink); font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
-  #card-timemachine .sim-lesson, #card-timemachine .sim-row, #card-timemachine .sim-row__tick svg, #card-timemachine .sim-switch,
+  #card-timemachine .sim-row, #card-timemachine .sim-row__tick svg, #card-timemachine .sim-switch,
   #card-timemachine .sim-switch__knob, #card-timemachine .sim-more__summary::before, #card-timemachine .sim-build__bar > span { transition: none; }
 }
 

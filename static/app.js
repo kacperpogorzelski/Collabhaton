@@ -3085,6 +3085,7 @@
     return {
       lang: () => state.lang, money, years, compactMoney, escapeHtml, animateNumber,
       currency: () => t('unit.currency'),
+      askAtlas: () => openCora(),
       onChange: (sim) => {
         state.tmAmount = sim.isPlanMonthly ? null : sim.monthly;
         state.tm = { year: sim.years, point: null };

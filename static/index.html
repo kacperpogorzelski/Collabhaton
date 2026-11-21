@@ -13,7 +13,7 @@
        ?v= cache-busting: bump after every change to styles.css / app.js. -->
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-500.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-800.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/styles.css?v=28.0">
+  <link rel="stylesheet" href="/static/styles.css?v=29.0">
 </head>
 <body data-screen="screen_bank_entry">
   <a href="#main" class="skip-link" data-i18n="a11y.skip">Skip to content</a>
@@ -249,11 +249,10 @@
           <div class="hub-view" id="hub-view-quests">
             <div id="hub-path-col"></div>
           </div>
-          <!-- Tool view: opened from the rail, closeable via rail or X -->
+          <!-- Tool view: opened from the rail; "Learning path" in the rail brings the path back -->
           <div class="hub-view" id="hub-view-tool" hidden>
             <div class="tool-head">
               <h3 class="tool-head__title" id="hub-tool-title" tabindex="-1"></h3>
-              <button type="button" class="icon-btn" data-action="hub-tool" data-tool="quests" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button>
             </div>
           <div class="tool-panel tool-panel--plan" id="hub-panel-1">
             <div class="card" id="card-plan"></div>
@@ -423,7 +422,7 @@
 
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
-  <script src="/static/simulator.js?v=28.0"></script>
-  <script src="/static/app.js?v=28.0"></script>
+  <script src="/static/simulator.js?v=29.0"></script>
+  <script src="/static/app.js?v=29.0"></script>
 </body>
 </html>

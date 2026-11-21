@@ -4,7 +4,7 @@
    app.js only calls window.InvestlySim.mount(...) and .refresh(...).
 
    The card is built to teach, not just to plot:
-     1. "Explore a question" — four guided lessons set the controls and say what to notice.
+     1. A quiet "Ask Atlas" link for anything unclear (opens the app's Atlas drawer).
      2. Controls — monthly amount and horizon up front; the rest under "More settings".
      3. Results — three KPIs, then one bar that shows how the end value is built
         (what you paid in, what growth added, what inflation takes away).
@@ -45,7 +45,6 @@
   const WIN_RATE_CAP = 97;            // docs/02 §3B: never above 97%
   const WIN_RATE_KEYS = { 1: 73, 3: 84, 5: 90, 7: 93, 10: 96, 15: 99, 20: 100 };
   const LIMITS = { monthly: [50, 10000], initial: [0, 50000], years: [1, 30], inflation: [2, 8] };
-  const LESSONS = ['delay', 'crash', 'inflation', 'assets'];
 
   // Non-linear slider grids: fine steps where most people are, coarse steps at the top.
   function grid(parts) {
@@ -63,16 +62,8 @@
     en: {
       sub: 'Same money, different choices. Move a slider and every number below explains itself.',
       headChip: '{amount}/mo for {years}',
-      lessonsTitle: 'Explore a question',
-      'lesson.delay': 'What does waiting 5 years cost?',
-      'lesson.crash': 'What does a crash do to my plan?',
-      'lesson.inflation': 'How much does inflation matter?',
-      'lesson.assets': 'Stocks, bonds or gold?',
-      'notice.delay': 'The dashed line starts {d} years later and ends on the same date. The gap at the end, about {gap} in today’s money, is the price of waiting.',
-      'notice.crash': 'In year 3 the line drops, then is back on its path by year 7. Selling in the dip would have turned a paper loss into a real one; paying in kept buying at lower prices.',
-      'notice.inflation': 'At {inf} inflation, the {paid} you pay in buys only {cash} worth of today’s goods on a 0% account. An asset has to beat inflation just to stand still.',
-      'notice.assets': 'Read the table across. S&P 500 ends highest and also swings hardest; bonds swing least and grow least. Gold shows that big swings do not promise big growth. Spreading money widely is why the global ETF is the base here.',
-      noticeLabel: 'What to notice',
+      askPrompt: 'Not sure what a number means?',
+      askAtlas: 'Ask Atlas',
       monthly: 'Monthly contribution',
       years: 'Horizon',
       more: 'More settings',
@@ -141,7 +132,6 @@
       paidTip: 'Paid in: {amount}',
       crisisMark: 'Crisis',
       crossMark: 'Growth > payments',
-      delayLabel: '{asset}, start {d} years later',
       chartAria: 'Line chart of the selected assets over {years}, {mode}.',
       empty: 'Tick at least one asset in the table to draw the chart.',
       noteAssume: 'Assumptions: global ETF {etf} a year after costs (before 19% tax), inflation {inf} a year. S&P 500 {sp}, bonds {bonds} and gold {gold} are illustrative long-term averages, not year-by-year history. Swings are an educational scale. Taxes, broker fees and currency moves are left out.',
@@ -151,16 +141,8 @@
     pl: {
       sub: 'Te same pieniądze, różne wybory. Przesuń suwak, a każda liczba poniżej sama się wytłumaczy.',
       headChip: '{amount}/mies. przez {years}',
-      lessonsTitle: 'Sprawdź pytanie',
-      'lesson.delay': 'Ile kosztuje 5 lat zwłoki?',
-      'lesson.crash': 'Co kryzys robi z moim planem?',
-      'lesson.inflation': 'Jak bardzo liczy się inflacja?',
-      'lesson.assets': 'Akcje, obligacje czy złoto?',
-      'notice.delay': 'Przerywana linia startuje {d} lat później i kończy się w tym samym dniu. Różnica na końcu, ok. {gap} w dzisiejszych złotych, to cena czekania.',
-      'notice.crash': 'W 3. roku linia spada, a do 7. roku wraca na swój tor. Sprzedaż w dołku zamieniłaby stratę na papierze w prawdziwą; dalsze wpłaty kupowały taniej.',
-      'notice.inflation': 'Przy inflacji {inf} wpłacone {paid} na koncie 0% kupi dziś tylko tyle, co {cash}. Aktywo musi pokonać inflację, żeby w ogóle stać w miejscu.',
-      'notice.assets': 'Czytaj tabelę wierszami. S&P 500 kończy najwyżej i waha się najmocniej; obligacje wahają się najmniej i najmniej rosną. Złoto pokazuje, że duże wahania nie obiecują dużego wzrostu. Szerokie rozłożenie pieniędzy to powód, dla którego bazą jest tu globalny ETF.',
-      noticeLabel: 'Na co zwrócić uwagę',
+      askPrompt: 'Nie wiesz, co oznacza któraś liczba?',
+      askAtlas: 'Zapytaj Atlasa',
       monthly: 'Miesięczna wpłata',
       years: 'Horyzont',
       more: 'Więcej ustawień',
@@ -229,7 +211,6 @@
       paidTip: 'Wpłacono: {amount}',
       crisisMark: 'Kryzys',
       crossMark: 'Wzrost > wpłaty',
-      delayLabel: '{asset}, start {d} lat później',
       chartAria: 'Wykres liniowy wybranych aktywów w horyzoncie {years}, {mode}.',
       empty: 'Zaznacz w tabeli co najmniej jedno aktywo, aby narysować wykres.',
       noteAssume: 'Założenia: globalny ETF {etf} rocznie po kosztach (przed podatkiem 19%), inflacja {inf} rocznie. S&P 500 {sp}, obligacje {bonds} i złoto {gold} to ilustracyjne długoterminowe średnie, a nie historia rok po roku. Skala wahań jest edukacyjna. Pomijamy podatki, opłaty brokera i wahania kursów walut.',
@@ -337,7 +318,7 @@
     return {
       monthly: plan.monthly, initial: 0, years: plan.years, inflation: plan.inflation,
       etfRate: plan.etfRate, real: true, crisis: false,
-      enabled: new Set(['etf', 'cash']), focus: 'etf', lesson: null,
+      enabled: new Set(['etf', 'cash']), focus: 'etf',
     };
   }
   function focusId() {
@@ -353,21 +334,8 @@
     return n;
   }
   function isPlan() {
-    return st.monthly === plan.monthly && st.years === plan.years && advancedChanged() === 0 && !st.lesson &&
+    return st.monthly === plan.monthly && st.years === plan.years && advancedChanged() === 0 &&
       st.enabled.size === 2 && st.enabled.has('etf') && st.enabled.has('cash') && focusId() === 'etf';
-  }
-
-  // Each lesson starts from the plan and changes only what it is about.
-  function applyLesson(id) {
-    const keepMore = el.moreOpen;
-    st = defaults();
-    st.lesson = id;
-    if (id === 'delay') st.years = Math.max(plan.years, 15);
-    if (id === 'crash') { st.crisis = true; st.years = Math.max(plan.years, 10); }
-    if (id === 'inflation') { st.inflation = 6; st.enabled = new Set(['etf', 'bonds', 'cash']); }
-    if (id === 'assets') { st.enabled = new Set(['etf', 'sp500', 'bonds', 'gold', 'cash']); st.years = Math.max(plan.years, 10); }
-    el.moreOpen = keepMore || id === 'crash' || id === 'inflation';
-    if (el.more) el.more.open = el.moreOpen;
   }
 
   // ------------------------------------------------------------------------
@@ -427,7 +395,6 @@
 
   function build() {
     builtLang = lang();
-    const lessons = LESSONS.map((id) => '<li><button type="button" class="sim-lesson" data-sim-lesson="' + id + '" aria-pressed="false">' + esc(tr('lesson.' + id)) + '</button></li>').join('');
 
     root.innerHTML =
       // The tool panel above already says "What-if simulator", so the card opens on what it does.
@@ -435,15 +402,9 @@
         '<p class="sim-sub">' + esc(tr('sub')) + '</p>' +
         '<span class="chip chip--soft" id="sim-head-chip"></span>' +
       '</div>' +
-
-      '<section class="sim-lessons" aria-labelledby="sim-lessons-title">' +
-        '<h4 class="sim-h" id="sim-lessons-title">' + esc(tr('lessonsTitle')) + '</h4>' +
-        '<ul class="sim-lessons__list">' + lessons + '</ul>' +
-        '<div class="sim-notice" id="sim-notice" hidden aria-live="polite">' +
-          '<p class="sim-notice__label">' + esc(tr('noticeLabel')) + '</p>' +
-          '<p class="sim-notice__text" id="sim-notice-text"></p>' +
-        '</div>' +
-      '</section>' +
+      (H.askAtlas
+        ? '<p class="sim-ask">' + esc(tr('askPrompt')) + ' <button type="button" class="sim-ask__link" data-sim-ask>' + esc(tr('askAtlas')) + '</button></p>'
+        : '') +
 
       '<div class="sim-controls">' +
         amountField('sim-monthly', 'monthly', el.monthlyGrid, st.monthly) +
@@ -530,7 +491,7 @@
 
     if (notesEl) notesEl.innerHTML = '<p id="sim-note-assume"></p><p id="sim-note-crisis" hidden></p><p>' + esc(tr('noteHistory')) + '</p>';
 
-    ['head-chip', 'notice', 'notice-text', 'monthly-num', 'monthly-range', 'years', 'years-out', 'more', 'more-count', 'initial-num', 'initial-range',
+    ['head-chip', 'monthly-num', 'monthly-range', 'years', 'years-out', 'more', 'more-count', 'initial-num', 'initial-range',
       'inflation', 'inflation-out', 'crisis', 'plan-note', 'reset', 'kpi-paid', 'kpi-focus-box', 'kpi-focus-label',
       'kpi-focus', 'kpi-focus-sub', 'kpi-win', 'kpi-gain', 'kpi-gain-sub', 'build', 'build-title', 'build-top', 'build-bottom', 'build-legend',
       'insights', 'chart', 'chart-empty', 'col-value', 'about', 'note-assume', 'note-crisis']
@@ -557,7 +518,6 @@
   }
 
   function syncControls(skip) {
-    root.querySelectorAll('[data-sim-lesson]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.simLesson === st.lesson)));
     if (skip !== 'monthly-num') el['monthly-num'].value = String(st.monthly);
     if (skip !== 'monthly-range') el['monthly-range'].value = String(nearestIndex(el.monthlyGrid, st.monthly));
     if (skip !== 'initial-num') el['initial-num'].value = String(st.initial);
@@ -596,17 +556,6 @@
     const delayed = canDelay ? series(fa, st, DELAY_YEARS) : null;
     const gap = canDelay ? fp.real - delayed[y - 1].real : 0;
     return { all, y, f, fa, cash, fp, cross, canDelay, delayed, gap };
-  }
-
-  function renderLessonNotice(v) {
-    const id = st.lesson;
-    el.notice.hidden = !id;
-    if (!id) return;
-    let text = '';
-    if (id === 'delay') text = v.canDelay ? tr('notice.delay', { d: DELAY_YEARS, gap: H.money(v.gap) }) : tr('insight.noCross', { years: H.years(v.y) });
-    else if (id === 'inflation') text = tr('notice.inflation', { inf: pct(st.inflation), paid: H.money(v.cash.paid), cash: H.money(v.cash.real) });
-    else text = tr('notice.' + id);
-    el['notice-text'].textContent = text;
   }
 
   function renderKpis(v, animate) {
@@ -783,16 +732,6 @@
         order: isFocus ? 0 : 1,
       };
     });
-    if (st.lesson === 'delay' && v.canDelay) {
-      datasets.push({
-        simId: 'delay',
-        label: tr('delayLabel', { asset: assetName(v.f), d: DELAY_YEARS }),
-        // Nothing is drawn before the late start; the line begins at 0 in year DELAY_YEARS.
-        data: [null].concat(v.delayed.map((p) => (p.year < DELAY_YEARS ? null : p[key]))),
-        borderColor: v.fa.color, borderDash: [3, 4], borderWidth: 2, fill: false, tension: 0.3,
-        pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: '#FFFFFF', pointHoverBorderColor: v.fa.color, order: 2,
-      });
-    }
     const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (chart) {
       chart.data.labels = labels;
@@ -862,7 +801,6 @@
     if (lang() !== builtLang) build();
     syncControls(o.skip);
     view = derive();
-    renderLessonNotice(view);
     renderKpis(view, o.animate !== false);
     renderBuild(view);
     renderInsights(view);
@@ -873,7 +811,6 @@
 
   // ------------------------------------------------------------------------
   // 7. Events (delegated on #sim-root, so rebuilding the DOM never leaks listeners).
-  //    Lesson notices are computed live, so a lesson stays on while the person keeps exploring.
   // ------------------------------------------------------------------------
   function onInput(e) {
     const id = e.target && e.target.id;
@@ -901,13 +838,9 @@
     render();
   }
   function onClick(e) {
-    const t = e.target.closest ? e.target.closest('[data-sim-lesson],[data-sim-toggle],[data-sim-focus],[data-sim-mode],[data-sim-reset],#sim-crisis') : null;
+    const t = e.target.closest ? e.target.closest('[data-sim-ask],[data-sim-toggle],[data-sim-focus],[data-sim-mode],[data-sim-reset],#sim-crisis') : null;
     if (!t || !root.contains(t)) return;
-    if (t.dataset.simLesson) {
-      if (st.lesson === t.dataset.simLesson) { st = defaults(); } else applyLesson(t.dataset.simLesson);
-      render();
-      return;
-    }
+    if (t.hasAttribute('data-sim-ask')) { if (H.askAtlas) H.askAtlas(); return; }
     if (t.dataset.simToggle) {
       const id = t.dataset.simToggle;
       if (st.enabled.has(id)) st.enabled.delete(id); else st.enabled.add(id);
@@ -918,7 +851,6 @@
       st.real = t.dataset.simMode === 'real';
     } else if (t.id === 'sim-crisis') {
       st.crisis = !st.crisis;
-      if (st.lesson === 'crash' && !st.crisis) st.lesson = null;   // its notice would be untrue
     } else if (t.hasAttribute('data-sim-reset')) {
       st = defaults();
       el.moreOpen = false;
@@ -932,7 +864,7 @@
   // 8. Public API
   // ------------------------------------------------------------------------
   // helpers: { lang(), money(n), years(n), compactMoney(n), currency(), escapeHtml(s),
-  //            animateNumber(el, from, to, opts), onChange(state) }
+  //            animateNumber(el, from, to, opts), askAtlas(), onChange(state) }
   function mount(opts) {
     const o = opts || {};
     const session = o.session;
