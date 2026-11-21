@@ -46,8 +46,8 @@
 
   // "Petrol & Canary" palette (mirrors the :root tokens in styles.css).
   const C = Object.freeze({
-    ink: '#082933', ink3: '#334E58', paper: '#F4F1EA', paper2: '#ECE8DE', rule: '#D8D2C5',
-    yellow: '#FFCC00', green: '#10B981', amber: '#F97316', coral: '#EF4444', sky: '#0EA5E9',
+    ink: '#1C3745', inkSurface: '#234657', ink3: '#49606C', paper: '#F6F5F1', paper2: '#EEF0EC', rule: '#D4DDE0',
+    yellow: '#F5C84B', green: '#10B981', amber: '#F97316', coral: '#EF4444', sky: '#0EA5E9',
   });
   const CALM_AGE = 45;   // "Innovations for all generations": larger text & calm UI from 45
 
@@ -136,36 +136,36 @@
   // ------------------------------------------------------------------------
   const I18N = {
     en: {
-      'meta.title': 'Finance Quest by Commerzbank',
-      'meta.description': 'Finance Quest by Commerzbank: build investing confidence in a 14-day sprint, five minutes a day.',
+      'meta.title': 'Investly · Calm Investing Start',
+      'meta.description': 'Investly by Collabothon: calm, step-by-step investing confidence for every generation.',
       'a11y.skip': 'Skip to content',
-      'brand.sub': 'by Commerzbank, 14-Day Confidence Sprint',
+      'brand.sub': 'Your calm investing start',
       'common.close': 'Close',
-      'entry.demo': 'DEMO · Commerzbank simulation',
-      'entry.account': 'Everyday account',
-      'entry.available': 'Available balance · sample data',
-      'entry.transaction1': 'Salary · sample',
-      'entry.transaction2': 'Rent · sample',
-      'entry.transactions': 'Recent sample transactions',
-      'entry.cta': 'Build your investment plan & start investing in 14 days',
-      'entry.note': 'Nothing is executed. This is a guided learning simulation.',
+      'entry.demo': 'Collabothon 2026 · Interactive Learning Sandbox',
+      'entry.kicker': 'Investly',
+      'entry.slogan': 'Investing made clear, one calm step at a time.',
+      'entry.sub': 'Build real investing confidence at your own pace. No jargon, no pressure, and zero real money at risk.',
+      'entry.cta': 'Get started',
+      'entry.note': 'Zero real money moved · Simulation only · Built for every generation',
+      'entry.factLabel': 'Did you know?',
+      'entry.factNext': 'Next fact',
       'entry.whyTitle': 'A calmer way to start',
-      'entry.whyText': 'Atlas, your Commerzbank financial guide, turns a big money decision into one clear step at a time.',
+      'entry.whyText': 'Atlas, your Investly guide, turns a big money decision into one clear step at a time.',
       'intro.next': 'Next', 'intro.skip': 'Skip',
       'intro.1.title': 'Inflation is quiet, but real.', 'intro.1.copy': 'A 0% account keeps the number the same while prices keep moving. Financial knowledge helps you protect what your money can buy.',
       'intro.2.title': 'No big sums. No jargon.', 'intro.2.copy': 'Five minutes and one small habit are enough to start. Atlas keeps the language plain and the steps practical.',
       'intro.3.title': 'More calm. More control.', 'intro.3.copy': 'Know what to do when a laptop breaks or markets dip. Confidence grows when the next step is clear.',
       'name.badge': 'Your personal plan', 'name.title': 'How would you like us to address you?', 'name.copy': 'Atlas will prepare your plan.', 'name.label': 'First name', 'name.placeholder': 'For example, Alex', 'name.note': 'Used only to personalise your plan and summaries.', 'name.skip': 'Skip for now', 'name.continue': 'Continue',
 
-      'hud.home': 'Finance Quest home',
+      'hud.home': 'Investly home',
       'hud.day': 'Day',
       'hud.dayTitle': 'Day of your 14-day sprint',
       'hud.streakTitle': 'Practice days',
       'hud.practiceLabel': 'Practice days:',
       'hud.xpTitle': 'Practice points (XP)',
-      'hud.stageTitle': 'Competence stage',
-      'hud.stageShort': 'Stage {n}/5',
-      'hud.stageLong': 'Stage {n}: {title}',
+      'hud.stageTitle': 'Growth Level',
+      'hud.stageShort': 'Growth Level {n}/5',
+      'hud.stageLong': 'Growth Level {n}: {title}',
       'hud.readiness': 'Readiness',
       'hud.readinessCalm': 'Readiness & Capital Protection',
       'hud.sound': 'Sound effects',
@@ -174,19 +174,30 @@
       'hud.calmOff': 'Standard text size is back.',
       'hud.language': 'Language',
       'hud.reset': 'Reset / Profile',
-      'hud.judges': 'For judges',
+      'hud.about': 'About us',
+      'about.title': 'About Investly',
+      'about.sub': 'A calmer way to build investing confidence.',
+      'about.teamTitle': 'Team',
+      'about.teamNames': 'Developer 1 · Developer 2 · Developer 3',
+      'about.goalTitle': 'Collabothon 2026 goal',
+      'about.goalText': 'Make the first investing step feel clear, calm and achievable for people of every generation.',
+      'about.safetyTitle': 'Education and safety',
+      'about.safetyText': 'Investly is a guided simulation, not financial advice. Numbers show assumptions, no return is guaranteed, and the AI guide can make mistakes.',
       'settings.title': 'Settings',
       'settings.soundSub': 'Off by default',
       'settings.calmSub': 'Automatic from age 45',
       'hud.soundOn': 'Sound is on',
       'hud.soundOff': 'Sound is off',
 
-      'onb.title': 'Build investing confidence in 14 days.',
-      'onb.lead': "Five minutes a day. Pick where you are in life and Atlas leaves out every bit of theory you don't need yet.",
-      'onb.bubble': "I'm Atlas, your Commerzbank financial guide. Choose the life stage that fits you best.",
-      'onb.bubbleName': 'Welcome, {name}. Choose the life stage that fits you best and I will prepare your plan.',
-      'onb.stagesTitle': 'Where are you in life?',
-      'onb.stagesHint': 'One tap builds your plan.',
+      'onb.title': 'Where are you in life?',
+      'onb.lead': "Set your numbers below and Atlas leaves out every bit of theory you don't need yet.",
+      'onb.bubble': "I'm Atlas, your Investly guide. Adjust the sliders or pick a quick sample profile below.",
+      'onb.bubbleName': 'Welcome, {name}. Adjust the sliders below — or pick a quick sample profile — and I will build your plan.',
+      'onb.formTitle': 'Personalise your plan',
+      'onb.formHint': '6 quick choices — takes under 30 seconds.',
+      'onb.orDivider': 'or',
+      'onb.stagesTitle': 'Try a quick sample profile',
+      'onb.stagesHint': 'One tap fills and builds your plan.',
       'onb.tailorToggle': 'Not quite you? Answer 6 quick questions instead',
       'onb.building': 'Cutting the theory you don\'t need…',
 
@@ -209,7 +220,7 @@
       'form.confidence': 'How confident do you feel about investing your first money?',
       'form.scaleLow': '1, not at all',
       'form.scaleHigh': '5, very confident',
-      'form.cta': 'Build my 14-day plan',
+      'form.cta': 'Build my plan',
       'form.ctaBusy': 'Building your plan…',
       'err.age': 'Age must be between 18 and 70.',
       'err.net': 'Net income: 2,500 to 25,000 PLN.',
@@ -304,24 +315,24 @@
       'hub.checkpoint2Short': 'Checkpoint #2',
       'hub.finaleShort': 'Sprint finale',
 
-      'garden.title': 'Competence stage',
-      'garden.stageLabel': 'Stage {stage} of 5',
+      'garden.title': 'Growth Level',
+      'garden.stageLabel': 'Growth Level {stage} of 5',
       'garden.stage1': 'Foundations',
       'garden.stage2': 'Liquidity Control',
       'garden.stage3': 'Market Calm',
       'garden.stage4': 'Strategy Builder',
       'garden.stage5': 'Action Ready',
-      'garden.toNext': '{xp} XP of practice to the next stage: {title}',
-      'garden.complete': 'All five stages reached. Keep your monthly check-ins.',
-      'garden.progress': 'Stage progress',
-      'garden.grew': 'New stage: {from} → {to}',
-      'garden.current': 'Current stage',
+      'garden.toNext': '{xp} XP of practice to the next Growth Level: {title}',
+      'garden.complete': 'All five Growth Levels reached. Keep your monthly check-ins.',
+      'garden.progress': 'Growth Level progress',
+      'garden.grew': 'New Growth Level: {from} → {to}',
+      'garden.current': 'Current Growth Level',
       'garden.quote1': 'You know your starting point: income, free cash and a cushion.',
       'garden.quote2': 'The cushion comes first, so a surprise bill never forces a sale.',
       'garden.quote3': 'A -20% dip is a fluctuation, not a loss, unless you sell.',
       'garden.quote4': 'You plan with an amount, a horizon and costs — not with guesses.',
       'garden.quote5': 'Foundations confirmed. You are ready for a first, small step.',
-      'garden.svgLabel': 'Capital pillars chart, stage {stage} of 5',
+      'garden.svgLabel': 'Capital pillars chart, Growth Level {stage} of 5',
 
       'plan.title': 'Your sample split',
       'plan.label': 'Illustrative target amount per month',
@@ -634,36 +645,36 @@
     },
 
     pl: {
-      'meta.title': 'Finance Quest od Commerzbanku',
-      'meta.description': 'Finance Quest od Commerzbanku: pewność inwestycyjna w 14-dniowym sprincie, po 5 minut dziennie.',
+      'meta.title': 'Investly · Spokojny start w inwestowaniu',
+      'meta.description': 'Investly (Collabothon): spokojna, krok po kroku droga do pewności inwestowania dla każdego pokolenia.',
       'a11y.skip': 'Przejdź do treści',
-      'brand.sub': 'od Commerzbanku, 14-dniowy Sprint Pewności',
+      'brand.sub': 'Twój spokojny start w inwestowaniu',
       'common.close': 'Zamknij',
-      'entry.demo': 'DEMO · symulacja Commerzbanku',
-      'entry.account': 'Konto codzienne',
-      'entry.available': 'Dostępne saldo · dane przykładowe',
-      'entry.transaction1': 'Wynagrodzenie · przykład',
-      'entry.transaction2': 'Czynsz · przykład',
-      'entry.transactions': 'Ostatnie przykładowe transakcje',
-      'entry.cta': 'Stwórz swój plan inwestycyjny i zacznij inwestować w 14 dni',
-      'entry.note': 'Nic nie zostanie wykonane. To prowadzona symulacja edukacyjna.',
+      'entry.demo': 'Collabothon 2026 · Interaktywna piaskownica edukacyjna',
+      'entry.kicker': 'Investly',
+      'entry.slogan': 'Spokojny start w inwestowaniu, krok po kroku.',
+      'entry.sub': 'Zbuduj prawdziwą pewność finansową we własnym tempie. Bez żargonu, bez presji i bez ryzyka prawdziwych pieniędzy.',
+      'entry.cta': 'Zacznij',
+      'entry.note': 'Zero prawdziwych przelewów · Wyłącznie symulacja · Dla każdego pokolenia',
+      'entry.factLabel': 'Ciekawostka na start',
+      'entry.factNext': 'Kolejna ciekawostka',
       'entry.whyTitle': 'Spokojniejszy start',
-      'entry.whyText': 'Atlas, przewodnik finansowy Commerzbanku, zamienia dużą decyzję finansową w jeden jasny krok naraz.',
+      'entry.whyText': 'Atlas, Twój przewodnik w Investly, zamienia dużą decyzję finansową w jeden jasny krok naraz.',
       'intro.next': 'Dalej', 'intro.skip': 'Pomiń',
       'intro.1.title': 'Inflacja działa po cichu, ale naprawdę.', 'intro.1.copy': 'Konto 0% trzyma tę samą liczbę, gdy ceny idą w górę. Wiedza finansowa pomaga chronić to, co możesz kupić za swoje pieniądze.',
       'intro.2.title': 'Bez wielkich kwot i żargonu.', 'intro.2.copy': 'Wystarczy 5 minut i jeden prosty nawyk. Atlas mówi prostym językiem i prowadzi przez praktyczne kroki.',
       'intro.3.title': 'Więcej spokoju. Więcej kontroli.', 'intro.3.copy': 'Wiesz, co zrobić przy awarii albo spadkach na rynku. Pewność rośnie, gdy kolejny krok jest jasny.',
       'name.badge': 'Twój plan osobisty', 'name.title': 'Jak mamy się do Ciebie zwracać?', 'name.copy': 'Atlas przygotuje Twój plan.', 'name.label': 'Imię', 'name.placeholder': 'Na przykład Ania', 'name.note': 'Służy wyłącznie do personalizacji planu i podsumowań.', 'name.skip': 'Pomiń na razie', 'name.continue': 'Dalej',
 
-      'hud.home': 'Finance Quest, strona główna',
+      'hud.home': 'Investly, strona główna',
       'hud.day': 'Dzień',
       'hud.dayTitle': 'Dzień Twojego 14-dniowego sprintu',
       'hud.streakTitle': 'Dni praktyki',
       'hud.practiceLabel': 'Dni praktyki:',
       'hud.xpTitle': 'Punkty praktyki (XP)',
-      'hud.stageTitle': 'Etap kompetencji',
-      'hud.stageShort': 'Etap {n}/5',
-      'hud.stageLong': 'Etap {n}: {title}',
+      'hud.stageTitle': 'Poziom rozwoju',
+      'hud.stageShort': 'Poziom rozwoju {n}/5',
+      'hud.stageLong': 'Poziom rozwoju {n}: {title}',
       'hud.readiness': 'Gotowość',
       'hud.readinessCalm': 'Gotowość i ochrona kapitału',
       'hud.sound': 'Efekty dźwiękowe',
@@ -672,19 +683,30 @@
       'hud.calmOff': 'Przywrócono standardową wielkość tekstu.',
       'hud.language': 'Język',
       'hud.reset': 'Reset / Profil',
-      'hud.judges': 'Dla jury',
+      'hud.about': 'O nas',
+      'about.title': 'O Investly',
+      'about.sub': 'Spokojniejszy sposób na zbudowanie pewności inwestowania.',
+      'about.teamTitle': 'Zespół',
+      'about.teamNames': 'Deweloper 1 · Deweloper 2 · Deweloper 3',
+      'about.goalTitle': 'Cel na Collabothon 2026',
+      'about.goalText': 'Sprawić, aby pierwszy krok w inwestowaniu był jasny, spokojny i osiągalny dla osób w każdym wieku.',
+      'about.safetyTitle': 'Edukacja i bezpieczeństwo',
+      'about.safetyText': 'Investly to prowadzona symulacja, nie porada finansowa. Liczby pokazują założenia, zysk nie jest gwarantowany, a przewodnik AI może się mylić.',
       'settings.title': 'Ustawienia',
       'settings.soundSub': 'Domyślnie wyłączone',
       'settings.calmSub': 'Automatycznie od 45. roku życia',
       'hud.soundOn': 'Dźwięk włączony',
       'hud.soundOff': 'Dźwięk wyłączony',
 
-      'onb.title': 'Zbuduj pewność inwestycyjną w 14 dni.',
-      'onb.lead': 'Po 5 minut dziennie. Wybierz etap życia, a Atlas pominie całą teorię, której jeszcze nie potrzebujesz.',
-      'onb.bubble': 'Nazywam się Atlas, jestem przewodnikiem finansowym Commerzbanku. Wybierz etap życia, który najlepiej do Ciebie pasuje.',
-      'onb.bubbleName': 'Witamy, {name}. Wybierz etap życia, który najlepiej do Ciebie pasuje, a przygotuję Twój plan.',
-      'onb.stagesTitle': 'Na jakim etapie życia jesteś?',
-      'onb.stagesHint': 'Jedno kliknięcie układa Twój plan.',
+      'onb.title': 'Na jakim etapie życia jesteś?',
+      'onb.lead': 'Ustaw swoje liczby poniżej, a Atlas pominie całą teorię, której jeszcze nie potrzebujesz.',
+      'onb.bubble': 'Jestem Atlas, Twój przewodnik w Investly. Ustaw suwaki albo wybierz gotowy profil poniżej.',
+      'onb.bubbleName': 'Witamy, {name}. Ustaw suwaki poniżej — albo wybierz gotowy profil — a ułożę Twój plan.',
+      'onb.formTitle': 'Dopasuj swój plan',
+      'onb.formHint': '6 szybkich wyborów — zajmuje poniżej 30 sekund.',
+      'onb.orDivider': 'lub',
+      'onb.stagesTitle': 'Wybierz gotowy profil na start',
+      'onb.stagesHint': 'Jedno kliknięcie wypełnia i układa Twój plan.',
       'onb.tailorToggle': 'To nie do końca Ty? Odpowiedz na 6 szybkich pytań',
       'onb.building': 'Wycinam zbędną teorię…',
 
@@ -707,7 +729,7 @@
       'form.confidence': 'Jak pewnie czujesz się na myśl o zainwestowaniu pierwszych pieniędzy?',
       'form.scaleLow': '1, wcale',
       'form.scaleHigh': '5, bardzo pewnie',
-      'form.cta': 'Ułóż mój 14-dniowy plan',
+      'form.cta': 'Ułóż mój plan',
       'form.ctaBusy': 'Układam Twój plan…',
       'err.age': 'Wiek musi mieścić się w przedziale 18–70 lat.',
       'err.net': 'Zarobki netto: od 2 500 do 25 000 zł.',
@@ -802,24 +824,24 @@
       'hub.checkpoint2Short': 'Checkpoint #2',
       'hub.finaleShort': 'Finał sprintu',
 
-      'garden.title': 'Etap kompetencji',
-      'garden.stageLabel': 'Etap {stage} z 5',
+      'garden.title': 'Poziom rozwoju',
+      'garden.stageLabel': 'Poziom rozwoju {stage} z 5',
       'garden.stage1': 'Fundamenty planu',
       'garden.stage2': 'Kontrola płynności',
       'garden.stage3': 'Spokój na spadkach',
       'garden.stage4': 'Architekt planu',
       'garden.stage5': 'Gotowość do startu',
-      'garden.toNext': '{xp} XP praktyki do kolejnego etapu: {title}',
-      'garden.complete': 'Wszystkie pięć etapów osiągnięte. Utrzymuj comiesięczne check-iny.',
-      'garden.progress': 'Postęp etapów',
-      'garden.grew': 'Nowy etap: {from} → {to}',
-      'garden.current': 'Obecny etap',
+      'garden.toNext': '{xp} XP praktyki do kolejnego poziomu rozwoju: {title}',
+      'garden.complete': 'Wszystkie pięć poziomów rozwoju osiągnięte. Utrzymuj comiesięczne check-iny.',
+      'garden.progress': 'Postęp poziomów rozwoju',
+      'garden.grew': 'Nowy poziom rozwoju: {from} → {to}',
+      'garden.current': 'Obecny poziom rozwoju',
       'garden.quote1': 'Znasz punkt wyjścia: dochód, wolne środki i poduszkę.',
       'garden.quote2': 'Poduszka jest pierwsza, więc nagły rachunek nie zmusza do sprzedaży.',
       'garden.quote3': 'Spadek -20% to wahanie, nie strata — dopóki nie sprzedasz.',
       'garden.quote4': 'Planujesz kwotą, horyzontem i kosztami — a nie zgadywaniem.',
       'garden.quote5': 'Fundamenty potwierdzone. Możesz zrobić pierwszy, mały krok.',
-      'garden.svgLabel': 'Wykres filarów kapitału, etap {stage} z 5',
+      'garden.svgLabel': 'Wykres filarów kapitału, poziom rozwoju {stage} z 5',
 
       'plan.title': 'Twój przykładowy podział',
       'plan.label': 'Przykładowa kwota docelowa miesięcznie',
@@ -1132,10 +1154,10 @@
     },
   };
 
-  // Structured copy (lists) for the For Judges modal and the "After Day 14" fallback.
+  // Structured copy (lists) for the About us modal and the "After Day 14" fallback.
   const I18N_BLOCKS = {
     en: {
-      judges: [
+      about: [
         { icon: 'users', tone: 'yellow', title: 'Target learner',
           text: 'Self-directed beginners of every age who keep savings in cash because investing feels risky, complex or "not for me yet". Four life stages adapt the horizon, tone and scenarios.' },
         { icon: 'target', tone: 'sky', title: 'Learning objective',
@@ -1166,7 +1188,7 @@
       ],
     },
     pl: {
-      judges: [
+      about: [
         { icon: 'users', tone: 'yellow', title: 'Odbiorca',
           text: 'Początkujący, samodzielni inwestorzy w każdym wieku, którzy trzymają oszczędności w gotówce, bo inwestowanie wydaje się ryzykowne, skomplikowane albo „jeszcze nie dla mnie”. Cztery etapy życia dopasowują horyzont, ton i scenariusze.' },
         { icon: 'target', tone: 'sky', title: 'Cel nauki',
@@ -1320,7 +1342,7 @@
   const CAL = '<rect x="3.75" y="5" width="16.5" height="15.25" rx="2.5" ' + S + '/><path d="M3.75 9.5h16.5M8 3v4M16 3v4" ' + S + '/>';
   const SPEAKER = '<path d="M4.5 9.5h3l4.5-4v13l-4.5-4h-3z" ' + S + '/>';
   const ICON_PATHS = {
-    brand: '<circle cx="12" cy="12" r="8.5" ' + S + '/><path d="M12 4.75l2.35 7.25h-4.7z" fill="currentColor"/><path d="M12 19.25l2.35-7.25h-4.7z" ' + st(1.4) + '/>',
+    brand: '<path d="M7 5.5h3.25v13H7z" fill="currentColor"/><path d="M11.5 14.5 14.2 11.8l2.25 2.25L20.5 10v4.5l-4.05 4.05-2.25-2.25-2.7 2.7z" fill="none" ' + st(1.6) + '/><path d="M18.5 7.5h3v3h-3z" fill="var(--brand-growth, #3DAA78)"/>',
     calendar: CAL,
     'calendar-check': CAL + '<path d="M9 14.75l2 2 4-4" ' + S + '/>',
     soundOn: SPEAKER + '<path d="M15.5 9.2a4 4 0 0 1 0 5.6M18.2 6.6a7.6 7.6 0 0 1 0 10.8" ' + S + '/>',
@@ -1723,6 +1745,7 @@
     screen: SCREENS.BANK_ENTRY,
     userName: storageGet(LS_USER_NAME) || '',
     introIndex: 0,
+    factIndex: 0,
     busy: false,
     personas: [],
     stageId: null,           // 'first' | 'home' | 'peak' | 'pre' | null (custom form)
@@ -1811,12 +1834,13 @@
     const prev = state.rendered;
     const hasSession = !!state.session;
     document.body.classList.toggle('has-session', hasSession);
+    // Profile stats stay hidden until onboarding creates a real session.
     if (els.hudStats) els.hudStats.hidden = !hasSession;
-    els.hudDayNum.textContent = String(state.day);
-    els.hudDayTotal.textContent = String(TOTAL_DAYS);
-    els.hudStreak.textContent = String(gs.streak_days || 1);
+    if (els.hudDayNum) els.hudDayNum.textContent = String(state.day);
+    if (els.hudDayTotal) els.hudDayTotal.textContent = String(TOTAL_DAYS);
+    if (els.hudStreak) els.hudStreak.textContent = String(gs.streak_days || 0);
     const ps = plantState(xp, state.checkpointPassed);
-    els.hudLevel.innerHTML =
+    if (els.hudLevel) els.hudLevel.innerHTML =
       '<span class="stat__short">' + escapeHtml(t('hud.stageShort', { n: ps.stage })) + '</span>' +
       '<span class="stat__long">' + escapeHtml(t('hud.stageLong', { n: ps.stage, title: ps.title })) + '</span>';
     if (animate && prev.stage != null && ps.stage > prev.stage && els.hudStage) replayClass(els.hudStage, 'flash');
@@ -1931,6 +1955,86 @@
     const title = target.querySelector('[data-screen-title]');
     if (title) title.focus({ preventScroll: true });
     renderHud({ animate: false });
+  }
+
+  const START_FACTS = Object.freeze([
+    {
+      en: {
+        title: 'The Rule of 72',
+        text: 'Divide 72 by an annual return rate to estimate how many years it takes for money to double. At 6% a year, that is roughly 12 years — assuming returns stay steady and are reinvested.',
+      },
+      pl: {
+        title: 'Reguła 72',
+        text: 'Podziel 72 przez roczną stopę zwrotu, aby oszacować, po ilu latach kapitał się podwoi. Przy 6% rocznie to ok. 12 lat — przy założeniu reinwestowania zysków.',
+      },
+    },
+    {
+      en: {
+        title: 'Inflation works quietly on 0% cash',
+        text: 'At 3.5% annual inflation, 10,000 PLN sitting in a 0% account for 10 years keeps the same balance on screen, but buys roughly what 7,089 PLN buys today.',
+      },
+      pl: {
+        title: 'Inflacja po cichu zjada gotówkę na 0%',
+        text: 'Przy inflacji 3,5% rocznie 10 000 zł leżące przez 10 lat na koncie 0% wciąż pokazuje tę samą kwotę, ale ma siłę nabywczą ok. 7 089 zł dzisiaj.',
+      },
+    },
+    {
+      en: {
+        title: 'Why "guaranteed 20% a month" is a red flag',
+        text: 'No regulated market investment guarantees high monthly returns without risk. When an ad combines "guaranteed profit" with "act today", walk away.',
+      },
+      pl: {
+        title: 'Dlaczego „gwarantowane 20% miesięcznie” to ostrzeżenie',
+        text: 'Żadna legalna inwestycja rynkowa nie gwarantuje wysokiego zysku bez ryzyka. Gdy oferta łączy „pewny zysk” z presją czasu, to klasyczny sygnał oszustwa.',
+      },
+    },
+    {
+      en: {
+        title: 'Small regular habits beat waiting for the "perfect day"',
+        text: 'Investing a steady, affordable amount every month reduces the stress of guessing market tops and bottoms — time in the market matters more than timing.',
+      },
+      pl: {
+        title: 'Małe regularne kwoty wygrywają z czekaniem na „idealny moment”',
+        text: 'Regularne odkładanie stałej, bezpiecznej kwoty co miesiąc zdejmuje stres z trafiania w dołki — w długim terminie kluczowy jest czas na rynku.',
+      },
+    },
+    {
+      en: {
+        title: 'Your emergency cushion protects your investments',
+        text: 'Keeping 3–6 months of everyday costs in safe cash means a broken laptop or car repair will not force you to sell investments during a market dip.',
+      },
+      pl: {
+        title: 'Poduszka finansowa chroni Twoje inwestycje',
+        text: 'Odkładając 3–6 miesięcy kosztów życia w bezpiecznej gotówce, nie musisz sprzedawać inwestycji ze stratą, gdy nagle zepsuje się auto lub laptop.',
+      },
+    },
+    {
+      en: {
+        title: 'One broad ETF spreads risk across hundreds of companies',
+        text: 'Instead of betting on a single company, a global index ETF lets even a small monthly amount own a tiny slice of hundreds of businesses worldwide.',
+      },
+      pl: {
+        title: 'Jeden szeroki ETF rozkłada ryzyko na setki firm',
+        text: 'Zamiast stawiać wszystko na jedną spółkę, globalny ETF indeksowy pozwala nawet małą kwotą posiadać mały ułamek setek firm z całego świata.',
+      },
+    },
+  ]);
+
+  function renderStartFact() {
+    const titleEl = document.getElementById('start-fact-title');
+    const textEl = document.getElementById('start-fact-text');
+    const countEl = document.getElementById('start-fact-count');
+    if (!titleEl || !textEl || !countEl) return;
+    const idx = ((state.factIndex % START_FACTS.length) + START_FACTS.length) % START_FACTS.length;
+    const item = START_FACTS[idx][state.lang === 'pl' ? 'pl' : 'en'];
+    titleEl.textContent = item.title;
+    textEl.textContent = item.text;
+    countEl.textContent = (idx + 1) + ' / ' + START_FACTS.length;
+  }
+
+  function nextStartFact() {
+    state.factIndex = (state.factIndex + 1) % START_FACTS.length;
+    renderStartFact();
   }
 
   const INTRO_SLIDES = [1, 2, 3];
@@ -2080,7 +2184,10 @@
     (name ? [name] : FORM_FIELDS).forEach((f) => {
       const box = els.form.querySelector('[data-field="' + f + '"]');
       const msg = els.form.querySelector('[data-error-for="' + f + '"]');
-      if (box) box.removeAttribute('data-invalid');
+      if (box) {
+        box.removeAttribute('data-invalid');
+        box.querySelectorAll('input').forEach((inp) => inp.removeAttribute('aria-invalid'));
+      }
       if (msg) { msg.hidden = true; msg.textContent = ''; }
     });
   }
@@ -2091,7 +2198,10 @@
       if (!errors[f]) return;
       const box = els.form.querySelector('[data-field="' + f + '"]');
       const msg = els.form.querySelector('[data-error-for="' + f + '"]');
-      if (box) box.setAttribute('data-invalid', '');
+      if (box) {
+        box.setAttribute('data-invalid', '');
+        box.querySelectorAll('input').forEach((inp) => inp.setAttribute('aria-invalid', 'true'));
+      }
       if (msg) { msg.textContent = t(errors[f]); msg.hidden = false; }
       if (!first && box) first = box;
     });
@@ -2136,10 +2246,12 @@
   }
   function openTailor(open) {
     const body = els.tailorBody;
+    if (!body) return;
     const toggle = document.querySelector('[data-action="toggle-tailor"]');
+    if (!toggle) { body.hidden = false; return; }
     const next = open == null ? body.hidden : open;
     body.hidden = !next;
-    if (toggle) toggle.setAttribute('aria-expanded', String(next));
+    toggle.setAttribute('aria-expanded', String(next));
   }
   function setFormBusy(busy) {
     const cta = els.ctaOnboarding;
@@ -4366,14 +4478,18 @@
     if (modalReturnFocus && typeof modalReturnFocus.focus === 'function' && document.contains(modalReturnFocus)) modalReturnFocus.focus();
     modalReturnFocus = null;
   }
-  function renderJudges() {
-    const sections = blocks().judges.map((s) =>
+  function renderAbout() {
+    const sections = blocks().about.map((s) =>
       '<section class="judge judge--' + s.tone + (s.wide ? ' judge--wide' : '') + '"><h3>' + icon(s.icon, 'ic--sm') + escapeHtml(s.title) + '</h3>' +
         (s.list ? '<ul>' + s.list.map((li) => '<li>' + escapeHtml(li) + '</li>').join('') + '</ul>' : '<p>' + escapeHtml(s.text) + '</p>') + '</section>'
     ).join('');
-    els.judgesContent.innerHTML =
-      '<div class="judges">' + sections + '</div>' +
-      '<p class="disclaimer" style="margin-top:16px">' + icon('gear') + '<span>' + escapeHtml(t('judges.demoHint')) + '</span></p>' +
+    els.aboutContent.innerHTML =
+      '<div class="about-summary">' +
+        '<section class="about-summary__item"><span class="tile-ic tile-ic--gold">' + icon('users') + '</span><div><h3>' + escapeHtml(t('about.teamTitle')) + '</h3><p>' + escapeHtml(t('about.teamNames')) + '</p></div></section>' +
+        '<section class="about-summary__item"><span class="tile-ic tile-ic--sky">' + icon('target') + '</span><div><h3>' + escapeHtml(t('about.goalTitle')) + '</h3><p>' + escapeHtml(t('about.goalText')) + '</p></div></section>' +
+        '<section class="about-summary__item"><span class="tile-ic tile-ic--mint">' + icon('shield') + '</span><div><h3>' + escapeHtml(t('about.safetyTitle')) + '</h3><p>' + escapeHtml(t('about.safetyText')) + '</p></div></section>' +
+      '</div><div class="judges about-sections">' + sections + '</div>' +
+      '<p class="disclaimer" style="margin-top:16px">' + icon('gear') + '<span>' + escapeHtml(t('settings.title')) + ': ' + escapeHtml(t('demo.stages')) + ' and ' + escapeHtml(t('demo.shortcuts')) + '.</span></p>' +
       '<p class="disclaimer" style="margin-top:8px">' + icon('info') + '<span>' + escapeHtml(t('ai.disclaimer')) + '</span></p>';
   }
 
@@ -4424,13 +4540,14 @@
     storageSet(LS_LANG, lang);
     closeTermPop();
     applyStaticI18n();
+    renderStartFact();
     renderGuideWelcome();
     renderSoundButton();
     renderStageCards();
     syncFormOutputs();
     renderHud({ animate: false });
     renderDemoMenus();
-    if (!els.modalJudges.hidden) renderJudges();
+    if (!els.modalAbout.hidden) renderAbout();
     loadPersonas();
     // Nothing answered yet -> refresh server content in the new language (docs/01 §9).
     if (state.session && state.log.length === 0 && state.lastProfile && (state.screen === SCREENS.HUB)) {
@@ -4507,6 +4624,7 @@
       const a = el.dataset.action;
       switch (a) {
         case 'start-entry': beginJourney(); break;
+        case 'next-fact': nextStartFact(); break;
         case 'next-intro': nextIntro(); break;
         case 'skip-intro': skipIntro(); break;
         case 'close-intro': skipIntro(); break;
@@ -4520,7 +4638,7 @@
         case 'term-ask': askAboutTerm(el.dataset.term); break;
         case 'term-close': closeTermPop(true); break;
         case 'toggle-settings': toggleSettings(); break;
-        case 'open-judges': closeSettings(); renderJudges(); openModal('modal_judges'); break;
+        case 'open-about': closeSettings(); renderAbout(); openModal('modal_about'); break;
         case 'hub-tool': closeSettings(); openHubTool(el.dataset.tool, { focus: true }); break;
         case 'done-tab': showDoneTab(el.dataset.tab); break;
         case 'soon-day': onSoonDay(el); break;
@@ -4718,8 +4836,8 @@
     els.coraSheetCora = $('cora-sheet-cora');
     els.coraBody = $('cora-body');
     els.bankContent = $('bank-content');
-    els.modalJudges = $('modal_judges');
-    els.judgesContent = $('judges-content');
+    els.modalAbout = $('modal_about');
+    els.aboutContent = $('about-content');
     els.toastRoot = $('toast-root');
   }
 
@@ -4750,6 +4868,7 @@
     hydrateIcons();
     hydrateCora();
     applyStaticI18n();
+    renderStartFact();
     renderGuideWelcome();
     renderSoundButton();
     configureChart();
