@@ -158,10 +158,10 @@
       'name.badge': 'Your personal plan', 'name.title': 'How would you like us to address you?', 'name.copy': 'Atlas will prepare your plan.', 'name.label': 'First name', 'name.placeholder': 'For example, Alex', 'name.note': 'Used only to personalise your plan and summaries.', 'name.skip': 'Skip for now', 'name.continue': 'Continue',
 
       'hud.home': 'Investly home',
-      'hud.day': 'Day',
-      'hud.dayTitle': 'Day of your 14-day sprint',
-      'hud.streakTitle': 'Practice days',
-      'hud.practiceLabel': 'Practice days:',
+      'hud.day': 'Stage',
+      'hud.dayTitle': 'Stage of your 14-stage journey',
+      'hud.streakTitle': 'Stages completed',
+      'hud.practiceLabel': 'Stages completed:',
       'hud.xpTitle': 'Practice points (XP)',
       'hud.stageTitle': 'Growth Level',
       'hud.stageShort': 'Growth Level {n}/5',
@@ -237,71 +237,75 @@
       'concern.lose_money': 'Losing my money',
       'concern.too_late': "It's probably too late for me",
 
-      'hub.srTitle': 'Your 14-day plan',
+      'hub.srTitle': 'Your 14-stage journey',
       'hub.horizon': '{n}-year horizon',
       'hub.worry': 'Worry: {x}',
       'hub.phase': 'Phase {n}',
-      'hub.phase1.range': 'Days 1–4', 'hub.phase1.title': 'Foundations & first step',
-      'hub.phase2.range': 'Days 5–9', 'hub.phase2.title': 'Risk, safety & emotions',
-      'hub.phase3.range': 'Days 10–14', 'hub.phase3.title': 'Your real plan',
-      'hub.perDay': '~5 min a day',
-      'hub.day': 'Day {n}',
+      'hub.phase1.range': 'Stages 1–4', 'hub.phase1.title': 'Foundations & first step',
+      'hub.phase2.range': 'Stages 5–9', 'hub.phase2.title': 'Risk, safety & emotions',
+      'hub.phase3.range': 'Stages 10–14', 'hub.phase3.title': 'Automation & your portfolio',
+      'hub.phase4.range': 'Beyond Stage 14', 'hub.phase4.title': 'Rebalancing, IKE/IKZE, Bonds & Check-ins',
+      'hub.comingSoon': 'Coming soon',
+      'hub.upcomingTitle': 'What comes next in your journey',
+      'hub.upcomingSub': 'Unlock as we roll out Phases 2–4',
+      'hub.perDay': '~5 min per stage',
+      'hub.day': 'Stage {n}',
       'hub.day2Title': 'Brokerage account & fees',
       'hub.day3Title': 'Automate it: standing order',
       'hub.checkpoint': 'Checkpoint #1',
       'hub.checkpointSub': 'A quick knowledge check',
       'hub.checkpoint2': 'ends with Checkpoint #2',
-      'hub.finale': 'ends with the sprint finale',
-      'hub.start': 'Today',
+      'hub.finale': 'ends with the journey finale',
+      'hub.start': 'Up next',
       'hub.resume': 'In progress',
-      'hub.startMission': 'Start Day {n} simulation · ~5 min',
-      'hub.resumeMission': 'Continue Day {n} simulation',
-      'hub.nextDay': 'Start Day {n}',
+      'hub.startMission': 'Start Stage {n} simulation · ~5 min',
+      'hub.resumeMission': 'Continue Stage {n} simulation',
+      'hub.nextDay': 'Continue to Stage {n}',
       'hub.openCheckpoint': 'Start Checkpoint #1',
-      'hub.reviewDay': 'See Day {n} results',
-      'hub.locked': 'Unlocks after Day {n}',
-      'hub.lockedCp': 'Unlocks after Day 4',
-      'hub.tomorrow': 'Day {n} opens tomorrow. Come back to keep your practice going.',
-      'hub.after14.title': 'After Day 14: keep learning',
-      'hub.after14.sub': 'The sprint gets you started. Short monthly sessions keep you going.',
+      'hub.reviewDay': 'See Stage {n} summary',
+      'hub.locked': 'Unlocks right after Stage {n}',
+      'hub.lockedCp': 'Unlocks right after Stage 4',
+      'hub.tomorrow': 'Stage {n} is ready whenever you finish the previous stage.',
+      'hub.after14.title': 'Beyond Stage 14: continuous learning',
+      'hub.after14.sub': 'Short check-ins and deeper topics once you build your core routine.',
       'hub.done': 'Done',
       'hub.phaseDone': '{a} of {b} done',
-      'hub.ctaLessons': 'Start with the Day {n} lessons ({a}/{b})',
-      'hub.ctaCheckin': 'Atlas check-in, then start Day {n}',
+      'hub.ctaLessons': 'Start Stage {n} lessons ({a}/{b})',
+      'hub.ctaCheckin': 'Atlas check-in, then start Stage {n}',
 
-      'quest.eyebrow': 'Daily quests',
-      'quest.title': 'Day {d} of 14',
-      'tool.railTitle': 'Your sprint',
-      'tool.back': 'Back to daily quests',
+      'quest.eyebrow': '14-Stage Journey',
+      'quest.title': 'Stage {d} of 14',
+      'tool.railTitle': 'Your journey',
+      'tool.back': 'Learning path',
       'tool.nextTo': 'Next: {title}',
-      'tool.quests.title': 'Daily quests',
-      'tool.quests.sub': 'Day {d} of 14 · {a} of {b} done',
+      'tool.quests.title': 'Learning path',
+      'tool.quests.sub': 'Stage {d} of 14 · {a} of {b} done',
       'tool.plan.title': 'Your plan',
       'tool.plan.split': 'Cushion {a} · ETF {b}',
       'tool.plan.range': '{a}–{b} in a broad ETF',
       'tool.plan.savings': 'Cushion {a} first',
       'tool.sim.title': 'What-if simulator',
       'tool.sim.sub': '{amount}/mo over {years}',
-      'tool.lessons.title': 'Day {n} lessons',
+      'tool.lessons.title': 'Stage {n} lessons',
       'tool.lessons.sub': '{a} of {b} passed',
       'tool.lessons.ready': 'All passed, check-in done',
       'tool.lessons.badge': 'Next',
-      'tool.roadmap.title': 'Full sprint & after Day 14',
-      'tool.roadmap.sub': 'Phases 2–3 and continuous learning',
+      'tool.roadmap.title': 'Full journey & beyond',
+      'tool.roadmap.sub': 'Phases 2–4 coming soon',
       'tool.ask.title': 'Ask Atlas',
       'tool.ask.sub': 'Plain words and a real-life example',
 
-      // Short worries for the context pill on the Daily quests card
+      // Short worries for the context pill on the Learning path card
       'worry.freeze_money': 'frozen money',
       'worry.no_time': 'no time for markets',
       'worry.lose_money': 'losing money',
       'worry.too_late': 'too late to start',
 
-      // Day titles are owned by the UI so they always follow the EN | PL switch
+      // Stage titles are owned by the UI so they always follow the EN | PL switch
       'day.20+.1': 'Inflation, liquidity and getting started',
       'day.20+.4': 'Simulator of your first -15% drop',
       'day.20+.9': 'How to choose a low-cost, broad ETF?',
-      'day.20+.14': 'Your first investment',
+      'day.20+.14': 'Your first automated portfolio',
       'day.30-50.1': 'Inflation and investing in the background',
       'day.30-50.4': 'Automation without watching charts',
       'day.30-50.9': 'Sensible proportions for a family',
@@ -309,11 +313,11 @@
       'day.50+.1': 'An anti-inflation shield at any age',
       'day.50+.4': 'Reacting calmly to volatility',
       'day.50+.9': 'A simple capital-protection portfolio',
-      'day.50+.14': 'A confident start at Commerzbank',
-      'hub.soon': 'Available in the full 14-day sprint. Complete Days 1–4 and Checkpoint #1 first.',
-      'hub.pebble': 'Day {n}, part of the full 14-day sprint',
+      'day.50+.14': 'A confident, calm start',
+      'hub.soon': 'Coming soon! Complete Phase 1 (Stages 1–4 & Checkpoint #1) first.',
+      'hub.pebble': 'Stage {n} — coming soon',
       'hub.checkpoint2Short': 'Checkpoint #2',
-      'hub.finaleShort': 'Sprint finale',
+      'hub.finaleShort': 'Journey finale',
 
       'garden.title': 'Growth Level',
       'garden.stageLabel': 'Growth Level {stage} of 5',
@@ -361,8 +365,8 @@
       'checkin.title': 'Atlas check-in',
       'checkin.q': 'Is this section clear, or would you like me to explain anything else before the challenge?',
       'checkin.yes': 'Yes, explain something first',
-      'checkin.start': 'Everything is clear: start Day {n} challenge',
-      'checkin.done': 'Check-in done. Day {n} challenge unlocked.',
+      'checkin.start': 'Everything is clear: start Stage {n} challenge',
+      'checkin.done': 'Check-in done. Stage {n} challenge unlocked.',
       'lessons.got': 'Got it (+{n} XP)',
       'lessons.done': 'Done, +{n} XP',
       'lessons.explain': 'Explain simpler',
@@ -412,7 +416,7 @@
       'mission.continue': 'Continue',
       'mission.tryAgain': 'Try again',
       'mission.finish': 'See my results',
-      'mission.dayChip': 'Day {d} of 14',
+      'mission.dayChip': 'Stage {d} of 14',
       'mission.stepChip': 'Step {s} of {t}',
       'mission.portfolio': 'Simulated portfolio {amount}',
       'mission.coraWho': 'Atlas, your Commerzbank financial guide',
@@ -480,38 +484,48 @@
       'spot.wrongTitle': 'Good eye — look once more',
       'spot.wrong': 'That line barely changes your result. The annual fee (TER) is charged every year, so it is the one to compare.',
 
-      'done.srTitle': 'Day complete',
-      'done.title': 'Day {d} complete',
-      'done.earned': 'practice points today',
+      'done.srTitle': 'Stage complete',
+      'done.title': 'Stage {d} complete',
+      'done.earned': 'practice points earned',
       'done.levelUp': 'Milestone reached: {title}',
       'done.toNext': '{n} XP to the next milestone',
       'done.readiness': 'Readiness',
-      'done.readinessNote': 'Full readiness comes on Day 14.',
+      'done.readinessNote': 'Full readiness builds across all 14 stages.',
       'done.selfQ': 'How confident do you feel now?',
       'done.selfBefore': 'Before {n}/5. Tap how you feel now.',
       'done.selfCompare': 'Before {a}/5, now {b}/5',
-      'done.next': 'Continue to Day {n}',
+      'done.next': 'Continue to Stage {n}',
       'done.checkpoint': 'Start Checkpoint #1',
-      'done.toMap': 'Back to my plan',
-      'done.streak': 'Practice day recorded. See you tomorrow.',
+      'done.toMap': 'Back to path',
+      'done.streak': 'Progress saved — no waiting required, continue whenever you like.',
       'done.badgeLabel': 'Milestone',
-      'done.tabs': 'Day summary',
-      'done.tabToday': "Today's step",
-      'done.tabMore': 'Checklist, rank & After Day 14',
+      'done.tabs': 'Stage summary',
+      'done.tabToday': 'Micro-challenge & Action Plan',
+      'done.tabMore': 'Checklist, rank & Beyond Stage 14',
 
-      'first.title': 'Take your first real step',
-      'first.sub': "Small, safe and today. That's how confidence turns into action.",
-      'first.challenge': "Today's real-world challenge",
+      'first.title': 'Micro-challenge',
+      'first.sub': 'One small, safe real-world habit to reinforce what you just practiced.',
+      'first.challenge': 'Stage real-world challenge',
       'first.accept': "I'll do it (+{n} XP)",
       'first.accepted': 'Challenge accepted',
       'first.checklist': 'Your starter checklist',
-      'first.allDone': 'All set. You can now preview the first step in the bank.',
-      'first.toBank': 'Open my sample plan at Commerzbank',
+      'first.allDone': 'All set. You can preview a demo order draft anytime.',
+      'first.toBank': 'Preview demo order (Collabothon)',
 
-      'bankcard.title': 'Sample plan at Commerzbank',
-      'bankcard.demo': 'Demo',
-      'bankcard.today': 'Today',
-      'bankcard.day14': 'Day 14 target plan',
+      'bankcard.title': 'Your Action Plan',
+      'bankcard.demo': 'Simulation',
+      'bankcard.step1': 'Monthly split from your free cash',
+      'bankcard.step2': 'Why this split?',
+      'bankcard.step3': 'Illustrative effect after {years}',
+      'bankcard.cushionLabel': 'Safety cushion',
+      'bankcard.etfLabel': 'Broad global ETF',
+      'bankcard.whySplit': 'Most of your free cash builds your safety cushion first, while a small ETF amount lets you practice calmly without risking bill money.',
+      'bankcard.whyInvest': 'With your emergency cushion already in place, putting a steady slice into a broad ETF lets time work against inflation.',
+      'bankcard.whySavings': 'With a tighter monthly budget and no cushion yet, building 3+ months of cash reserve first protects you from forced sales.',
+      'bankcard.openSim': 'Open in Simulator',
+      'bankcard.openDraft': 'Demo order preview',
+      'bankcard.today': 'Micro step',
+      'bankcard.day14': 'Target monthly plan',
       'bankcard.micro': 'Micro step: {amount} to {account}',
       'bankcard.cushion': 'Cushion: {amount}/mo to a savings account',
       'bankcard.etfLater': 'ETF later, example {amount}/mo',
@@ -531,7 +545,7 @@
       'board.challenge': 'Challenge a friend',
       'board.copied': 'Invite copied. Send it to a friend!',
       'board.copyFail': "Couldn't copy. Here's the invite: {text}",
-      'board.invite': "I'm on Day {d} of the 14-day Finance Quest sprint with {xp} XP. Can you catch me?",
+      'board.invite': "I'm on Stage {d} of the 14-Stage Investly Journey with {xp} XP. Can you catch me?",
 
       'bank.title': 'Your sample plan at Commerzbank',
       'bank.preview': 'Preview of the banking app. Nothing is executed in the demo.',
@@ -587,7 +601,7 @@
 
       'judges.title': 'How Finance Quest works',
       'judges.sub': 'Commerzbank challenge: from financial knowledge to a first real step.',
-      'judges.jumpDay4': 'Jump to Day 4',
+      'judges.jumpDay4': 'Jump to Stage 4',
       'judges.openCp': 'Open Checkpoint #1',
       'judges.noMultiDay': "This server doesn't have Days 2–4 yet.",
       'judges.demoHint': 'Sample life stages and presenter shortcuts are in Settings (the gear, top right).',
@@ -667,10 +681,10 @@
       'name.badge': 'Twój plan osobisty', 'name.title': 'Jak mamy się do Ciebie zwracać?', 'name.copy': 'Atlas przygotuje Twój plan.', 'name.label': 'Imię', 'name.placeholder': 'Na przykład Ania', 'name.note': 'Służy wyłącznie do personalizacji planu i podsumowań.', 'name.skip': 'Pomiń na razie', 'name.continue': 'Dalej',
 
       'hud.home': 'Investly, strona główna',
-      'hud.day': 'Dzień',
-      'hud.dayTitle': 'Dzień Twojego 14-dniowego sprintu',
-      'hud.streakTitle': 'Dni praktyki',
-      'hud.practiceLabel': 'Dni praktyki:',
+      'hud.day': 'Etap',
+      'hud.dayTitle': 'Etap Twojej 14-etapowej ścieżki',
+      'hud.streakTitle': 'Ukończone etapy',
+      'hud.practiceLabel': 'Ukończone etapy:',
       'hud.xpTitle': 'Punkty praktyki (XP)',
       'hud.stageTitle': 'Poziom rozwoju',
       'hud.stageShort': 'Poziom rozwoju {n}/5',
@@ -746,71 +760,75 @@
       'concern.lose_money': 'Boję się, że stracę pieniądze',
       'concern.too_late': 'Chyba za późno na start',
 
-      'hub.srTitle': 'Twój 14-dniowy plan',
+      'hub.srTitle': 'Twoja 14-etapowa ścieżka',
       'hub.horizon': 'Horyzont: {n}',
       'hub.worry': 'Obawa: {x}',
       'hub.phase': 'Faza {n}',
-      'hub.phase1.range': 'Dni 1–4', 'hub.phase1.title': 'Fundamenty i pierwszy krok',
-      'hub.phase2.range': 'Dni 5–9', 'hub.phase2.title': 'Ryzyko, bezpieczeństwo i emocje',
-      'hub.phase3.range': 'Dni 10–14', 'hub.phase3.title': 'Twój prawdziwy plan',
-      'hub.perDay': '~5 min dziennie',
-      'hub.day': 'Dzień {n}',
+      'hub.phase1.range': 'Etapy 1–4', 'hub.phase1.title': 'Fundamenty i pierwszy krok',
+      'hub.phase2.range': 'Etapy 5–9', 'hub.phase2.title': 'Ryzyko, bezpieczeństwo i emocje',
+      'hub.phase3.range': 'Etapy 10–14', 'hub.phase3.title': 'Automatyzacja i Twój portfel',
+      'hub.phase4.range': 'Po Etapie 14', 'hub.phase4.title': 'Rebalansowanie, IKE/IKZE, Obligacje i check-iny',
+      'hub.comingSoon': 'Wkrótce',
+      'hub.upcomingTitle': 'Co dalej na Twojej ścieżce',
+      'hub.upcomingSub': 'Fazy 2–4 w przygotowaniu',
+      'hub.perDay': '~5 min na etap',
+      'hub.day': 'Etap {n}',
       'hub.day2Title': 'Konto maklerskie i opłaty',
       'hub.day3Title': 'Automat: zlecenie stałe',
       'hub.checkpoint': 'Checkpoint #1',
       'hub.checkpointSub': 'Szybki test wiedzy',
       'hub.checkpoint2': 'kończy się Checkpointem #2',
-      'hub.finale': 'kończy się finałem sprintu',
-      'hub.start': 'Dziś',
+      'hub.finale': 'kończy się finałem ścieżki',
+      'hub.start': 'Teraz',
       'hub.resume': 'W toku',
-      'hub.startMission': 'Zacznij symulację Dnia {n} · ~5 min',
-      'hub.resumeMission': 'Kontynuuj symulację Dnia {n}',
-      'hub.nextDay': 'Zacznij Dzień {n}',
+      'hub.startMission': 'Zacznij symulację Etapu {n} · ~5 min',
+      'hub.resumeMission': 'Kontynuuj symulację Etapu {n}',
+      'hub.nextDay': 'Przejdź do Etapu {n}',
       'hub.openCheckpoint': 'Zacznij Checkpoint #1',
-      'hub.reviewDay': 'Wyniki Dnia {n}',
-      'hub.locked': 'Odblokujesz po Dniu {n}',
-      'hub.lockedCp': 'Odblokujesz po Dniu 4',
-      'hub.tomorrow': 'Dzień {n} otworzy się jutro. Wróć, żeby kontynuować praktykę.',
-      'hub.after14.title': 'Po Dniu 14: ucz się dalej',
-      'hub.after14.sub': 'Sprint daje start. Krótkie comiesięczne sesje utrzymują nawyk.',
+      'hub.reviewDay': 'Podsumowanie Etapu {n}',
+      'hub.locked': 'Odblokuje się od razu po Etapie {n}',
+      'hub.lockedCp': 'Odblokuje się od razu po Etapie 4',
+      'hub.tomorrow': 'Etap {n} jest dostępny od razu po ukończeniu poprzedniego etapu.',
+      'hub.after14.title': 'Po Etapie 14: dalsza nauka',
+      'hub.after14.sub': 'Krótkie check-iny i pogłębione tematy, gdy zbudujesz podstawowy nawyk.',
       'hub.done': 'Zaliczone',
       'hub.phaseDone': '{a} z {b} ukończone',
-      'hub.ctaLessons': 'Zacznij od lekcji Dnia {n} ({a}/{b})',
-      'hub.ctaCheckin': 'Check-in z Atlasem, potem start Dnia {n}',
+      'hub.ctaLessons': 'Zacznij lekcje Etapu {n} ({a}/{b})',
+      'hub.ctaCheckin': 'Check-in z Atlasem, potem start Etapu {n}',
 
-      'quest.eyebrow': 'Zadania dnia',
-      'quest.title': 'Dzień {d} z 14',
-      'tool.railTitle': 'Twój sprint',
-      'tool.back': 'Wróć do zadań dnia',
+      'quest.eyebrow': 'Ścieżka inwestowania',
+      'quest.title': 'Etap {d} z 14',
+      'tool.railTitle': 'Twoja ścieżka',
+      'tool.back': 'Ścieżka nauki',
       'tool.nextTo': 'Dalej: {title}',
-      'tool.quests.title': 'Zadania dnia',
-      'tool.quests.sub': 'Dzień {d} z 14 · {a} z {b} ukończone',
+      'tool.quests.title': 'Ścieżka nauki',
+      'tool.quests.sub': 'Etap {d} z 14 · {a} z {b} ukończone',
       'tool.plan.title': 'Twój plan',
       'tool.plan.split': 'Poduszka {a} · ETF {b}',
       'tool.plan.range': '{a}–{b} w szerokim ETF',
       'tool.plan.savings': 'Najpierw poduszka {a}',
       'tool.sim.title': 'Symulator: co jeśli?',
       'tool.sim.sub': '{amount}/mies. przez {years}',
-      'tool.lessons.title': 'Lekcje Dnia {n}',
+      'tool.lessons.title': 'Lekcje Etapu {n}',
       'tool.lessons.sub': 'Zaliczone: {a} z {b}',
       'tool.lessons.ready': 'Wszystko zaliczone, check-in gotowy',
       'tool.lessons.badge': 'Teraz',
-      'tool.roadmap.title': 'Cały sprint i po Dniu 14',
-      'tool.roadmap.sub': 'Fazy 2–3 i dalsza nauka',
+      'tool.roadmap.title': 'Pełna ścieżka i po Etapie 14',
+      'tool.roadmap.sub': 'Fazy 2–4 wkrótce',
       'tool.ask.title': 'Zapytaj Atlasa',
       'tool.ask.sub': 'Prosto i na przykładzie z życia',
 
-      // Krótkie obawy do pigułki kontekstu na karcie Zadań dnia
+      // Krótkie obawy do pigułki kontekstu na karcie ścieżki
       'worry.freeze_money': 'zamrożone pieniądze',
       'worry.no_time': 'brak czasu na giełdę',
       'worry.lose_money': 'strata pieniędzy',
       'worry.too_late': 'za późno na start',
 
-      // Tytuły dni należą do UI, więc zawsze podążają za przełącznikiem EN | PL
+      // Tytuły etapów należą do UI, więc zawsze podążają za przełącznikiem EN | PL
       'day.20+.1': 'Inflacja, płynność i start',
       'day.20+.4': 'Symulator pierwszego spadku -15%',
       'day.20+.9': 'Jak wybrać tani, szeroki ETF?',
-      'day.20+.14': 'Twoja pierwsza inwestycja',
+      'day.20+.14': 'Twój pierwszy automatyczny portfel',
       'day.30-50.1': 'Inflacja i inwestowanie w tle',
       'day.30-50.4': 'Automatyzacja bez patrzenia w wykresy',
       'day.30-50.9': 'Bezpieczne proporcje dla rodziny',
@@ -818,11 +836,11 @@
       'day.50+.1': 'Tarcza antyinflacyjna w każdym wieku',
       'day.50+.4': 'Spokojne reagowanie na wahania',
       'day.50+.9': 'Prosty portfel ochrony kapitału',
-      'day.50+.14': 'Świadomy start w Commerzbanku',
-      'hub.soon': 'Dostępne w pełnym 14-dniowym sprincie. Najpierw ukończ Dni 1–4 i Checkpoint #1.',
-      'hub.pebble': 'Dzień {n}, część pełnego 14-dniowego sprintu',
+      'day.50+.14': 'Spokojny, świadomy start',
+      'hub.soon': 'Wkrótce! Najpierw ukończ Fazę 1 (Etapy 1–4 i Checkpoint #1).',
+      'hub.pebble': 'Etap {n} — wkrótce',
       'hub.checkpoint2Short': 'Checkpoint #2',
-      'hub.finaleShort': 'Finał sprintu',
+      'hub.finaleShort': 'Finał ścieżki',
 
       'garden.title': 'Poziom rozwoju',
       'garden.stageLabel': 'Poziom rozwoju {stage} z 5',
@@ -858,7 +876,7 @@
       'skip.removed': 'Na razie możesz to pominąć',
 
       'lessons.title': 'Lekcje na 20 sekund',
-      'lessons.titleDay': 'Lekcje Dnia {n}',
+      'lessons.titleDay': 'Lekcje Etapu {n}',
       'lessons.sub': 'Zalicz każdy mini-check, by odblokować wyzwanie, do +{n} XP',
       'lessons.progress': 'Zaliczone lekcje: {a} z {b}',
       'lessons.check': 'Szybki sprawdzian',
@@ -870,8 +888,8 @@
       'checkin.title': 'Check-in z Atlasem',
       'checkin.q': 'Czy ten dział jest zrozumiały, czy mam coś jeszcze wyjaśnić przed zadaniem?',
       'checkin.yes': 'Tak, wytłumacz coś jeszcze',
-      'checkin.start': 'Wszystko jasne: zacznij wyzwanie Dnia {n}',
-      'checkin.done': 'Check-in zaliczony. Wyzwanie Dnia {n} odblokowane.',
+      'checkin.start': 'Wszystko jasne: zacznij wyzwanie Etapu {n}',
+      'checkin.done': 'Check-in zaliczony. Wyzwanie Etapu {n} odblokowane.',
       'lessons.got': 'Rozumiem (+{n} XP)',
       'lessons.done': 'Zaliczone, +{n} XP',
       'lessons.explain': 'Wyjaśnij prościej',
@@ -921,7 +939,7 @@
       'mission.continue': 'Dalej',
       'mission.tryAgain': 'Spróbuj jeszcze raz',
       'mission.finish': 'Zobacz wyniki',
-      'mission.dayChip': 'Dzień {d} z 14',
+      'mission.dayChip': 'Etap {d} z 14',
       'mission.stepChip': 'Krok {s} z {t}',
       'mission.portfolio': 'Portfel w symulacji: {amount}',
       'mission.coraWho': 'Atlas, przewodnik finansowy Commerzbanku',
@@ -989,38 +1007,48 @@
       'spot.wrongTitle': 'Dobre oko — spójrz jeszcze raz',
       'spot.wrong': 'Ten wiersz prawie nie zmienia wyniku. Roczna opłata (TER) pobierana jest co roku, więc to ją warto porównać.',
 
-      'done.srTitle': 'Dzień ukończony',
-      'done.title': 'Dzień {d} zaliczony',
-      'done.earned': 'punktów praktyki dziś',
+      'done.srTitle': 'Etap ukończony',
+      'done.title': 'Etap {d} zaliczony',
+      'done.earned': 'zdobytych punktów praktyki',
       'done.levelUp': 'Osiągnięty kamień milowy: {title}',
       'done.toNext': 'Do kolejnego kamienia milowego: {n} XP',
       'done.readiness': 'Gotowość',
-      'done.readinessNote': 'Pełną gotowość da dopiero Dzień 14.',
+      'done.readinessNote': 'Pełną gotowość budujesz przez wszystkie 14 etapów.',
       'done.selfQ': 'Jak pewnie czujesz się teraz?',
       'done.selfBefore': 'Przed: {n}/5. Zaznacz, jak jest teraz.',
       'done.selfCompare': 'Przed: {a}/5, teraz: {b}/5',
-      'done.next': 'Przejdź do Dnia {n}',
+      'done.next': 'Przejdź do Etapu {n}',
       'done.checkpoint': 'Zacznij Checkpoint #1',
-      'done.toMap': 'Wróć do planu',
-      'done.streak': 'Dzień praktyki zapisany. Do jutra.',
+      'done.toMap': 'Wróć do ścieżki',
+      'done.streak': 'Postęp zapisany — bez czekania, możesz od razu przejść dalej.',
       'done.badgeLabel': 'Kamień milowy',
-      'done.tabs': 'Podsumowanie dnia',
-      'done.tabToday': 'Dzisiejszy krok',
-      'done.tabMore': 'Checklista, ranking i Po Dniu 14',
+      'done.tabs': 'Podsumowanie etapu',
+      'done.tabToday': 'Mikro-wyzwanie i Plan Działania',
+      'done.tabMore': 'Checklista, ranking i Po Etapie 14',
 
-      'first.title': 'Zrób pierwszy prawdziwy krok',
-      'first.sub': 'Mały, bezpieczny i dziś. Tak pewność zamienia się w działanie.',
-      'first.challenge': 'Dzisiejsze realne wyzwanie',
+      'first.title': 'Mikro-wyzwanie',
+      'first.sub': 'Jeden mały, bezpieczny krok w prawdziwym świecie, który utrwala ten etap.',
+      'first.challenge': 'Realne wyzwanie tego etapu',
       'first.accept': 'Podejmuję wyzwanie (+{n} XP)',
       'first.accepted': 'Wyzwanie przyjęte',
       'first.checklist': 'Twoja checklista na start',
-      'first.allDone': 'Komplet. Możesz teraz podejrzeć pierwszy krok w banku.',
-      'first.toBank': 'Otwórz przykładowy plan w Commerzbanku',
+      'first.allDone': 'Komplet. Możesz w każdej chwili podejrzeć szkic zlecenia demo.',
+      'first.toBank': 'Podgląd zlecenia demo (Collabothon)',
 
-      'bankcard.title': 'Przykładowy plan w Commerzbanku',
-      'bankcard.demo': 'Demo',
-      'bankcard.today': 'Dziś',
-      'bankcard.day14': 'Dzień 14: plan docelowy',
+      'bankcard.title': 'Twój Plan Działania',
+      'bankcard.demo': 'Symulacja',
+      'bankcard.step1': 'Miesięczny podział wolnych środków',
+      'bankcard.step2': 'Dlaczego taki podział?',
+      'bankcard.step3': 'Szacowany efekt po {years}',
+      'bankcard.cushionLabel': 'Poduszka bezpieczeństwa',
+      'bankcard.etfLabel': 'Szeroki globalny ETF',
+      'bankcard.whySplit': 'Większość wolnych środków najpierw buduje Twoją poduszkę, a mała kwota na ETF pozwala spokojnie ćwiczyć bez ryzykowania pieniędzy na rachunki.',
+      'bankcard.whyInvest': 'Poduszkę już masz, więc regularna część w szerokim ETF pozwala czasowi pracować przeciwko inflacji.',
+      'bankcard.whySavings': 'Przy mniejszej nadwyżce i bez poduszki najważniejsze jest odłożenie rezerwy na min. 3 mies. wydatków, by nie sprzedawać inwestycji ze stratą.',
+      'bankcard.openSim': 'Otwórz w Symulatorze',
+      'bankcard.openDraft': 'Podgląd zlecenia demo',
+      'bankcard.today': 'Mikro-krok',
+      'bankcard.day14': 'Docelowy plan miesięczny',
       'bankcard.micro': 'Mikro-ruch: {amount} na {account}',
       'bankcard.cushion': 'Poduszka: {amount}/mies. na konto oszczędnościowe',
       'bankcard.etfLater': 'ETF później, przykład {amount}/mies.',
@@ -1096,7 +1124,7 @@
 
       'judges.title': 'Jak działa Finance Quest',
       'judges.sub': 'Wyzwanie Commerzbanku: od wiedzy finansowej do pierwszego realnego kroku.',
-      'judges.jumpDay4': 'Skocz do Dnia 4',
+      'judges.jumpDay4': 'Skocz do Etapu 4',
       'judges.openCp': 'Otwórz Checkpoint #1',
       'judges.noMultiDay': 'Ten serwer nie ma jeszcze Dni 2–4.',
       'judges.demoHint': 'Przykładowe etapy życia i skróty dla prowadzącego są w Ustawieniach (zębatka w prawym górnym rogu).',
@@ -2507,7 +2535,6 @@
     { id: 'plan', icon: 'wallet', tone: 'gold', panel: 1 },
     { id: 'sim', icon: 'chart', tone: 'sky', panel: 2 },
     { id: 'lessons', icon: 'bulb', tone: 'mint', panel: 3 },
-    { id: 'roadmap', icon: 'map', tone: 'apricot', panel: 4 },
   ];
   const TOOL_FLOW = ['plan', 'sim', 'lessons'];   // guided order inside the tool view
   function hubTool(id) { return HUB_TOOLS.find((x) => x.id === id) || HUB_TOOLS[0]; }
@@ -2576,9 +2603,11 @@
       const nav = document.querySelector('[data-step-nav="' + x.panel + '"]');
       if (!nav) return;
       const i = TOOL_FLOW.indexOf(x.id);
-      const prevId = i > 0 ? TOOL_FLOW[i - 1] : 'quests';
-      const back = '<button type="button" class="btn btn--ghost" data-action="hub-tool" data-tool="' + prevId + '">' +
-        icon('arrow-right', 'ic--flip') + escapeHtml(prevId === 'quests' ? t('tool.back') : toolTitle(prevId)) + '</button>';
+      const prevId = i > 0 ? TOOL_FLOW[i - 1] : null;
+      const back = prevId
+        ? '<button type="button" class="btn btn--ghost" data-action="hub-tool" data-tool="' + prevId + '">' +
+            icon('arrow-right', 'ic--flip') + escapeHtml(toolTitle(prevId)) + '</button>'
+        : '<span></span>';
       let next = '';
       if (i >= 0 && i < TOOL_FLOW.length - 1) {
         next = '<button type="button" class="btn btn--primary" data-action="hub-tool" data-tool="' + TOOL_FLOW[i + 1] + '">' +
@@ -2668,6 +2697,47 @@
       );
     }).join('');
 
+    const upcomingPhase = (num, from, to, rangeKey, titleKey, milestoneDay, endIcon, endLabel) => {
+      let pebbles = '';
+      for (let d = from; d <= to; d++) {
+        pebbles += '<button type="button" class="pebble" data-action="soon-day" data-day="' + d + '" aria-label="' + escapeHtml(t('hub.pebble', { n: d })) + '">' +
+          '<span class="pebble__n">' + d + '</span></button>';
+      }
+      pebbles += '<button type="button" class="pebble pebble--goal" data-action="soon-day" data-day="' + to + '" aria-label="' + escapeHtml(endLabel) + '" title="' + escapeHtml(endLabel) + '">' + icon(endIcon) + '</button>';
+      const milestone = dayTitle(milestoneDay);
+      return (
+        '<div class="phase-card phase-card--' + num + ' phase-card--soon">' +
+          '<div class="phase-card__head"><span class="phase__num">' + num + '</span>' +
+            '<div style="flex:1;min-width:0">' +
+              '<div class="phase-card__title-row">' +
+                '<p class="phase__meta">' + escapeHtml(t('hub.phase', { n: num }) + ' · ' + t(rangeKey)) + '</p>' +
+                '<span class="phase__soon">' + escapeHtml(t('hub.comingSoon')) + '</span>' +
+              '</div>' +
+              '<p class="phase__title">' + escapeHtml(t(titleKey)) + '</p>' +
+              (milestone ? '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(milestone) + '</p>' : '') +
+            '</div></div>' +
+          '<div class="pebbles">' + pebbles + '</div>' +
+        '</div>'
+      );
+    };
+    const afterTiles = after14Paths().map((p) =>
+      '<div class="after14__tile"><span class="tile-ic">' + icon(p.icon || 'chat') + '</span><h4>' + escapeHtml(p.title) + '</h4>' +
+        '<p>' + escapeHtml(p.description || '') + '</p><p class="after14__cad">' + escapeHtml(p.cadence || '') + '</p></div>'
+    ).join('');
+    const phase4Card =
+      '<div class="phase-card phase-card--4 phase-card--soon">' +
+        '<div class="phase-card__head"><span class="phase__num">4</span>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="phase-card__title-row">' +
+              '<p class="phase__meta">' + escapeHtml(t('hub.phase', { n: 4 }) + ' · ' + t('hub.phase4.range')) + '</p>' +
+              '<span class="phase__soon">' + escapeHtml(t('hub.comingSoon')) + '</span>' +
+            '</div>' +
+            '<p class="phase__title">' + escapeHtml(t('hub.phase4.title')) + '</p>' +
+            '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(t('hub.after14.sub')) + '</p>' +
+          '</div></div>' +
+        '<div class="after14__grid">' + afterTiles + '</div>' +
+      '</div>';
+
     const done = phaseDoneCount();
     const pct = Math.round((done / PLAYABLE_DAYS) * 100);
     const horizon = state.lang === 'pl' ? years(s.default_horizon_years) : s.default_horizon_years;
@@ -2695,6 +2765,17 @@
         '</div>' +
         '<ol class="timeline" data-group="' + escapeHtml(s.age_group) + '">' + rows + '</ol>' +
         '<div class="hub-cta-desktop">' + primaryButton('btn--block') + '</div>' +
+      '</div>' +
+      '<div class="upcoming-phases" aria-label="' + escapeHtml(t('hub.upcomingTitle')) + '">' +
+        '<div class="upcoming-phases__head">' +
+          '<h4 class="h3">' + escapeHtml(t('hub.upcomingTitle')) + '</h4>' +
+          '<span class="small muted">' + escapeHtml(t('hub.upcomingSub')) + '</span>' +
+        '</div>' +
+        '<div class="upcoming-phases__grid">' +
+          upcomingPhase(2, 5, 9, 'hub.phase2.range', 'hub.phase2.title', 9, 'trophy', t('hub.checkpoint2Short')) +
+          upcomingPhase(3, 10, 14, 'hub.phase3.range', 'hub.phase3.title', 14, 'flag', t('hub.finaleShort')) +
+          phase4Card +
+        '</div>' +
       '</div>';
   }
 
@@ -3869,13 +3950,16 @@
       '<div class="card card--raised win">' +
         coraHTML('celebrating') +
         '<h1 class="h1 win__title">' + escapeHtml(t('done.title', { d: state.day })) + '</h1>' +
+        '<div class="win__xp xp-detail">' + icon('chart', 'ic--sm') + '<span><span data-earned="' + earned + '">+' + (animate ? 0 : earned) + '</span> XP</span> <span>' + escapeHtml(t('done.earned')) + '</span></div>' +
+        '<div class="win__actions win__actions--top">' + nextCta +
+          '<button type="button" class="btn btn--ghost btn--lg" data-action="go-home">' + icon('arrow-right', 'ic--flip') + escapeHtml(t('done.toMap')) + '</button></div>' +
+        '<p class="small done-streak">' + icon('calendar-check', 'ic--sm') + '<span>' + escapeHtml(t('done.streak')) + '</span></p>' +
         '<div class="garden garden--done">' +
           plantSVG(curPlant.stage, grew ? 'plant--grow' : '') +
           '<div><p class="garden__label">' + escapeHtml(grew ? growthText : t('garden.current')) + '</p>' +
           '<p class="garden__stage">' + escapeHtml(curPlant.title) + '</p>' +
           '<p class="garden__desc">' + escapeHtml(grew ? curPlant.quote : (state.calm ? curPlant.quote : growthText)) + '</p></div>' +
         '</div>' +
-        '<div class="win__xp xp-detail">' + icon('chart', 'ic--sm') + '<span><span data-earned="' + earned + '">+' + (animate ? 0 : earned) + '</span> XP</span> <span>' + escapeHtml(t('done.earned')) + '</span></div>' +
         '<div>' + milestone + '</div>' +
         '<div class="win__row">' +
           '<div><p class="win__label">' + escapeHtml(t(state.calm ? 'hud.readinessCalm' : 'done.readiness')) + '</p>' +
@@ -3887,9 +3971,6 @@
             '<div class="selfscale">' + selfTiles + '</div>' +
             '<p class="small strong" id="self-compare" style="margin-top:8px" aria-live="polite">' + escapeHtml(selfCompare(before, s.selfAfter)) + '</p></fieldset>' +
         '</div>' +
-        '<div class="win__actions">' + nextCta +
-          '<button type="button" class="btn btn--ghost btn--lg" data-action="go-home">' + icon('arrow-right', 'ic--flip') + escapeHtml(t('done.toMap')) + '</button></div>' +
-        '<p class="small done-streak">' + icon('calendar-check', 'ic--sm') + '<span>' + escapeHtml(t('done.streak')) + '</span></p>' +
       '</div>';
 
     // Below the result: two calm tabs instead of a wall of cards (Issue #44).
@@ -4070,25 +4151,56 @@
     const box = document.getElementById('done-bank');
     if (!d) { box.hidden = true; return; }
     box.hidden = false;
-    const c = tt.real_world_challenge;
     const a = state.session.safe_investment || {};
-    const savingsFirst = a.plan_type === 'savings_first';
+    const planType = a.plan_type || 'invest';
+    const savingsFirst = planType === 'savings_first';
     const cushion = Number(a.emergency_savings_monthly) || 0;
+    const etfMonthly = planType === 'split' ? (Number(a.training_etf_monthly) || Number(d.monthly_amount) || 0) : (savingsFirst ? 0 : (Number(d.monthly_amount) || 0));
     const step = (n, label, html) =>
       '<li class="plan-step"><span class="plan-step__n">' + n + '</span><div><p class="plan-step__label">' + escapeHtml(label) + '</p>' + html + '</div></li>';
-    const today = c ? '<p class="strong">' + escapeHtml(c.amount_pln > 0 ? t('bankcard.micro', { amount: money(c.amount_pln), account: c.target_account }) : c.target_account) + '</p>' : '';
-    const target = savingsFirst
-      ? '<p class="strong">' + escapeHtml(t('bankcard.cushion', { amount: money(cushion) })) + '</p><p class="small muted">' + escapeHtml(t('bankcard.etfLater', { amount: money(d.monthly_amount) })) + '</p>'
-      : '<p class="strong">' + escapeHtml(t('bankcard.monthly', { amount: money(d.monthly_amount), years: years(d.horizon_years) })) + '</p>' +
-        '<p class="small muted">' + escapeHtml(d.instrument_category) + '</p>' +
-        (cushion > 0 ? '<p class="small muted">' + escapeHtml(t('bankcard.parallel', { amount: money(cushion) })) + '</p>' : '');
-    box.innerHTML =
-      '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('bankcard.title')) + '</h3><span class="chip chip--ink">' + escapeHtml(t('bankcard.demo')) + '</span></div>' +
-      '<ol class="plan-steps">' + step(1, t('bankcard.today'), today) + step(2, t('bankcard.day14'), target) + '</ol>' +
-      '<div class="plan-num"><p class="tiny muted" style="grid-column:1/-1">' + escapeHtml(t(savingsFirst ? 'bankcard.estimateLater' : 'bankcard.estimate', { years: years(d.horizon_years) })) + '</p>' +
+
+    const perMo = state.lang === 'pl' ? '/mies.' : '/mo';
+    const splitItems = [];
+    if (cushion > 0) {
+      splitItems.push(
+        '<div class="action-split__item action-split__item--cushion">' +
+          '<span class="action-split__k">' + escapeHtml(t('bankcard.cushionLabel')) + '</span>' +
+          '<span class="action-split__v">' + escapeHtml(money(cushion)) + perMo + '</span>' +
+        '</div>'
+      );
+    }
+    if (etfMonthly > 0) {
+      splitItems.push(
+        '<div class="action-split__item action-split__item--etf">' +
+          '<span class="action-split__k">' + escapeHtml(t('bankcard.etfLabel')) + '</span>' +
+          '<span class="action-split__v">' + escapeHtml(money(etfMonthly)) + perMo + '</span>' +
+        '</div>'
+      );
+    }
+    const step1Html = '<div class="action-split">' + splitItems.join('') + '</div>' +
+      (savingsFirst ? '<p class="small muted" style="margin-top:6px">' + escapeHtml(t('bankcard.etfLater', { amount: money(d.monthly_amount) })) + '</p>' : '');
+
+    const whyKey = planType === 'split' ? 'bankcard.whySplit' : savingsFirst ? 'bankcard.whySavings' : 'bankcard.whyInvest';
+    const step2Html = '<p class="action-plan__why">' + escapeHtml(t(whyKey)) + '</p>';
+
+    const step3Html =
+      '<div class="plan-num" style="margin-top:8px">' +
         '<div><span class="tiny strong" style="color:var(--green-text)">' + escapeHtml(t('bankcard.etfReal')) + '</span><b>' + escapeHtml(money(d.projected_etf_real_value)) + '</b></div>' +
         '<div><span class="tiny strong" style="color:var(--coral-text)">' + escapeHtml(t('bankcard.cashReal')) + '</span><b>' + escapeHtml(money(d.projected_cash_real_value)) + '</b></div>' +
-        '<p class="tiny muted" style="grid-column:1/-1">' + escapeHtml(t('bankcard.nominal', { amount: money(d.projected_etf_nominal_value) })) + '</p></div>' +
+        '<p class="tiny muted" style="grid-column:1/-1">' + escapeHtml(t('bankcard.nominal', { amount: money(d.projected_etf_nominal_value) })) + '</p>' +
+      '</div>';
+
+    box.innerHTML =
+      '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('bankcard.title')) + '</h3><span class="chip chip--ink">' + escapeHtml(t('bankcard.demo')) + '</span></div>' +
+      '<ol class="plan-steps">' +
+        step(1, t('bankcard.step1'), step1Html) +
+        step(2, t('bankcard.step2'), step2Html) +
+        step(3, t('bankcard.step3', { years: years(d.horizon_years) }), step3Html) +
+      '</ol>' +
+      '<div class="action-plan__cta">' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-action="open-sim">' + icon('chart', 'ic--sm') + escapeHtml(t('bankcard.openSim')) + '</button>' +
+        '<button type="button" class="btn btn--ink btn--sm" data-action="open-bank">' + icon('landmark', 'ic--sm') + escapeHtml(t('bankcard.openDraft')) + '</button>' +
+      '</div>' +
       '<p class="tiny muted" style="margin-top:10px">' + escapeHtml(d.assumptions_text) + ' ' + escapeHtml(d.costs_note) + '</p>';
   }
 
@@ -4665,6 +4777,7 @@
         case 'toggle-check': toggleCheck(el.dataset.id, el); break;
         case 'challenge-friend': challengeFriend(); break;
         case 'open-bank': openBank(); break;
+        case 'open-sim': showScreen(SCREENS.HUB); openHubTool('sim', { focus: true }); break;
         case 'simulate-bank': simulateBank(); break;
         case 'next-gen': nextGeneration(); break;
         case 'cp-pick': cpPick(el.dataset.id); break;
