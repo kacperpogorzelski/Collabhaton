@@ -519,6 +519,21 @@ body[data-screen="screen_filter_and_timemachine"] .cora-dock { display: none; } 
 .stage-card__go { margin-top: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 0.875rem; font-weight: 800; color: var(--ink); }
 .stage-card.is-loading .stage-card__go { opacity: .6; }
 
+.onb-form-section { margin-top: 8px; }
+.onb-form-card { border-top: 5px solid var(--yellow); }
+.onb-form-card .form-grid { margin-top: 6px; }
+.onb-form-actions { margin-top: 26px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+@media (max-width: 639px) { .onb-form-actions .btn { width: 100%; } }
+
+.sample-profiles { margin-top: 34px; }
+.sample-profiles__divider {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 22px; color: var(--ink-2);
+  font-size: 0.8125rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+}
+.sample-profiles__divider::before,
+.sample-profiles__divider::after { content: ''; flex: 1 1 0; height: 1.5px; background: var(--rule); }
+
 .tailor { margin-top: 32px; }
 .tailor__toggle { width: 100%; justify-content: space-between; }
 .form-grid { display: grid; grid-template-columns: 1fr; gap: 26px 40px; margin-top: 22px; }
@@ -1211,25 +1226,65 @@ body[data-screen="screen_checkpoint"] main { padding-top: 0; padding-bottom: 220
 @keyframes toastOut { to { opacity: 0; transform: translateY(6px); } }
 
 /* --------------------------------------------------------------------------
-   16. Commerzbank entry + first-visit flow
+   16. Investly welcome landing + first-visit flow
    -------------------------------------------------------------------------- */
-.bank-entry { max-width: 720px; margin: 12px auto 0; padding: clamp(22px, 5vw, 40px); background: var(--card); border: var(--line); border-top: 6px solid var(--yellow); border-radius: var(--r-xl); box-shadow: var(--shadow-card); }
-.bank-entry__eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 5px 11px; border-radius: 999px; background: var(--ink); color: #fff; font-size: .8125rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.bank-entry__eyebrow .ic { width: 15px; height: 15px; color: var(--yellow); }
-.bank-entry__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-top: 26px; }
-.bank-entry__balance { margin-top: 6px; font-size: clamp(2.2rem, 7vw, 3.8rem); }
-.bank-entry__mark { display: grid; place-items: center; width: 54px; height: 54px; flex: 0 0 auto; border-radius: 13px; background: var(--ink); color: var(--yellow); }
-.bank-entry__mark .ic { width: 26px; height: 26px; }
-.bank-entry__transactions { display: grid; gap: 0; margin: 28px 0 24px; border-top: 1.5px solid var(--rule-2); }
-.bank-entry__transactions > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1.5px solid var(--rule-2); font-size: .9375rem; }
-.bank-entry__transactions > div > span { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 600; }
-.bank-entry__transactions b { font-weight: 800; font-variant-numeric: tabular-nums; }
-.bank-entry__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--green); }
-.bank-entry__dot--coral { background: var(--coral); }
-.bank-entry__note { margin-top: 14px; text-align: center; }
-.bank-entry__why { display: flex; align-items: center; gap: 16px; max-width: 720px; margin: 24px auto 0; padding: 16px 18px; border-radius: var(--r-lg); background: var(--ink); color: #fff; box-shadow: var(--shadow-card); }
+.landing {
+  max-width: 780px; margin: 10px auto 0;
+  padding: clamp(22px, 5vw, 42px);
+  background: var(--card); border: var(--line);
+  border-top: 6px solid var(--yellow);
+  border-radius: var(--r-xl); box-shadow: var(--shadow-card);
+}
+.landing__top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.landing__badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 13px; border-radius: 999px;
+  background: var(--ink-surface); color: #fff;
+  font-size: .8125rem; font-weight: 800; letter-spacing: .04em;
+}
+.landing__badge .ic { width: 15px; height: 15px; color: var(--yellow); }
+.landing__mark {
+  display: grid; place-items: center; width: 48px; height: 48px; flex: 0 0 auto;
+  border-radius: 13px; background: var(--ink-surface); color: var(--yellow);
+  box-shadow: 0 4px 12px rgba(28, 55, 69, .16);
+}
+.landing__mark .ic { width: 24px; height: 24px; }
+.landing__hero { margin-top: 24px; }
+.landing__kicker {
+  font-size: 0.9375rem; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--green-strong);
+}
+.landing__slogan { margin-top: 8px; font-size: clamp(2rem, 5.2vw, 3.15rem); line-height: 1.1; letter-spacing: -0.025em; }
+.landing__sub { margin-top: 14px; max-width: 56ch; }
+.landing__cta-row { margin-top: 26px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.landing__cta { min-width: min(100%, 260px); }
+.landing__trust {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.875rem; font-weight: 600; color: var(--ink-2);
+}
+.landing__trust .ic { color: var(--green-strong); flex-shrink: 0; }
+
+.fact-card {
+  margin-top: 28px; padding: 18px 20px;
+  border: 1.5px solid var(--sky-line); border-radius: var(--r-lg);
+  background: linear-gradient(180deg, var(--ice) 0%, #FFFFFF 100%);
+}
+.fact-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fact-card__label {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 0.8125rem; font-weight: 800; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--sky-text);
+}
+.fact-card__label .ic { color: var(--sky-strong); }
+.fact-card__count { min-height: 26px; padding: 2px 10px; font-size: 0.78rem; }
+.fact-card__title { margin-top: 10px; font-weight: 800; font-size: 1.0313rem; color: var(--ink); line-height: 1.3; }
+.fact-card__text { margin-top: 5px; font-size: 0.9375rem; line-height: 1.55; color: var(--ink-2); }
+.fact-card__foot { margin-top: 14px; display: flex; justify-content: flex-end; }
+.fact-card__btn { min-height: 44px; }
+
+.bank-entry__why { display: flex; align-items: center; gap: 16px; max-width: 780px; margin: 20px auto 0; padding: 16px 20px; border-radius: var(--r-lg); background: var(--ink-surface); color: #fff; box-shadow: var(--shadow-card); }
 .bank-entry__why .cora { --cora-size: 52px; }
-.bank-entry__why .h2 { font-size: 1.2rem; color: #fff; }
+.bank-entry__why .h2 { font-size: 1.15rem; color: #fff; }
 .bank-entry__why .lead { margin-top: 4px; font-size: 0.9688rem; color: var(--on-dark-2); }
 .modal--center { align-items: center; padding: 16px; }
 .modal--center .modal__panel { max-width: 560px; border-radius: var(--r-xl); }
@@ -1252,7 +1307,10 @@ body[data-screen="screen_checkpoint"] main { padding-top: 0; padding-bottom: 220
 .input::placeholder { color: var(--ink-locked-2); }
 .input-note { font-size: 0.8438rem; color: var(--ink-2); }
 @media (max-width: 639px) {
-  .bank-entry { margin-top: 0; }
+  .landing { margin-top: 0; }
+  .landing__cta { width: 100%; }
+  .landing__trust { align-items: flex-start; }
+  .fact-card__foot .btn { width: 100%; }
   .bank-entry__why { align-items: flex-start; }
   .intro-modal__actions, .name-modal__actions { flex-wrap: wrap; }
   .intro-modal__actions .btn, .name-modal__actions .btn { flex: 1 1 145px; }
