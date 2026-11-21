@@ -3,66 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#F4F1EA">
+  <meta name="theme-color" content="#F6F5F1">
   <meta name="color-scheme" content="light">
-  <meta name="description" data-i18n-content="meta.description" content="Finance Quest by Commerzbank: build investing confidence in a 14-day sprint, five minutes a day.">
-  <title data-i18n="meta.title">Finance Quest by Commerzbank</title>
-  <!-- Inline favicon (no /favicon.ico request): petrol case, canary compass needle -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23082933'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23FFFFFF' stroke-opacity='.35' stroke-width='1.5'/%3E%3Cpath d='M16 6.5l3 9.5h-6z' fill='%23FFCC00'/%3E%3Cpath d='M16 25.5l3-9.5h-6z' fill='%23FFFFFF'/%3E%3C/svg%3E">
+  <meta name="description" data-i18n-content="meta.description" content="Investly by Commerzbank: build investing confidence in a 14-day sprint, five minutes a day.">
+  <title data-i18n="meta.title">Investly by Commerzbank</title>
+  <!-- Inline favicon (no /favicon.ico request): Investly growth mark in soft petrol and gold -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231C3745'/%3E%3Cpath d='M9 22V10h4v12H9Zm5-8 3-3 2.4 2.4L24 9v5.2l-4.6 4.6L17 16.4l-3 3Z' fill='%23F5C84B'/%3E%3Cpath d='M21 19.5h4V23h-4z' fill='%233DAA78'/%3E%3C/svg%3E">
   <!-- Everything is local (static/vendor) — zero CDN at runtime (AGENTS.md §3).
        ?v= cache-busting: bump after every change to styles.css / app.js. -->
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-500.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-800.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/styles.css?v=23.0">
+  <link rel="stylesheet" href="/static/styles.css?v=24.0">
 </head>
 <body data-screen="screen_bank_entry">
   <a href="#main" class="skip-link" data-i18n="a11y.skip">Skip to content</a>
 
-  <!-- ===================== HUD (docs/01 §6) — readiness & stage first, settings behind the gear ===================== -->
+  <!-- ===================== Minimal header — brand left, settings right ===================== -->
   <header class="hud" id="hud">
     <div class="wrap hud__inner">
-      <button type="button" class="hud__brand" data-action="go-home" data-i18n-aria="hud.home" aria-label="Finance Quest home">
+      <button type="button" class="hud__brand" data-action="go-home" data-i18n-aria="hud.home" aria-label="Investly home">
         <span class="brand-mark" data-icon="brand"></span>
         <span class="brand-text">
-          <span class="brand-name">Finance Quest</span>
-          <span class="brand-sub" data-i18n="brand.sub">by Commerzbank, 14-Day Confidence Sprint</span>
+          <span class="brand-name">Investly</span>
+          <span class="brand-sub" data-i18n="brand.sub">Your calm investing start</span>
         </span>
       </button>
 
-      <div class="hud__stats" id="hud-stats" hidden>
-        <div class="ready" id="hud-ready" hidden>
-          <span class="ready__label"><span data-ready-label data-i18n="hud.readiness">Readiness</span> <b id="hud-ready-val">0%</b></span>
-          <div class="meter" role="progressbar" data-i18n-aria="hud.readiness" aria-label="Readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="hud-ready-bar">
-            <div class="meter__fill" id="hud-ready-fill" style="width: 0%"></div>
-          </div>
-        </div>
-        <span class="stat stat--stage" id="hud-stage" data-i18n-title="hud.stageTitle" title="Competence stage">
-          <span data-icon="pillars"></span><span id="hud-level">Stage 1/5</span>
-        </span>
-        <span class="stat stat--day" id="hud-day" data-i18n-title="hud.dayTitle" title="Day of your 14-day sprint">
-          <span data-icon="calendar"></span><span class="stat__label" data-i18n="hud.day">Day</span>
-          <b class="num"><span id="hud-day-num">1</span>/<span id="hud-day-total">14</span></b>
-        </span>
-        <span class="stat stat--practice xp-detail" data-i18n-title="hud.streakTitle" title="Practice days">
-          <span data-i18n="hud.practiceLabel">Practice days:</span><b class="num" id="hud-streak">1</b>
-        </span>
-        <span class="stat stat--xp xp-detail" id="hud-xp-pill" data-i18n-title="hud.xpTitle" title="Practice points (XP)">
-          <b class="num" id="hud-xp">20</b><span class="stat__unit">XP</span>
-        </span>
-      </div>
-
       <div class="hud__tools">
-        <div class="seg" role="group" data-i18n-aria="hud.language" aria-label="Language">
-          <button type="button" data-lang="en" aria-pressed="true">EN</button>
-          <button type="button" data-lang="pl" aria-pressed="false">PL</button>
-        </div>
-        <button type="button" class="tool-btn tool-btn--judges" data-action="open-judges"><span data-icon="clipboard"></span><span data-i18n="hud.judges">For judges</span></button>
-        <button type="button" class="icon-btn icon-btn--gear" id="hud-settings-btn" data-action="toggle-settings" aria-expanded="false" aria-controls="settings-pop" aria-haspopup="dialog" data-i18n-aria="settings.title" aria-label="Settings"><span data-icon="gear"></span><span class="gear-label" data-i18n="settings.title">Settings</span></button>
+        <button type="button" class="icon-btn icon-btn--gear" id="hud-settings-btn" data-action="toggle-settings" aria-expanded="false" aria-controls="settings-pop" aria-haspopup="dialog" data-i18n-aria="settings.title" aria-label="Settings"><span data-icon="gear"></span></button>
       </div>
     </div>
-    <div class="wrap hud__ready-row" id="hud-ready-row" hidden></div>
 
-    <!-- Settings (gear): language, sound, calm mode, reset, judges, presenter shortcuts -->
+    <!-- Settings (gear): language, sound, calm mode, reset, About us, presenter shortcuts -->
     <div class="settings-pop" id="settings-pop" role="dialog" aria-labelledby="settings-title" hidden>
       <div class="settings__head"><span class="tile-ic tile-ic--petrol"><span data-icon="gear"></span></span><p class="settings__title" id="settings-title" data-i18n="settings.title">Settings</p></div>
       <div class="settings__section">
@@ -85,7 +57,7 @@
       </div>
       <div class="settings__section">
         <button type="button" class="tool-btn" data-action="reset"><span data-icon="reset"></span><span data-i18n="hud.reset">Reset / Profile</span></button>
-        <button type="button" class="tool-btn tool-btn--judges" data-action="open-judges"><span data-icon="clipboard"></span><span data-i18n="hud.judges">For judges</span></button>
+        <button type="button" class="tool-btn tool-btn--about" data-action="open-about"><span data-icon="users"></span><span data-i18n="hud.about">About us</span></button>
       </div>
       <div class="settings__section demo-group" id="settings-demo"></div>
     </div>
@@ -428,18 +400,18 @@
     </div>
   </div>
 
-  <!-- For Judges modal -->
-  <div id="modal_judges" class="modal" role="dialog" aria-modal="true" aria-labelledby="judges-title" hidden>
+  <!-- About us modal -->
+  <div id="modal_about" class="modal" role="dialog" aria-modal="true" aria-labelledby="about-title" hidden>
     <div class="scrim" data-action="close-modal"></div>
     <div class="modal__panel modal__panel--wide">
       <div class="modal__head">
         <div>
-          <h2 id="judges-title" class="h2" data-i18n="judges.title">How Finance Quest works</h2>
-          <p class="small muted" style="margin-top:4px" data-i18n="judges.sub">Commerzbank challenge: from financial knowledge to a first real step.</p>
+          <h2 id="about-title" class="h2" data-i18n="about.title">About Investly</h2>
+          <p class="small muted" style="margin-top:4px" data-i18n="about.sub">A calmer way to build investing confidence.</p>
         </div>
         <button type="button" class="icon-btn" data-action="close-modal" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button>
       </div>
-      <div id="judges-content"></div>
+      <div id="about-content"></div>
     </div>
   </div>
 
@@ -450,6 +422,6 @@
 
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
-  <script src="/static/app.js?v=23.0"></script>
+  <script src="/static/app.js?v=24.0"></script>
 </body>
 </html>
