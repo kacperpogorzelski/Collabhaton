@@ -8,11 +8,12 @@ Ten plik jest lekkim wskaźnikiem. Nie duplikuje specyfikacji — jedynym źród
 3. Przeczytaj pliki SSOT dla swojej roli w `docs/`:
    - `docs/01_PRODUCT_AND_GUI_SPEC.md` (Osoba 3 — ekranówka, grywalizacja, lokalne biblioteki)
    - `docs/02_TECH_API_AND_MATH.md` (wszyscy — Docker Postgres, matematyka, Pydantic, API, Contract Lock)
-   - `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md` (Osoba 2 i 1 — AI Coach Luna, fallbacki)
+   - `docs/03_LUNA_INTEGRATION_AND_PROMPTS.md` (Osoba 2 i 1 — AI Coach **Cora**, `luna_service.py`, Dni 1–4, Checkpoint #1, fallbacki)
 
 ## Zasady niepodlegające dyskusji
-- **Zakazy (`AGENTS.md` §3):** ZERO autoryzacji/JWT, ZERO Alembica/migracji, ZERO Node/npm/React/TS, brak pełnych misji dla dni 2–14.
+- **Zakazy (`AGENTS.md` §3):** ZERO autoryzacji/JWT, ZERO Alembica/migracji, ZERO Node/npm/React/TS, brak pełnych misji dla Dni 5–14 (interaktywne tylko Dni 1–4 + Checkpoint #1).
 - **Własność plików (`AGENTS.md` §5 i §7):** Edytuj wyłącznie pliki swojej roli. Kanoniczne nazwy to `backend/database.py` (nie `db.py`) i `static/styles.css` (nie `style.css`).
 - **Zamrożony kontrakt:** Nie duplikuj ani nie zmieniaj kontraktu z `docs/02_TECH_API_AND_MATH.md` bez aktualizacji `backend/schemas.py` i wpisu w `WORKLOG.md`.
-- **Dwujęzyczność PL / EN (obowiązkowa):** każda treść widoczna dla użytkownika (UI, `demo_data.py`, `finance_math.py`, prompt i fallback Luny) musi mieć wersję `pl` oraz `en` zgodnie z kontraktem `lang: Literal["pl", "en"] = "pl"` (`docs/01` §9, `docs/02` §9, `docs/03` §10, `WORKLOG.md` §3 pkt 10); kwoty pozostają w PLN.
+- **Dwujęzyczność EN / PL (obowiązkowa, domyślnie `en`):** każda treść widoczna dla użytkownika (UI, `demo_data.py`, `finance_math.py`, prompty i fallbacki Cory w `luna_service.py`) musi mieć wersję `en` (domyślną) oraz `pl` zgodnie z kontraktem `lang: Literal["en", "pl"] = "en"` (`docs/01` §9, `docs/02` §9, `docs/03` §10, `WORKLOG.md` §3 pkt 10–11); kwoty pozostają w PLN.
+- **Imię Coacha i maskotki:** **Cora** (plik `backend/luna_service.py` i pole JSON `luna_message` zostają bez zmian dla wstecznej kompatybilności).
 - **Git (ZAKAZ pracy na `main`):** przed pierwszą edycją sprawdź `git branch --show-current`; jeśli jesteś na `main`, załóż nowy branch `feat/issue-<nr>-<krotka-nazwa>` (1 Issue = 1 mały PR/commit). Zakaz edycji i commitów kodu aplikacji bezpośrednio na `main`. Nigdy nie commituj `.env`. Po zamknięciu zadania zaktualizuj `WORKLOG.md`.

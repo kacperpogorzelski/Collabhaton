@@ -2,7 +2,7 @@
 
 Ten dokument jest **wiążącym kontraktem technicznym**. Nazwy plików, tabel, endpointów i pól JSON muszą zgadzać się co do znaku między backendem (Osoba 1 i 2) a frontendem (Osoba 3).
 
-> **Wersja v3 (scalona).** Łączy wersję zespołu (PostgreSQL, 14 dni, grywalizacja, Contract Lock) z poprawkami jakościowymi z `oprawki_claude.txt` (uczciwe porównanie ETF vs gotówka, tryby planu 80/20, deterministyczna ocena kart, `main_concern`). Wszystkie zmiany kontraktu względem poprzedniej wersji są wypisane w `WORKLOG.md` (sekcja 3, punkt 9).
+> **Wersja v4.** Rozszerza v3 o: domyślny język `"en"` (`EN | PL`, kwoty w PLN), wielodniowy stan sesji (Dni 1–4 + codzienne mini-challenges + Checkpoint #1), rygorystyczną 3-stanową ocenę (`answer_quality` + `allow_retry`), sekcję `POST_14_PATHS` oraz endpointy `/api/day/start`, `/api/checkpoint/submit` i `/api/coach/explain`. Wszystkie zmiany kontraktu są zapisane w `WORKLOG.md` (§3 pkt 9–11).
 
 ---
 
@@ -73,10 +73,15 @@ class MissionSession(Base):
     confidence_start = Column(Integer, nullable=False)         # z self_confidence_start (§3 mapa)
     confidence_score = Column(Integer, default=10, nullable=False)
     xp = Column(Integer, default=20, nullable=False)
-    current_step = Column(Integer, default=1, nullable=False)  # 1..3, nigdy 4
+    current_step = Column(Integer, default=1, nullable=False)  # 1..3 (Dzień 1) lub 1..2 (Dni 2–4)
     mission_completed = Column(Boolean, default=False, nullable=False)
     current_options = Column(JSON, default=list, nullable=False)  # opcje bieżącego kroku z is_optimal/feedback (tylko serwer)
     challenge_accepted = Column(Boolean, default=False, nullable=False)
+    lang = Column(String(2), default="en", nullable=False)
+    current_day = Column(Integer, default=1, nullable=False)   # 1..4
+    completed_days = Column(JSON, default=list, nullable=False)       # np. [1, 2]
+    completed_challenges = Column(JSON, default=list, nullable=False) # np. [1, 2]
+    checkpoint_passed = Column(Boolean, default=False, nullable=False)
     history = Column(JSON, default=list, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
@@ -96,16 +101,20 @@ Wartości pochodne (ETF nominalny/realny, gotówka realna, `half_year_value`, it
 ### C. Jak aplikacja korzysta z bazy
 1. **Start (`init_db`):** jeśli `leaderboard_entries` jest pusta -> 3 rekordy seed (`Kasia K.` 210 XP / 5 dni / „Świadomy Start", `Tomek W.` 95 XP / 2 dni, `Marek Z.` 40 XP / 1 dzień).
 2. **`POST /api/onboarding/analyze`:** liczy plan, wylicza fakty, buduje turę startową, **zapisuje `MissionSession`** (łącznie z `current_options` kroku 1) i `commit()`.
-3. **`POST /api/mission/turn`:** wczytuje `MissionSession`, buduje `session_data` (kolumny + fakty), wywołuje `luna_service.process_mission_turn(...)`. Funkcja **modyfikuje `session_data` in place** (pola: `current_step`, `confidence_score`, `xp`, `mission_completed`, `current_options`, `history`); `main.py` zapisuje te pola do bazy (dla `history` nadpisuje nową listę: `session.history = list(...)`, żeby SQLAlchemy wykrył zmianę JSON) i `commit()`.
-4. **`POST /api/challenge/accept`:** idempotentnie ustawia `challenge_accepted = True`, `xp += 50`, zwraca `leaderboard`.
+3. **`POST /api/mission/turn`:** wczytuje `MissionSession`, buduje `session_data` (kolumny + fakty), wywołuje `luna_service.process_mission_turn(...)`. Funkcja **modyfikuje `session_data` in place** (pola: `current_day`, `current_step`, `completed_days`, `confidence_score`, `xp`, `mission_completed`, `current_options`, `history`); `main.py` zapisuje te pola do bazy (nadpisując listy JSON `list(...)`, żeby SQLAlchemy wykrył zmianę) i `commit()`.
+4. **`POST /api/challenge/accept`:** idempotentnie per `day` (domyślnie `1`): dodaje `day` do `completed_challenges` (dla `day == 1` ustawia też `challenge_accepted = True`), przyznaje `+50 XP`, zwraca `leaderboard`.
+5. **`POST /api/day/start`:** przełącza `session.current_day` (1..4), zeruje `current_step = 1` i `mission_completed = False`, zwraca mikro-lekcje dnia oraz `initial_turn`.
+6. **`POST /api/checkpoint/submit`:** ocenia odpowiedzi quizu Checkpoint #1 (`grade_checkpoint`), idempotentnie ustawia `checkpoint_passed = True` i przyznaje bonus XP przy zdaniu (`>= 75%`).
+7. **`POST /api/coach/explain`:** wywołuje `luna_service.explain_with_drill(...)` — nie mutuje XP/kroków misji (zwraca życiowe wyjaśnienie + 3-opcjowe mini-zadanie utrwalające).
 
 ### D. Konwencje wykonawcze i kontrakt międzymodułowy
 * **Synchroniczne `def` w całym backendzie** (trasy, `finance_math`, `demo_data`, `luna_service`) — współpraca z sync SQLAlchemy (`psycopg2-binary`) i klientem `openai.OpenAI`.
 * **`load_dotenv()`** w `backend/database.py` i `backend/luna_service.py` przed odczytem zmiennych.
 * **Warunkowe montowanie `/static`:** `if STATIC_DIR.is_dir(): app.mount("/static", ...)`; `GET /` zwraca `static/index.html` albo tymczasowy JSON z linkiem do `/docs`.
 * **Format `MissionSession.history`:** `[{"role": "assistant" | "user", "content": str}]`. W `analyze` zapisujemy `[{"role": "assistant", "content": initial_mission_turn.luna_message}]`; w `turn` dopisujemy wiadomość użytkownika i odpowiedź Luny.
-* **Idempotencja po zakończeniu misji:** gdy `mission_completed == True`, `POST /api/mission/turn` zwraca niezmienioną odpowiedź finałową Kroku 3 (bez zmiany XP/gotowości i bez błędu walidacji). `current_step` nigdy nie przekracza `3`.
+* **Idempotencja po zakończeniu misji:** gdy `mission_completed == True` dla bieżącego `current_day`, `POST /api/mission/turn` zwraca niezmienioną odpowiedź finałową dnia (bez zmiany XP/gotowości i bez błędu walidacji). Gdy `answer_quality == "invalid"`, `allow_retry = True` i `current_step` pozostaje bez zmian.
 * **Niezależność Osoby 2 od SQLAlchemy:** `luna_service.py` i `demo_data.py` nie importują nic z SQLAlchemy; całym zapisem zajmuje się `main.py` (Osoba 1).
+* **Kompatybilność z istniejącym wolumenem PostgreSQL (`init_db`):** po `Base.metadata.create_all(bind=engine)`, dla dialektu `postgresql`, wykonać bezpieczne `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ...` dla `lang`, `current_day`, `completed_days`, `completed_challenges`, `checkpoint_passed` (zero Alembica).
 
 ---
 
@@ -248,6 +257,8 @@ from pydantic import BaseModel, Field, model_validator
 AgeGroup = Literal["20+", "30-50", "50+"]
 MainConcern = Literal["freeze_money", "no_time", "lose_money", "too_late"]
 PlanType = Literal["savings_first", "split", "invest"]
+Language = Literal["en", "pl"]
+AnswerQuality = Literal["optimal", "partial", "invalid"]
 
 
 class DemoPersona(BaseModel):
@@ -269,6 +280,7 @@ class OnboardingRequest(BaseModel):
     has_emergency_fund: bool = False
     main_concern: MainConcern
     self_confidence_start: int = Field(..., ge=1, le=5)
+    lang: Language = "en"
 
     @model_validator(mode="after")
     def free_cash_not_above_income(self):
@@ -301,6 +313,71 @@ class RoadmapMilestone(BaseModel):
     title: str
     focus: str
     status: Literal["active", "locked"] = "locked"
+    phase: Optional[str] = None         # np. "Phase 1: Days 1–4"
+    duration_hint: str = "~5 min/day"
+
+
+class Post14Path(BaseModel):
+    id: str
+    title: str
+    description: str
+    cadence: str
+    badge: str
+
+
+class CheckpointQuestion(BaseModel):
+    id: str
+    question: str
+    options: list[QuickReply]
+
+
+class CheckpointQuestionResult(BaseModel):
+    id: str
+    correct: bool
+    correct_option_id: str
+    explanation: str
+
+
+class CheckpointSubmitRequest(BaseModel):
+    session_id: str
+    answers: dict[str, str]
+    lang: Optional[Language] = None
+
+
+class CheckpointSubmitResponse(BaseModel):
+    score_pct: int
+    passed: bool
+    correct_count: int
+    total_questions: int
+    reward_xp: int
+    xp: int
+    leveled_up: bool
+    badge_title: str
+    results: list[CheckpointQuestionResult]
+    leaderboard: list[LeaderboardEntry]
+
+
+class CoachExplainRequest(BaseModel):
+    session_id: str
+    question: str = Field(..., min_length=1, max_length=400)
+    topic_hint: Optional[str] = None
+    lang: Optional[Language] = None
+
+
+class CoachExplainResponse(BaseModel):
+    simple_explanation: str
+    real_life_example: str
+    drill_question: str
+    drill_options: list[str]
+    correct_option_index: int = Field(..., ge=0, le=2)
+    drill_feedback: str
+    is_fallback: bool = False
+
+
+class DayStartRequest(BaseModel):
+    session_id: str
+    day: int = Field(..., ge=1, le=4)
+    lang: Optional[Language] = None
 
 
 class MicroLessonCard(BaseModel):
@@ -384,27 +461,33 @@ class BankDraft(BaseModel):
 
 
 class MissionTurnResponse(BaseModel):
+    day: int = 1
     step_number: int = Field(..., ge=1, le=3)
     total_steps: int = 3
-    confidence_score: int = Field(..., ge=0, le=100)   # w UI: „Gotowość"
+    confidence_score: int = Field(..., ge=0, le=100)   # w UI: „Gotowość" / „Readiness"
     confidence_delta: int = 0
     confidence_start: int = Field(..., ge=0, le=100)
     understanding_feedback: Optional[str] = None
     is_optimal_choice: Optional[bool] = None           # None w turze startowej
-    luna_message: str
+    answer_quality: Optional[AnswerQuality] = None     # optimal | partial | invalid
+    allow_retry: bool = False                          # True gdy invalid (0 XP, zostaje na kroku)
+    luna_message: str                                  # zachowane imię pola JSON (wyświetlane jako Cora)
     quick_replies: list[QuickReply]
     portfolio_status: PortfolioStatus
     gamification: GamificationState
     trigger_confetti: bool = False
     mission_completed: bool = False
+    completed_days: list[int] = Field(default_factory=list)
     real_world_challenge: Optional[RealWorldChallenge] = None
     leaderboard: Optional[list[LeaderboardEntry]] = None
     final_checklist: Optional[list[ChecklistItem]] = None
     bank_draft: Optional[BankDraft] = None
+    post_14_paths: Optional[list[Post14Path]] = None
 
 
 class OnboardingResponse(BaseModel):
     session_id: str
+    lang: Language = "en"
     age_group: AgeGroup
     persona_label: str
     default_horizon_years: int
@@ -418,16 +501,28 @@ class OnboardingResponse(BaseModel):
     micro_lessons: list[MicroLessonCard]
     projection_series: list[ProjectionPoint]
     initial_mission_turn: MissionTurnResponse
+    checkpoint_questions: list[CheckpointQuestion] = Field(default_factory=list)
+    post_14_paths: list[Post14Path] = Field(default_factory=list)
+
+
+class DayStartResponse(BaseModel):
+    day: int
+    micro_lessons: list[MicroLessonCard]
+    initial_mission_turn: MissionTurnResponse
 
 
 class MissionTurnRequest(BaseModel):
     session_id: str
     user_message: str = Field(..., min_length=1, max_length=600)
     quick_reply_id: Optional[str] = None   # gdy klik karty -> ocena deterministyczna (bez LLM)
+    day: Optional[int] = Field(default=None, ge=1, le=4)
+    lang: Optional[Language] = None
 
 
 class ChallengeAcceptRequest(BaseModel):
     session_id: str
+    day: int = Field(default=1, ge=1, le=4)
+    lang: Optional[Language] = None
 
 
 class ChallengeAcceptResponse(BaseModel):
@@ -444,10 +539,13 @@ Model `LunaAssessment` (odpowiedź LLM) jest zdefiniowany w docs/03 §4.
 | Metoda i ścieżka | Opis działania | Model wejścia / wyjścia |
 | :--- | :--- | :--- |
 | `GET /` | `static/index.html` (`FileResponse`) lub tymczasowy JSON z linkiem do `/docs`; `/static` montowany warunkowo. | HTML |
-| `GET /api/demo-personas` | 3 persony: `young_20` (22 l., 4500/1000 zł, bez poduszki, `freeze_money`, samoocena 2), `mid_38` (38 l., 11000/2500, ma poduszkę, `no_time`, 2), `senior_56` (56 l., 9500/3000, ma poduszkę, `too_late`, 2). | `list[DemoPersona]` |
-| `POST /api/onboarding/analyze` | Liczy `finance_math` (§3), wybiera filtr Speakly, 4 kamienie milowe, 3 mikro-lekcje i Krok 1 (gotowość = `confidence_start`, `GamificationState`: poziom 1, 20 XP, streak 1). Zero LLM. **Zapisuje `MissionSession`.** | `OnboardingRequest` -> `OnboardingResponse` |
-| `POST /api/mission/turn` | Wczytuje sesję (brak -> `404`), buduje `session_data`, wywołuje `luna_service.process_mission_turn(...)`; zapisuje zmienione pola; w Kroku 3 odpowiedź zawiera `real_world_challenge`, `leaderboard`, `final_checklist`, `bank_draft`. | `MissionTurnRequest` -> `MissionTurnResponse` |
-| `POST /api/challenge/accept` | Idempotentne: pierwsze wywołanie `+50 XP` i `challenge_accepted=True`; kolejne `reward_xp=0`. Zwraca posortowany `leaderboard`. | `ChallengeAcceptRequest` -> `ChallengeAcceptResponse` |
+| `GET /api/demo-personas` | Parametr `?lang=en\|pl` (domyślnie `en`). 3 persony (`young_20`, `mid_38`, `senior_56`). | `list[DemoPersona]` |
+| `POST /api/onboarding/analyze` | Liczy `finance_math` (§3), zapisuje `lang`, wybiera filtr Speakly, fazy mapy, mikro-lekcje Dnia 1, Krok 1 (z rozszerzonym doborem wg `self_confidence_start`/`plan_type`), pytania Checkpoint #1 oraz `post_14_paths`. Zero LLM. **Zapisuje `MissionSession`.** | `OnboardingRequest` -> `OnboardingResponse` |
+| `POST /api/day/start` | Przełącza `session.current_day` (1–4), resetuje `current_step=1` i `mission_completed=False`, ładuje mikro-lekcje i Krok 1 wybranego dnia. | `DayStartRequest` -> `DayStartResponse` |
+| `POST /api/mission/turn` | Wczytuje sesję (`404`), obsługuje Dni 1–4 i 3-stanową ocenę (`invalid` -> `0 XP`, `allow_retry=True`, brak zmiany kroku); po ukończeniu dnia dopisuje do `completed_days` i dołącza codzienne `real_world_challenge`, `leaderboard`, `final_checklist`, `bank_draft`, `post_14_paths`. | `MissionTurnRequest` -> `MissionTurnResponse` |
+| `POST /api/challenge/accept` | Idempotentne per `day` (1–4): pierwsze wywołanie `+50 XP` i dopisanie `day` do `completed_challenges`; kolejne `reward_xp=0`. Zwraca posortowany `leaderboard`. | `ChallengeAcceptRequest` -> `ChallengeAcceptResponse` |
+| `POST /api/checkpoint/submit` | Ocenia test wiedzy po Dniu 4 (`grade_checkpoint`), idempotentnie przyznaje bonus XP i ustawia `checkpoint_passed=True` przy >= 75%. | `CheckpointSubmitRequest` -> `CheckpointSubmitResponse` |
+| `POST /api/coach/explain` | Wywołuje `luna_service.explain_with_drill(...)` — życiowe wyjaśnienie + 1 mini-zadanie utrwalające (LIVE LLM lub offline fallback). | `CoachExplainRequest` -> `CoachExplainResponse` |
 
 Obsługa błędów:
 * Walidacja -> `422` (frontend pokazuje komunikat przy polu).
@@ -534,27 +632,28 @@ POSTGRES_PORT=5432 # port bazy na hoście (zmień, jeśli 5432 jest zajęty, i d
 ---
 
 ## 8. Skrypty kontrolne (jedyny dozwolony „test")
-* **`scripts/check_math.py` (Osoba 2):** porównuje `finance_math` z tabelą §3H i przykładem §6.
-* **`scripts/smoke_test.py` (Osoba 1):** dla 3 person, `DEMO_OFFLINE=1`, na `TestClient`/HTTP: ścieżka gotowości 10 -> 20 -> 30 -> 40 i XP 20 -> 60 -> 95 -> 155 przy samych optymalnych kartach; dla `savings_first` brak ETF (`training_etf_monthly == 0`); odpowiedź nieoptymalna daje `+2` gotowości i brak konfetti; wolny tekst przy `DEMO_OFFLINE=1` daje neutralny fallback; po Kroku 3 `quick_replies == []`, komplet `final_checklist`/`bank_draft`/`leaderboard`; powtórne `POST /api/mission/turn` jest idempotentne; `POST /api/challenge/accept` dwukrotnie -> `+50` i `0` XP.
+* **`scripts/check_math.py` (Osoba 2):** porównuje `finance_math` z tabelą §3H i przykładem §6 (kwoty w PLN bez zmian).
+* **`scripts/smoke_test.py` (Osoba 1):** dla 3 person, `DEMO_OFFLINE=1`, na `TestClient`/HTTP: domyślny `lang="en"` oraz `"pl"`; ścieżka gotowości 10 -> 20 -> 30 -> 40 i XP 20 -> 60 -> 95 -> 155 przy samych optymalnych kartach; dla `savings_first` brak ETF (`training_etf_monthly == 0`); odpowiedź `invalid` (np. `"asdf"`) daje `0 XP`, `0` gotowości, `allow_retry=True` i nie zwiększa kroku; sensowny wolny tekst przy `DEMO_OFFLINE=1` daje neutralny fallback; idempotencja po ukończeniu dnia; przejście Dni 1–4 (`POST /api/day/start`), codzienne mini-challenges (`POST /api/challenge/accept` per dzień), `POST /api/checkpoint/submit` oraz `POST /api/coach/explain`.
 
 ---
 
-## 9. Kontrakt dwujęzyczności (`PL / EN`)
+## 9. Kontrakt dwujęzyczności (`EN` domyślny + `PL`)
 
 * **Typ i wartość domyślna (`backend/schemas.py`):**
-  * `Language = Literal["pl", "en"]` (domyślnie `"pl"` — 100% wstecznej kompatybilności z istniejącymi testami i `scripts/check_math.py`).
-  * `OnboardingRequest.lang: Language = "pl"`
-  * `OnboardingResponse.lang: Language = "pl"`
+  * `Language = Literal["en", "pl"]` (**domyślnie `"en"`** — pełna kompatybilność z `"pl"` przez jawne `lang="pl"`).
+  * `OnboardingRequest.lang: Language = "en"`
+  * `OnboardingResponse.lang: Language = "en"`
   * `MissionTurnRequest.lang: Optional[Language] = None` (gdy podane, pozwala zmienić język aktywnej sesji od tej tury).
   * `ChallengeAcceptRequest.lang: Optional[Language] = None`
+  * `DayStartRequest.lang: Optional[Language] = None`, `CheckpointSubmitRequest.lang: Optional[Language] = None`, `CoachExplainRequest.lang: Optional[Language] = None`.
 * **Baza danych (`backend/models.py`, `backend/database.py`):**
-  * Kolumna `MissionSession.lang = Column(String(2), default="pl", nullable=False)`.
-  * W `init_db()` (po `Base.metadata.create_all`, dla dialektu `postgresql`): wykonać bezpieczne `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS lang VARCHAR(2) NOT NULL DEFAULT 'pl'` (bez Alembica; gwarantuje kompatybilność z istniejącym wolumenem `pgdata` w Dockerze).
+  * Kolumny `MissionSession.lang = Column(String(2), default="en", nullable=False)`, `current_day`, `completed_days`, `completed_challenges`, `checkpoint_passed`.
+  * W `init_db()` (po `Base.metadata.create_all`, dla dialektu `postgresql`): wykonać bezpieczne `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS ...` dla wszystkich nowych kolumn (`lang` z `DEFAULT 'en'`, `current_day` `DEFAULT 1`, `completed_days` `DEFAULT '[]'::json`, `completed_challenges` `DEFAULT '[]'::json`, `checkpoint_passed` `DEFAULT FALSE`).
 * **Matematyka (`backend/finance_math.py`):**
-  * Opcjonalny parametr `lang: Language = "pl"` w `get_age_group(age, lang="pl")` (`persona_label`) oraz `calculate_safe_investment(..., lang="pl")` (`reasoning`).
-  * `build_session_facts(session_columns)` przekazuje `lang = s.get("lang", "pl")` do słownika faktów sesji.
-  * **Brak przeliczania walut:** wszystkie liczby referencyjne (§3H) i `scripts/check_math.py` pozostają identyczne; w wersji EN UI używa etykiety `PLN`.
+  * Opcjonalny parametr `lang: Language = "en"` w `get_age_group(age, lang="en")` (`persona_label`) oraz `calculate_safe_investment(..., lang="en")` (`reasoning`).
+  * `build_session_facts(session_columns)` przekazuje `lang = s.get("lang", "en")` do słownika faktów sesji.
+  * **Brak przeliczania walut:** wszystkie liczby referencyjne (§3H) i `scripts/check_math.py` pozostają identyczne w **PLN**.
 * **Endpointy (`backend/main.py`):**
-  * `GET /api/demo-personas?lang=pl` (`lang: Language = "pl"`) — zwraca persony z przetłumaczonymi etykietami (`demo_data.get_demo_personas(lang)`).
+  * `GET /api/demo-personas?lang=en` (`lang: Language = "en"`) — zwraca persony z przetłumaczonymi etykietami (`demo_data.get_demo_personas(lang)`).
   * `POST /api/onboarding/analyze` — zapisuje `session.lang = req.lang` i przekazuje `lang=req.lang` do `finance_math` i `demo_data`.
-  * `POST /api/mission/turn` i `POST /api/challenge/accept` — jeśli `req.lang is not None`, aktualizują `session.lang = req.lang`; przekazują aktualny `lang` sesji do `luna_service` i `demo_data`.
+  * `POST /api/mission/turn`, `/api/challenge/accept`, `/api/day/start`, `/api/checkpoint/submit`, `/api/coach/explain` — jeśli `req.lang is not None`, aktualizują `session.lang = req.lang`; przekazują aktualny `lang` sesji do `luna_service` i `demo_data`.
