@@ -34,12 +34,12 @@ Language = Literal["pl", "en"]
 
 
 def _normalize_lang(lang: str | None) -> Language:
-    """Zwraca ``"en"`` wyłącznie dla ``"en"``; każda inna wartość to ``"pl"``."""
-    return "en" if str(lang or "").strip().lower() == "en" else "pl"
+    """Zwraca ``"pl"`` wyłącznie dla ``"pl"``; ``None`` i każda inna wartość to ``"en"``."""
+    return "pl" if str(lang or "").strip().lower() == "pl" else "en"
 
 
 def _lang_of(session_facts: dict | None, lang: str | None = None) -> Language:
-    """Jawny ``lang`` ma pierwszeństwo; inaczej ``session_facts["lang"]``, potem ``"pl"``."""
+    """Jawny ``lang`` ma pierwszeństwo; inaczej ``session_facts["lang"]``, potem ``"en"``."""
     if lang is not None:
         return _normalize_lang(lang)
     return _normalize_lang((session_facts or {}).get("lang"))
@@ -407,7 +407,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Co na start daje Ci większy spokój?",
         "luna_message": (
-            "Cześć! Jestem Luna, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+            "Cześć! Jestem Cora, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
             "Nie musisz zgadywać pojedynczych firm: szeroki ETF rozkłada pieniądze na setki spółek "
             "naraz. Co na start daje Ci większy spokój?"
         ),
@@ -449,7 +449,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Co jest największą zaletą takiego podejścia, gdy brakuje czasu?",
         "luna_message": (
-            "Cześć! Jestem Luna, Twój codzienny AI Coach — witaj w Dniu 1 z 14. {plan_sentence} "
+            "Cześć! Jestem Cora, Twój codzienny AI Coach — witaj w Dniu 1 z 14. {plan_sentence} "
             "Pasywny szeroki ETF działa w tle, bez codziennego śledzenia giełdy. Co jest jego "
             "największą zaletą, gdy brakuje czasu?"
         ),
@@ -489,7 +489,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Dlaczego nie trzymać całego kapitału wyłącznie na zwykłym koncie?",
         "luna_message": (
-            "Dzień dobry! Jestem Luna, Twój codzienny AI Coach — zaczynamy spokojny, 14-dniowy plan. "
+            "Dzień dobry! Jestem Cora, Twój codzienny AI Coach — zaczynamy spokojny, 14-dniowy plan. "
             "Inwestować można w każdym wieku, wystarczy dopasowany horyzont. {plan_sentence} "
             "Dlaczego lepiej nie trzymać całego kapitału wyłącznie na zwykłym koncie?"
         ),
@@ -1012,7 +1012,7 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE_EN,
         "step_question": "What gives you more peace of mind at the start?",
         "luna_message": (
-            "Hi! I'm Luna, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} You "
+            "Hi! I'm Cora, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} You "
             "don't have to guess individual companies: a broad ETF spreads your money across "
             "hundreds of companies at once. What gives you more peace of mind at the start?"
         ),
@@ -1054,7 +1054,7 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE_EN,
         "step_question": "What is the biggest advantage of this approach when you are short on time?",
         "luna_message": (
-            "Hi! I'm Luna, your daily AI Coach — welcome to Day 1 of 14. {plan_sentence} A passive "
+            "Hi! I'm Cora, your daily AI Coach — welcome to Day 1 of 14. {plan_sentence} A passive "
             "broad ETF runs in the background, without tracking the market daily. What is its "
             "biggest advantage when you are short on time?"
         ),
@@ -1095,7 +1095,7 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE_EN,
         "step_question": "Why not keep all your capital in a regular account only?",
         "luna_message": (
-            "Good day! I'm Luna, your daily AI Coach — we're starting a calm 14-day plan. You can "
+            "Good day! I'm Cora, your daily AI Coach — we're starting a calm 14-day plan. You can "
             "invest at any age; you just need a matching horizon. {plan_sentence} Why is it better "
             "not to keep all your capital in a regular account only?"
         ),
@@ -1369,7 +1369,7 @@ _DEFAULT_FACTS: dict[str, object] = {
 }
 
 
-def _format_value(value: object, lang: Language = "pl") -> object:
+def _format_value(value: object, lang: Language = "en") -> object:
     """PL: ``33 844`` (spacja), EN: ``33,844`` (przecinek) — zgodnie z docs/01 §9."""
     if isinstance(value, bool):
         return value
@@ -1402,7 +1402,7 @@ def _format_values(session_facts: dict | None, lang: str | None = None) -> dict:
     return values
 
 
-def _select_step_block(step: int, session_facts: dict | None, lang: Language = "pl") -> dict:
+def _select_step_block(step: int, session_facts: dict | None, lang: Language = "en") -> dict:
     facts = session_facts or {}
     if step == 1:
         table = STEP1_BY_AGE_GROUP_EN if lang == "en" else STEP1_BY_AGE_GROUP
@@ -1429,7 +1429,7 @@ def _as_int(value: object, default: int) -> int:
 # --------------------------------------------------------------------------- #
 
 
-def get_demo_personas(lang: Language = "pl") -> list[DemoPersona]:
+def get_demo_personas(lang: Language = "en") -> list[DemoPersona]:
     """Persony demo z etykietami w danym języku (kwoty w PLN bez zmian)."""
     if _normalize_lang(lang) != "en":
         return list(DEMO_PERSONAS)
@@ -1449,7 +1449,7 @@ def get_demo_personas(lang: Language = "pl") -> list[DemoPersona]:
     ]
 
 
-def get_age_group_content(age_group: str, lang: Language = "pl") -> dict:
+def get_age_group_content(age_group: str, lang: Language = "en") -> dict:
     """Zwraca filtr Speakly, mapę 14 dni i mikro-lekcje dla grupy wiekowej."""
     if _normalize_lang(lang) == "en":
         filters, roadmaps, lessons = (
@@ -1471,17 +1471,17 @@ def get_age_group_content(age_group: str, lang: Language = "pl") -> dict:
     }
 
 
-def get_assumptions_text(lang: Language = "pl") -> str:
+def get_assumptions_text(lang: Language = "en") -> str:
     """Tekst jawnych założeń edukacyjnych pod wykresem."""
     return ASSUMPTIONS_TEXT_EN if _normalize_lang(lang) == "en" else ASSUMPTIONS_TEXT
 
 
-def get_costs_note(lang: Language = "pl") -> str:
+def get_costs_note(lang: Language = "en") -> str:
     """Nota o kosztach, podatku i braku gwarancji."""
     return COSTS_NOTE_EN if _normalize_lang(lang) == "en" else COSTS_NOTE
 
 
-def get_instrument_category(lang: Language = "pl") -> str:
+def get_instrument_category(lang: Language = "en") -> str:
     """Kategoria instrumentu w przykładowym planie."""
     return INSTRUMENT_CATEGORY_EN if _normalize_lang(lang) == "en" else INSTRUMENT_CATEGORY
 
@@ -1518,7 +1518,7 @@ def shuffle_options(options: list[dict], session_id: str, step: int) -> list[dic
     return shuffled
 
 
-def get_level_state(xp: int, lang: Language = "pl") -> tuple[int, str, int]:
+def get_level_state(xp: int, lang: Language = "en") -> tuple[int, str, int]:
     """Zwraca ``(level, level_title, next_level_xp)`` dla danej liczby XP."""
     english = _normalize_lang(lang) == "en"
     if xp >= 100:
@@ -1568,7 +1568,7 @@ def get_initial_mission_turn(
 
 
 def get_real_world_challenge(
-    has_emergency_fund: bool, age_group: str, lang: Language = "pl"
+    has_emergency_fund: bool, age_group: str, lang: Language = "en"
 ) -> RealWorldChallenge:
     """Mikro-wyzwanie Dnia 1: 5 PLN (bez poduszki lub 20+) albo 50 PLN (z poduszką, 30-50/50+)."""
     english = _normalize_lang(lang) == "en"
@@ -1775,7 +1775,7 @@ def get_bank_draft(session_facts: dict, lang: Language | None = None) -> BankDra
 
 
 def get_final_message(session_facts: dict, lang: Language | None = None) -> str:
-    """Finałowy komunikat Luny (dla ``savings_first`` z dopiskiem o poduszce)."""
+    """Finałowy komunikat Cory (dla ``savings_first`` z dopiskiem o poduszce)."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
     values = _format_values(facts, active)
@@ -1821,7 +1821,7 @@ def build_leaderboard(
     user_xp: int,
     user_level_title: str,
     leveled_up: bool,
-    lang: Language = "pl",
+    lang: Language = "en",
 ) -> list[LeaderboardEntry]:
     """Łączy seed rankingu z wierszem użytkownika i nadaje pozycje (malejąco po XP)."""
     active = _normalize_lang(lang)
