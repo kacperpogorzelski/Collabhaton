@@ -524,6 +524,20 @@
       'bankcard.whySavings': 'With a tighter monthly budget and no cushion yet, building 3+ months of cash reserve first protects you from forced sales.',
       'bankcard.openSim': 'Open in Simulator',
       'bankcard.openDraft': 'Demo order preview',
+      'scam.badge': '50+ Safety Drill',
+      'scam.aiBadge': 'AI-generated example',
+      'scam.offlineBadge': 'Simulated example',
+      'scam.title': 'Spot the investment phishing message',
+      'scam.intro': 'Scammers often target 50+ savers with fake "guaranteed" offers or urgent messages. Tap every red flag in this simulated message below.',
+      'scam.simTag': 'Simulated phishing · do not reply',
+      'scam.prompt': 'Which parts of this message are warning signs (red flags)?',
+      'scam.check': 'Check my picks',
+      'scam.next': 'Generate another example',
+      'scam.loading': 'Atlas is generating a realistic phishing example…',
+      'scam.pickFirst': 'Tap at least one suspicious phrase first.',
+      'scam.perfect': 'Great eye! You spotted all {n} red flags (+25 XP).',
+      'scam.partial': 'You spotted {hits} of {total} red flags. Review the explanations above.',
+      'scam.safeTitle': 'What to do in real life',
       'bankcard.today': 'Micro step',
       'bankcard.day14': 'Target monthly plan',
       'bankcard.micro': 'Micro step: {amount} to {account}',
@@ -1047,6 +1061,20 @@
       'bankcard.whySavings': 'Przy mniejszej nadwyżce i bez poduszki najważniejsze jest odłożenie rezerwy na min. 3 mies. wydatków, by nie sprzedawać inwestycji ze stratą.',
       'bankcard.openSim': 'Otwórz w Symulatorze',
       'bankcard.openDraft': 'Podgląd zlecenia demo',
+      'scam.badge': 'Ćwiczenie bezpieczeństwa 50+',
+      'scam.aiBadge': 'Przykład wygenerowany przez AI',
+      'scam.offlineBadge': 'Symulowany przykład',
+      'scam.title': 'Rozpoznaj phishing inwestycyjny',
+      'scam.intro': 'Oszuści najczęściej celują w osoby 50+ fałszywymi „gwarantowanymi” ofertami i presją czasu. Zaznacz wszystkie sygnały ostrzegawcze w poniższej symulowanej wiadomości.',
+      'scam.simTag': 'Symulacja phishingu · nie odpowiadaj',
+      'scam.prompt': 'Które fragmenty tej wiadomości to sygnały ostrzegawcze (red flags)?',
+      'scam.check': 'Sprawdź wybór',
+      'scam.next': 'Wygeneruj kolejny przykład',
+      'scam.loading': 'Atlas generuje realistyczny przykład phishingu…',
+      'scam.pickFirst': 'Zaznacz najpierw co najmniej jeden podejrzany fragment.',
+      'scam.perfect': 'Świetna czujność! Wykryto wszystkie {n} sygnały ostrzegawcze (+25 XP).',
+      'scam.partial': 'Wykryto {hits} z {total} sygnałów ostrzegawczych. Zobacz wyjaśnienia powyżej.',
+      'scam.safeTitle': 'Co zrobić w prawdziwym życiu',
       'bankcard.today': 'Mikro-krok',
       'bankcard.day14': 'Docelowy plan miesięczny',
       'bankcard.micro': 'Mikro-ruch: {amount} na {account}',
@@ -1746,6 +1774,7 @@
     dayStart: (body) => apiRequest('/api/day/start', { method: 'POST', body }),
     checkpoint: (body) => apiRequest('/api/checkpoint/submit', { method: 'POST', body }),
     explain: (body) => apiRequest('/api/coach/explain', { method: 'POST', body, timeoutMs: 9000 }),
+    scamDrill: (body) => apiRequest('/api/scam/drill', { method: 'POST', body, timeoutMs: 9000 }),
   };
   // FastAPI answers an unknown route with 404 {"detail": "Not Found"}; an unknown session
   // has a different detail. Routes from Issue #27 may not be deployed yet.
@@ -1800,6 +1829,7 @@
     summary: null,
     cp: null,
     cora: { busy: false, result: null, picked: null, question: '' },
+    scamDrill: { data: null, lang: null, picked: new Set(), checked: false, loading: false, failed: false, index: 0, rewarded: new Set() },
     hubView: 'quests',       // Quest Hub: 'quests' (default) or a rail tool: plan · sim · lessons · roadmap
     tmAmount: null,          // what-if monthly amount; null = the sample plan amount
     plantStageAtStart: 1,
@@ -4001,8 +4031,10 @@
       '<button type="button" class="step-tab" role="tab" id="done-tab-' + id + '" aria-controls="done-panel-' + id + '" aria-selected="' + (tab === id) + '"' +
         (tab === id ? '' : ' tabindex="-1"') + ' data-action="done-tab" data-tab="' + id + '">' +
         '<span class="step-tab__n">' + n + '</span><span class="step-tab__label">' + escapeHtml(label) + '</span></button>';
+    const showScamDrill = !!(state.session && state.session.age_group === '50+' && state.day === 1);
     els.doneRoot.innerHTML =
       hero +
+      (showScamDrill ? '<div id="done-scam" class="scam-drill-wrap"></div>' : '') +
       '<div class="steps steps--done" role="tablist" aria-label="' + escapeHtml(t('done.tabs')) + '">' +
         tabBtn('today', t('done.tabToday'), 1) + tabBtn('more', t('done.tabMore'), 2) + '</div>' +
       '<div class="done-panel done-panel--today" id="done-panel-today" role="tabpanel" aria-labelledby="done-tab-today"' + (tab === 'today' ? '' : ' hidden') + '>' +
@@ -4018,6 +4050,7 @@
       '</div>' +
       '<div class="compliance"><p>' + escapeHtml(t('compliance.mifid')) + '</p><p>' + escapeHtml(t('ai.disclaimer')) + '</p></div>';
 
+    if (showScamDrill) renderScamDrill();
     renderFirstStep();
     renderChecklist();
     renderBankCard();
@@ -4059,6 +4092,158 @@
       if (panel) panel.hidden = !on;
       if (tab) { tab.setAttribute('aria-selected', String(on)); if (on) tab.removeAttribute('tabindex'); else tab.setAttribute('tabindex', '-1'); }
     });
+  }
+
+  async function loadScamDrill(advance) {
+    const sd = state.scamDrill;
+    if (sd.loading) return;
+    if (advance) sd.index += 1;
+    sd.loading = true;
+    sd.failed = false;
+    sd.checked = false;
+    sd.picked = new Set();
+    renderScamDrill();
+    try {
+      const res = await api.scamDrill({
+        lang: state.lang,
+        age_group: (state.session && state.session.age_group) || '50+',
+        scenario_index: sd.index,
+      });
+      sd.data = res;
+      sd.lang = state.lang;
+    } catch (err) {
+      sd.failed = true;
+      toast(describeApiError(err), 'warn');
+    } finally {
+      sd.loading = false;
+      renderScamDrill();
+    }
+  }
+
+  function renderScamDrill() {
+    const host = document.getElementById('done-scam');
+    if (!host) return;
+    const sd = state.scamDrill;
+    if (!sd.loading && !sd.failed && (!sd.data || sd.lang !== state.lang)) {
+      loadScamDrill(false);
+      return;
+    }
+    if (sd.loading || !sd.data) {
+      host.innerHTML =
+        '<div class="card scam-drill">' +
+          '<div class="scam-drill__head">' +
+            '<div><div class="scam-drill__badges"><span class="chip chip--worry">' + icon('shield', 'ic--sm') + escapeHtml(t('scam.badge')) + '</span></div>' +
+            '<h2 class="h2" style="margin-top:8px">' + escapeHtml(t('scam.title')) + '</h2></div>' +
+          '</div>' +
+          (sd.failed
+            ? '<div class="scam-drill__actions"><button type="button" class="btn btn--primary" data-action="scam-next">' + icon('reset', 'ic--sm') + escapeHtml(t('scam.next')) + '</button></div>'
+            : '<p class="scam-drill__intro"><span class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>' + escapeHtml(t('scam.loading')) + '</p>') +
+        '</div>';
+      return;
+    }
+    const d = sd.data;
+    const clues = Array.isArray(d.clues) ? d.clues : [];
+    const totalFlags = clues.filter((c) => c.is_red_flag).length;
+    const hitFlags = clues.filter((c) => c.is_red_flag && sd.picked.has(c.id)).length;
+    const falsePicks = clues.filter((c) => !c.is_red_flag && sd.picked.has(c.id)).length;
+    const isPerfect = sd.checked && hitFlags === totalFlags && falsePicks === 0;
+
+    const clueButtons = clues.map((c) => {
+      const picked = sd.picked.has(c.id);
+      let cls = 'scam-clue';
+      if (sd.checked) {
+        if (c.is_red_flag && picked) cls += ' is-hit';
+        else if (c.is_red_flag && !picked) cls += ' is-missed';
+        else if (!c.is_red_flag && picked) cls += ' is-false';
+      }
+      return (
+        '<button type="button" class="' + cls + '" data-action="scam-toggle" data-clue="' + escapeHtml(c.id) + '" aria-pressed="' + picked + '"' + (sd.checked ? ' disabled' : '') + '>' +
+          '<span class="scam-clue__box">' + icon('check', 'ic--sm') + '</span>' +
+          '<span><span class="scam-clue__text">' + escapeHtml(c.text) + '</span>' +
+            (sd.checked ? '<span class="scam-clue__exp">' + escapeHtml(c.explanation) + '</span>' : '') +
+          '</span>' +
+        '</button>'
+      );
+    }).join('');
+
+    const sourceBadge = d.source === 'ai' ? t('scam.aiBadge') : t('scam.offlineBadge');
+    const feedback = sd.checked
+      ? '<p class="scam-drill__status ' + (isPerfect ? 'scam-drill__status--win' : 'scam-drill__status--warn') + '" role="status">' +
+          escapeHtml(isPerfect ? t('scam.perfect', { n: totalFlags }) : t('scam.partial', { hits: hitFlags, total: totalFlags })) +
+        '</p>' +
+        '<div class="scam-safe">' +
+          '<p class="scam-safe__title">' + icon('shield', 'ic--sm') + escapeHtml(t('scam.safeTitle')) + '</p>' +
+          '<p class="scam-safe__text">' + escapeHtml(d.safe_action) + '</p>' +
+        '</div>'
+      : '';
+
+    host.innerHTML =
+      '<div class="card scam-drill">' +
+        '<div class="scam-drill__head">' +
+          '<div>' +
+            '<div class="scam-drill__badges">' +
+              '<span class="chip chip--worry">' + icon('shield', 'ic--sm') + escapeHtml(t('scam.badge')) + '</span>' +
+              '<span class="chip chip--soft">' + escapeHtml(sourceBadge) + '</span>' +
+            '</div>' +
+            '<h2 class="h2" style="margin-top:8px">' + escapeHtml(t('scam.title')) + '</h2>' +
+          '</div>' +
+        '</div>' +
+        '<p class="scam-drill__intro">' + escapeHtml(t('scam.intro')) + '</p>' +
+        '<div class="scam-msg">' +
+          '<div class="scam-msg__bar">' +
+            '<span class="scam-msg__sender">' + escapeHtml(d.channel + ' · ' + d.sender) + '</span>' +
+            '<span class="scam-msg__tag">' + escapeHtml(t('scam.simTag')) + '</span>' +
+          '</div>' +
+          (d.subject ? '<p class="scam-msg__subject">' + escapeHtml(d.subject) + '</p>' : '') +
+          '<p class="scam-msg__body">' + escapeHtml(d.message) + '</p>' +
+        '</div>' +
+        '<p class="scam-clues__label">' + escapeHtml(t('scam.prompt')) + '</p>' +
+        '<div class="scam-clues">' + clueButtons + '</div>' +
+        feedback +
+        '<div class="scam-drill__actions">' +
+          (!sd.checked
+            ? '<button type="button" class="btn btn--primary" data-action="scam-check">' + icon('check', 'ic--sm') + escapeHtml(t('scam.check')) + '</button>'
+            : '') +
+          '<button type="button" class="btn btn--ghost" data-action="scam-next">' + icon('reset', 'ic--sm') + escapeHtml(t('scam.next')) + '</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function toggleScamClue(id) {
+    const sd = state.scamDrill;
+    if (sd.checked || !id) return;
+    if (sd.picked.has(id)) sd.picked.delete(id);
+    else sd.picked.add(id);
+    renderScamDrill();
+  }
+
+  function checkScamDrill() {
+    const sd = state.scamDrill;
+    if (sd.checked || !sd.data) return;
+    if (sd.picked.size === 0) {
+      toast(t('scam.pickFirst'), 'info', 2400);
+      return;
+    }
+    sd.checked = true;
+    const clues = Array.isArray(sd.data.clues) ? sd.data.clues : [];
+    const totalFlags = clues.filter((c) => c.is_red_flag).length;
+    const hitFlags = clues.filter((c) => c.is_red_flag && sd.picked.has(c.id)).length;
+    const falsePicks = clues.filter((c) => !c.is_red_flag && sd.picked.has(c.id)).length;
+    const perfect = hitFlags === totalFlags && falsePicks === 0;
+    const rewardKey = sd.lang + ':' + sd.index;
+    if (perfect && !sd.rewarded.has(rewardKey)) {
+      sd.rewarded.add(rewardKey);
+      state.practiceXp += 25;
+      renderHud();
+      Sound.correct();
+      const anchor = document.querySelector('#done-scam .scam-drill__status') || els.hudXpPill;
+      xpFloat(25, anchor, 'green');
+    } else if (perfect) {
+      Sound.correct();
+    } else {
+      Sound.pop();
+    }
+    renderScamDrill();
   }
 
   function renderFirstStep() {
@@ -4800,6 +4985,9 @@
         case 'challenge-friend': challengeFriend(); break;
         case 'open-bank': openBank(); break;
         case 'open-sim': showScreen(SCREENS.HUB); openHubTool('sim', { focus: true }); break;
+        case 'scam-toggle': toggleScamClue(el.dataset.clue); break;
+        case 'scam-check': checkScamDrill(); break;
+        case 'scam-next': loadScamDrill(true); break;
         case 'simulate-bank': simulateBank(); break;
         case 'next-gen': nextGeneration(); break;
         case 'cp-pick': cpPick(el.dataset.id); break;

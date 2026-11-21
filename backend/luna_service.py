@@ -1398,3 +1398,322 @@ def _replay_final_turn(
         **_final_payload(session_data, leaderboard_rows, False, lang, day),
         **_day_extras(session_data, day, lang, include_paths=True),
     )
+
+
+# ---------------------------------------------------------------------------
+# Interaktywne ćwiczenie rozpoznawania phishingu inwestycyjnego (Issue #63)
+# ---------------------------------------------------------------------------
+
+_OFFLINE_SCAM_DRILLS: dict[str, list[dict]] = {
+    "en": [
+        {
+            "channel": "SMS",
+            "sender": "+48 700 842 199 · VIP Wealth Desk",
+            "subject": "",
+            "message": (
+                "Hello! As a 50+ saver you qualify for our closed AI Energy Fund: "
+                "guaranteed 18% monthly return with ZERO risk. "
+                "Spots close today at 18:00 — tap http://vip-invest-fast.co/claim "
+                "and enter your bank login to lock in your bonus."
+            ),
+            "clues": [
+                {
+                    "id": "c1",
+                    "text": "Guaranteed 18% monthly return with ZERO risk",
+                    "is_red_flag": True,
+                    "explanation": "Classic fraud red flag: no regulated investment guarantees high monthly returns without risk.",
+                },
+                {
+                    "id": "c2",
+                    "text": "Spots close today at 18:00",
+                    "is_red_flag": True,
+                    "explanation": "Artificial urgency is used to stop you from pausing, checking, or asking family for a second opinion.",
+                },
+                {
+                    "id": "c3",
+                    "text": "Tap http://vip-invest-fast.co/claim and enter your bank login",
+                    "is_red_flag": True,
+                    "explanation": "A legitimate advisor or bank will never ask for your bank login through an unknown link.",
+                },
+                {
+                    "id": "c4",
+                    "text": "Hello! As a 50+ saver...",
+                    "is_red_flag": False,
+                    "explanation": "A polite greeting itself is not proof of a scam — always look at the promises, pressure, and links.",
+                },
+            ],
+            "safe_action": (
+                "Do not click the link or reply. Delete the SMS and block the sender. "
+                "If you ever want to verify an investment firm, check your regulator's public warning list (e.g. KNF / BaFin) directly."
+            ),
+        },
+        {
+            "channel": "Email",
+            "sender": "senior-advisor@secure-bond-desk.info",
+            "subject": "Urgent: Protect your savings before tonight's deadline",
+            "message": (
+                "Dear Client, your savings are losing value every day. "
+                "Our private Treasury Plus program pays a fixed 14% per month with full capital guarantee. "
+                "Install AnyDesk so our consultant can help you transfer funds safely within 15 minutes."
+            ),
+            "clues": [
+                {
+                    "id": "c1",
+                    "text": "Fixed 14% per month with full capital guarantee",
+                    "is_red_flag": True,
+                    "explanation": "Real treasury bonds pay a modest annual rate, never 14% per month — unrealistic promised returns signal a scam.",
+                },
+                {
+                    "id": "c2",
+                    "text": "Install AnyDesk so our consultant can help you transfer funds",
+                    "is_red_flag": True,
+                    "explanation": "Asking you to install remote-desktop software (AnyDesk / TeamViewer) gives scammers full control of your bank account.",
+                },
+                {
+                    "id": "c3",
+                    "text": "Before tonight's deadline / within 15 minutes",
+                    "is_red_flag": True,
+                    "explanation": "Rushing you into a 15-minute decision is a pressure tactic to bypass calm verification.",
+                },
+                {
+                    "id": "c4",
+                    "text": "Your savings are losing value every day (inflation)",
+                    "is_red_flag": False,
+                    "explanation": "Inflation is a real concern, which scammers often mix with fake promises to sound believable.",
+                },
+            ],
+            "safe_action": (
+                "Never install remote-access apps for someone who contacted you unsolicited. "
+                "Mark the email as phishing and call your bank only using the official number on the back of your card."
+            ),
+        },
+        {
+            "channel": "WhatsApp",
+            "sender": "Mark · Investment Support (Unknown number)",
+            "subject": "",
+            "message": (
+                "Hi! Your investment account has 12,400 PLN in unclaimed dividend profit waiting. "
+                "To unlock the payout, send a 6-digit BLIK code for a 1 PLN identity check "
+                "within the next 10 minutes or the funds will be forfeited."
+            ),
+            "clues": [
+                {
+                    "id": "c1",
+                    "text": "12,400 PLN in unclaimed dividend profit waiting",
+                    "is_red_flag": True,
+                    "explanation": "Unexpected 'unclaimed profits' on an account you never opened are a classic bait.",
+                },
+                {
+                    "id": "c2",
+                    "text": "Send a 6-digit BLIK code for a 1 PLN identity check",
+                    "is_red_flag": True,
+                    "explanation": "BLIK codes authorize real payments — never share a BLIK code or PIN to 'verify' an account.",
+                },
+                {
+                    "id": "c3",
+                    "text": "Within 10 minutes or the funds will be forfeited",
+                    "is_red_flag": True,
+                    "explanation": "Threatening that money will disappear in 10 minutes is a textbook panic trigger.",
+                },
+                {
+                    "id": "c4",
+                    "text": "Hi! (Casual opening greeting)",
+                    "is_red_flag": False,
+                    "explanation": "A casual greeting alone isn't the red flag — the fake profit, BLIK request, and 10-minute threat are.",
+                },
+            ],
+            "safe_action": (
+                "Block and report the contact on WhatsApp immediately. "
+                "Never share a BLIK code, SMS code, or card details with anyone claiming to unlock investment profits."
+            ),
+        },
+    ],
+    "pl": [
+        {
+            "channel": "SMS",
+            "sender": "+48 700 842 199 · Dział Inwestycji VIP",
+            "subject": "",
+            "message": (
+                "Dzień dobry! Jako osoba 50+ kwalifikuje się Pan/Pani do zamkniętego funduszu AI Energia: "
+                "gwarantowane 18% zysku miesięcznie przy ZEROWYM ryzyku. "
+                "Zapisy tylko dziś do 18:00 — kliknij http://vip-zysk-teraz.co/start "
+                "i zaloguj się do banku, aby odebrać bonus."
+            ),
+            "clues": [
+                {
+                    "id": "c1",
+                    "text": "Gwarantowane 18% zysku miesięcznie przy ZEROWYM ryzyku",
+                    "is_red_flag": True,
+                    "explanation": "Klasyczny sygnał oszustwa: żadna legalna inwestycja nie gwarantuje tak wysokiego zysku miesięcznie bez ryzyka.",
+                },
+                {
+                    "id": "c2",
+                    "text": "Zapisy tylko dziś do 18:00",
+                    "is_red_flag": True,
+                    "explanation": "Sztuczna presja czasu ma Cię powstrzymać przed spokojnym sprawdzeniem oferty lub rozmową z bliskimi.",
+                },
+                {
+                    "id": "c3",
+                    "text": "Kliknij http://vip-zysk-teraz.co/start i zaloguj się do banku",
+                    "is_red_flag": True,
+                    "explanation": "Żaden prawdziwy bank ani doradca nie prosi o logowanie do bankowości przez link z SMS-a.",
+                },
+                {
+                    "id": "c4",
+                    "text": "Dzień dobry! Jako osoba 50+...",
+                    "is_red_flag": False,
+                    "explanation": "Sama uprzejma forma powitania nie przesądza o oszustwie — zawsze sprawdzaj obietnice, presję czasu i linki.",
+                },
+            ],
+            "safe_action": (
+                "Nie klikaj linku i nie odpisuj. Usuń SMS i zablokuj numer (w Polsce możesz też przekazać podejrzany SMS na bezpłatny numer 8080 CERT Polska). "
+                "Wiarygodność firm inwestycyjnych sprawdzaj wyłącznie na liście ostrzeżeń KNF."
+            ),
+        },
+        {
+            "channel": "E-mail",
+            "sender": "opiekun-vip@bezpieczne-obligacje.info",
+            "subject": "Pilne: Zabezpiecz oszczędności przed końcem dzisiejszej sesji",
+            "message": (
+                "Szanowny Kliencie, inflacja codziennie zmniejsza wartość Twoich oszczędności. "
+                "Nasz prywatny program Obligacje Plus daje stałe 14% miesięcznie z pełną gwarancją kapitału. "
+                "Zainstaluj aplikację AnyDesk, a nasz konsultant pomoże bezpiecznie przelać środki w 15 minut."
+            ),
+            "clues": [
+                {
+                    "id": "c1",
+                    "text": "Stałe 14% miesięcznie z pełną gwarancją kapitału",
+                    "is_red_flag": True,
+                    "explanation": "Prawdziwe obligacje skarbowe płacą umiarkowany procent w skali roku, nigdy 14% w miesiąc.",
+                },
+                {
+                    "id": "c2",
+                    "text": "Zainstaluj aplikację AnyDesk, a konsultant pomoże przelać środki",
+                    "is_red_flag": True,
+                    "explanation": "Prośba o instalację programu do zdalnego pulpitu (AnyDesk / TeamViewer) to próba przejęcia kontroli nad Twoim kontem.",
+                },
+                {
+                    "id": "c3",
+                    "text": "Przed końcem dzisiejszej sesji / w 15 minut",
+                    "is_red_flag": True,
+                    "explanation": "Poganianie do decyzji w 15 minut to technika manipulacji, żebyś nie zdążył(a) wszystkiego zweryfikować.",
+                },
+                {
+                    "id": "c4",
+                    "text": "Inflacja codziennie zmniejsza wartość Twoich oszczędności",
+                    "is_red_flag": False,
+                    "explanation": "Inflacja to prawdziwe zjawisko — oszuści często wplatają prawdziwe fakty, aby uwiarygodnić fałszywą ofertę.",
+                },
+            ],
+            "safe_action": (
+                "Nigdy nie instaluj programów do zdalnego pulpitu na prośbę nieznajomej osoby. "
+                "Oznacz wiadomość jako phishing, a w razie wątpliwości zadzwoń do banku pod oficjalny numer z odwrotu karty."
+            ),
+        },
+        {
+            "channel": "WhatsApp",
+            "sender": "Marek · Wsparcie Inwestycyjne (Nieznany numer)",
+            "subject": "",
+            "message": (
+                "Dzień dobry! Na Pana/Pani koncie inwestycyjnym czeka 12 400 zł nieodebranego zysku z dywidend. "
+                "Aby odblokować wypłatę, proszę podać 6-cyfrowy kod BLIK do weryfikacji na 1 zł "
+                "w ciągu najbliższych 10 minut, inaczej środki przepadną."
+            ),
+            "clues": [
+                {
+                    "id": "c1",
+                    "text": "Czeka 12 400 zł nieodebranego zysku z dywidend",
+                    "is_red_flag": True,
+                    "explanation": "Niespodziewane „nieodebrane zyski” na koncie, którego nie pamiętasz, to klasyczna przynęta oszustów.",
+                },
+                {
+                    "id": "c2",
+                    "text": "Proszę podać 6-cyfrowy kod BLIK do weryfikacji na 1 zł",
+                    "is_red_flag": True,
+                    "explanation": "Kod BLIK służy do autoryzacji prawdziwych płatności — nigdy nie podawaj go do „weryfikacji” konta.",
+                },
+                {
+                    "id": "c3",
+                    "text": "W ciągu 10 minut, inaczej środki przepadną",
+                    "is_red_flag": True,
+                    "explanation": "Straszenie utratą pieniędzy w 10 minut ma wywołać panikę i wyłączyć zdrowy rozsądek.",
+                },
+                {
+                    "id": "c4",
+                    "text": "Dzień dobry! (Zwykłe powitanie)",
+                    "is_red_flag": False,
+                    "explanation": "Samo powitanie nie jest sygnałem oszustwa — haczykiem są rzekomy zysk, prośba o BLIK i groźba przepadku.",
+                },
+            ],
+            "safe_action": (
+                "Natychmiast zablokuj i zgłoś kontakt na komunikatorze. "
+                "Nigdy nie podawaj kodu BLIK, kodów SMS ani danych karty osobom obiecującym wypłatę zysków z inwestycji."
+            ),
+        },
+    ],
+}
+
+_SCAM_DRILL_PROMPT = (
+    "You are Atlas, an educational financial safety coach in Investly. "
+    "Create ONE realistic, clearly fictional investment phishing message (SMS, Email, or WhatsApp) "
+    "for an educational 'Spot the Red Flags' drill aimed at {age_group} beginners. "
+    "Use obviously fake/non-working domains (e.g. .example or fake-offer.co) and never use real bank names. "
+    "Return valid JSON matching the schema with: "
+    "channel (SMS/Email/WhatsApp), sender, subject (short or empty string), message (3-4 sentences), "
+    "clues (EXACTLY 4 items: 3 real red flags with is_red_flag=true and 1 neutral/harmless phrase from the message with is_red_flag=false, "
+    "each with id 'c1'..'c4', text, is_red_flag, and a 1-sentence explanation), "
+    "and safe_action (calm 2-sentence real-life safety advice). "
+    "Language: {lang_name}. Variation seed: {seed}."
+)
+
+
+def generate_scam_drill(
+    lang: Language = "en",
+    age_group: str = "50+",
+    scenario_index: int = 0,
+) -> dict:
+    """Generuje edukacyjną wiadomość phishingową do ćwiczenia rozpoznawania red flags.
+
+    W trybie LIVE używa LLM (Structured Outputs / JSON); w DEMO_OFFLINE=1 lub przy
+    braku klucza / błędzie sieci zwraca deterministyczny przykład z puli offline.
+    """
+    active = _normalize_lang(lang)
+    pool = _OFFLINE_SCAM_DRILLS[active]
+    fallback = dict(pool[scenario_index % len(pool)], source="offline")
+
+    settings = _settings()
+    if settings["offline"] or not settings["api_key"]:
+        return fallback
+
+    try:
+        from backend.schemas import ScamDrillResponse
+
+        client = _build_client(settings["api_key"], settings["timeout"], settings["base_url"])
+        lang_name = "Polish" if active == "pl" else "English"
+        prompt = _SCAM_DRILL_PROMPT.format(
+            age_group=age_group,
+            lang_name=lang_name,
+            seed=scenario_index,
+        )
+        completion = client.chat.completions.create(
+            model=settings["model"],
+            temperature=0.8,
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": f"Generate investment phishing drill #{scenario_index + 1} in {lang_name}."},
+            ],
+            response_format={"type": "json_object"},
+        )
+        raw = (completion.choices[0].message.content or "").strip()
+        if not raw:
+            return fallback
+        parsed = ScamDrillResponse.model_validate_json(raw)
+        if len(parsed.clues) != 4 or not any(c.is_red_flag for c in parsed.clues):
+            return fallback
+        data = parsed.model_dump()
+        data["source"] = "ai"
+        return data
+    except Exception as exc:  # pragma: no cover - fallback offline gwarantuje 100% niezawodności
+        category, status = _safe_error_category(exc)
+        logger.warning("SCAM_DRILL_FALLBACK category=%s http_status=%s", category, status)
+        return fallback
