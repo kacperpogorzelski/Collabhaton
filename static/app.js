@@ -9,10 +9,12 @@
      (dzień, poziom/XP, streak, Gotowość), Demo Mode, toasty, modal, konfetti.
    - Issue #8: Ekran 1 (ankieta 6 pytań) i Ekran 2 (mapa 14 dni, filtr Speakly,
      mikro-lekcje, przykładowy podział środków, Wehikuł Czasu z Chart.js).
-   - Issue #9: Ekran 3 (symulacja wyborów z Luną: karty quick_replies, własna
+   - Issue #9: Ekran 3 (symulacja wyborów z Corą: karty quick_replies, własna
      odpowiedź, feedback, konfetti) i ciche odtworzenie sesji po 404.
    - Issue #10: Ekran 4 (baner awansu, Gotowość, samoocena „po", wyzwanie,
      checklista, przykładowy plan, ranking, stopka MiFID II) i modal bankowy.
+   - Issue #31: domyślny EN + przełącznik EN | PL (pełny słownik I18N),
+     Reset / Profile, imię Cora i AI Disclaimer.
    ========================================================================== */
 (function () {
   'use strict';
@@ -35,12 +37,9 @@
   // docs/02 §3B: Osoba 2 uzupełni źródło/okres/walutę (np. '; źródło: …'). Pusty = brak dopisku.
   const WIN_RATE_SOURCE_NOTE = '';
 
-  // docs/01 §7 Ekran 4 — stopka compliance (MiFID II), pokazywana też pod wykresem Ekranu 2.
-  const COMPLIANCE_TEXT =
-    'Aplikacja Finance Quest ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na ' +
-    'uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka ' +
-    'walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji ' +
-    'w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.';
+  // Domyślny język aplikacji to EN (docs/01 §9); PL tylko po jawnym wyborze.
+  const LANG_STORAGE_KEY = 'fq_lang';
+  const SUPPORTED_LANGS = Object.freeze(['en', 'pl']);
 
   const SCREENS = Object.freeze({
     ONBOARDING: 'screen_onboarding',
@@ -63,43 +62,514 @@
   });
 
   // Domyślny GamificationState (docs/02 §4) — pokazywany przed pierwszą analizą.
-  const DEFAULT_GAMIFICATION = Object.freeze({
-    level: 1,
-    level_title: 'Obserwator',
-    xp: 20,
-    next_level_xp: 100,
-    xp_gained: 0,
-    leveled_up: false,
-    streak_days: 1,
-  });
+  function defaultGamification() {
+    return {
+      level: 1,
+      level_title: t('levelObserver'),
+      xp: 20,
+      next_level_xp: 100,
+      xp_gained: 0,
+      leveled_up: false,
+      streak_days: 1,
+    };
+  }
 
-  // Dolny próg XP danego poziomu (docs/02 §3G: poziom 2 od 100 XP).
-  const LEVEL_FLOOR_XP = Object.freeze({ 1: 0, 2: 100 });
+  // Dolny próg XP danego poziomu (docs/02 §3G: poziom 2 od 100 XP, poziom 3 od 250 XP).
+  const LEVEL_FLOOR_XP = Object.freeze({ 1: 0, 2: 100, 3: 250 });
 
-  // Kafelki obawy (docs/01 §3B).
-  const CONCERN_LABELS = Object.freeze({
-    freeze_money: 'Boję się, że zamrożę pieniądze',
-    no_time: 'Nie mam czasu na giełdę',
-    lose_money: 'Boję się, że stracę pieniądze',
-    too_late: 'Chyba za późno na start',
-  });
+  // ------------------------------------------------------------------------
+  // Słownik EN | PL (docs/01 §9). Klucze z atrybutów data-i18n* w index.html
+  // oraz teksty budowane w JS. Kwoty zawsze w PLN (bez przeliczania kursów).
+  // ------------------------------------------------------------------------
+  const I18N = {
+    en: {
+      pageTitle: 'Finance Quest — by Commerzbank',
+      metaDescription:
+        'Finance Quest by Commerzbank — build investing confidence in 14 days, 5 minutes a day.',
+      skipToContent: 'Skip to content',
+      headerSubtitle: 'by Commerzbank • 14-Day Confidence Sprint',
+      langGroupAria: 'Language',
+      resetBtn: 'Reset / Profile',
+      resetBtnTitle: 'Return to profile selection',
+      logoResetAria: 'Finance Quest — return to profile selection',
+      demoModeAria: 'Demo Mode — sample profiles',
+      hdrDayWord: 'Day',
+      hdrDayOf: 'of',
+      hdrLvlWord: 'Lvl',
+      hdrReadinessLabel: 'Readiness',
+      hdrReadinessAria: 'Readiness',
+      onbTitle: 'Build investing confidence in 14 days. 5 minutes a day.',
+      onbSubtitle: '6 quick questions cut out the noise Speakly-style and build your plan.',
+      onbQuickStartPre: 'Quick start: pick a profile in',
+      onbQuickStartPost: 'at the top.',
+      qAge: 'Age',
+      qNetIncome: 'Net income',
+      qNetIncomeHint: 'monthly, take-home',
+      qFreeCash: 'Monthly free cash',
+      qFreeCashMaxPrefix: 'max.',
+      qFreeCashMaxSuffix: 'no more than net income',
+      qBuffer: 'Emergency buffer (min. 3 months of expenses)',
+      qBufferYes: 'Yes, I have a buffer',
+      qBufferNo: 'Still building it',
+      qConcern: 'What is your biggest concern?',
+      concernFreeze: "I'm afraid I'll freeze my money",
+      concernNoTime: "I don't have time for the market",
+      concernLose: "I'm afraid I'll lose money",
+      concernTooLate: "Maybe it's too late to start",
+      qConfidence: 'How confident do you feel about investing your first money?',
+      qConfMin: '1 — not at all',
+      qConfMax: '5 — very confident',
+      ctaOnboarding: 'Build my 14-day Speakly plan',
+      ctaBusy: 'Filtering out the noise...',
+      screenFilterTitle: 'Your Day 1 plan: 14-day map, Speakly filter and Time Machine',
+      tmTitle: 'Time Machine: cash vs broad ETF',
+      tmSubtitlePrefix: "in today's PLN • example:",
+      tmSliderLabel: 'Rewind time',
+      tmMinYear: '1 year',
+      tmMaxYear: '20 years',
+      kpiCashLabel: "Contributions in 0% account (real, today's PLN)",
+      kpiPaidPrefix: 'paid in total',
+      kpiEtfLabel: 'Broad ETF (real, assumptions below)',
+      kpiNominalPrefix: 'nominal approx.',
+      kpiWinTitle: 'Historical windows (illustrative)',
+      kpiWinPrefix: 'In illustrative historical windows',
+      kpiWinSuffix: 'ended with a positive real return',
+      kpiWinNote: 'illustrative educational data',
+      legendEtf: 'Broad ETF (real)',
+      legendCash: 'Contributions in 0% account (real)',
+      legendStress: '-20% dip scenario in year 3 (educational)',
+      tmSimNote: 'Historical simulation; results vary and do not guarantee future profits.',
+      tmChartAria:
+        "Chart: value of 0% account contributions and broad ETF in today's PLN, with a -20% dip scenario in year 3",
+      currencyUnit: 'PLN',
+      ctaStartMission: 'Start Day 1 Simulation with AI Coach',
+      screenMissionTitle: 'Day 1 of 14 — decision simulation with Cora',
+      msDayWord: 'Day',
+      msSimLabel: 'Decision Simulation',
+      msStepWord: 'Step',
+      msPortfolioLabel: 'Simulated portfolio (nominal)',
+      coachRole: 'Your daily AI Coach',
+      coachAnalyzing: 'Cora is analyzing your answer...',
+      msPromptHeading: 'What do you do?',
+      msPromptHint: 'Pick a card or answer in your own words',
+      msInputLabel: 'Your own answer for AI Coach',
+      msInputPlaceholder: 'Or tell AI Coach Cora in your own words what you do and why...',
+      msSend: 'Send',
+      msSending: 'Sending...',
+      msEnterHint: 'Enter — send, Shift+Enter — new line',
+      aiDisclaimer:
+        'AI Coach Cora can make mistakes. Educational simulation only — not financial advice (MiFID II).',
+      ctaFinishDay: 'Finish Day 1 and get summary',
+      screenChecklistTitle: 'Day 1 of 14 summary',
+      modalBankTitle: 'Sample plan at Commerzbank',
+      closeModalAria: 'Close',
+      complianceText:
+        'Finance Quest is an educational and simulation-only app. Calculations use simplified assumptions and ' +
+        'historical data; they ignore capital-gains tax, fees and currency risk, do not guarantee future ' +
+        'results and are not investment advice or a recommendation within the meaning of MiFID II. Investing ' +
+        'involves the risk of losing part or all of your capital.',
+      levelObserver: 'Observer',
+      levelConfident: 'Confident Start',
+      levelSteady: 'Steady Builder',
+      ageGroupYoung: 'Young Start (20+)',
+      ageGroupMid: 'Career & Family (30–50)',
+      ageGroupSenior: 'Capital Protection (50+)',
+      fieldAge: 'Age must be between 18 and 70.',
+      fieldNetIncome: 'Net income: from 2,500 to 25,000 PLN.',
+      fieldFreeCash: 'Free cash: from 200 to 10,000 PLN and no more than net income.',
+      fieldEmergencyFund: 'Tell us whether you already have a buffer.',
+      fieldMainConcern: 'Pick what you are most concerned about.',
+      fieldSelfConfidence: 'Pick a score from 1 to 5.',
+      errorGeneric: 'Something went wrong. Please try again.',
+      errorNetwork: 'No connection to the server. Start the backend: uvicorn backend.main:app --port 8000',
+      errorTimeout: 'The server did not answer in time. Please try again.',
+      error422: 'Check your survey answers — some values are out of range.',
+      error404: 'The requested resource was not found on the server (404).',
+      errorServer: 'Server error ({status}). Please try again.',
+      toastFixFields: 'Fix the highlighted survey fields.',
+      toastFillFields: 'Complete the highlighted survey questions.',
+      toastPersonasFailed:
+        'Could not load the demo profiles. Start the backend: uvicorn backend.main:app --port 8000',
+      planIntroHorizon: 'Horizon:',
+      planIntroConcern: 'Concern:',
+      roadmapActive: 'Active — Today',
+      roadmapLocked: 'Locked',
+      roadmapDayWord: 'Day',
+      roadmapTitle: '14-day map',
+      roadmapMeta: 'Day {day} of {total} • 5–10 min a day',
+      lessonDone: 'Done • +{xp} XP',
+      lessonUnderstood: 'Got it! (+{xp} XP)',
+      lessonSeconds: '{seconds} sec.',
+      speaklyTitle: 'Speakly filter and Day 1 micro-lessons',
+      speaklySkipped: '⚡ We skipped {n} topics you do not need to start',
+      lessonsTitle: 'Day 1 micro-lessons',
+      lessonsOptional: 'optional • max. +{xp} XP',
+      prioritiesTitle: 'Your 3 priorities for today',
+      skippedTitle: 'You do not need this at the start',
+      splitLabel: 'Sample target amount (monthly)',
+      splitCushion: 'Buffer',
+      splitEtf: 'Training in a broad ETF',
+      splitShare: 'about {cushion}% to the buffer • about {etf}% to training in a broad ETF',
+      splitSim: 'In the simulation below:',
+      splitSimEtf: 'in a broad ETF.',
+      splitPerMonth: '/mo.',
+      splitLater: 'ETF later — example below at {amount} PLN/mo.',
+      splitTitle: 'Sample split of your free cash',
+      chartYearZero: 'Year 0',
+      chartYear: 'Year {year}',
+      chartEtf: 'Broad ETF (real)',
+      chartCash: 'Contributions in 0% account (real)',
+      chartStress: '-20% dip in year 3 (educational)',
+      chartAxis: "PLN (in today's PLN)",
+      feedbackGood: 'Good decision',
+      feedbackTip: 'Tip from Cora',
+      feedbackAnswer: 'Your answer: “{answer}”',
+      feedbackReadiness: 'Readiness +{delta} pts',
+      feedbackLevel: '🏆 Level up: Level {level} {title}',
+      toastWriteMore: 'Write a few words or pick one of the cards.',
+      errorMessageLength: 'The answer must be between 1 and {max} characters.',
+      errorRestoreSession: 'Could not restore the session. Go back to the survey and try again.',
+      levelBannerLeveled: '🏆 DAY {day} OF {total} COMPLETE! LEVEL UP: {title}',
+      levelBannerDone: 'DAY {day} OF {total} COMPLETE',
+      pillLevel: 'Level {level}',
+      pillMicroXp: '+{xp} XP from micro-lessons',
+      pillStreak: '🔥 Streak: {days} {dayWord}',
+      missingXp: 'You need <span class="tabular-nums">{xp} XP</span> to reach Level 2 — come back tomorrow!',
+      streakStarted: '🔥 Streak started! See you tomorrow for Day 2.',
+      readiness: 'Readiness',
+      readinessTo: 'to',
+      readinessNote: 'Full readiness comes only on Day 14.',
+      selfQuestion: 'How confident do you feel now? (1–5)',
+      selfBeforeHint: 'Before: {before}/5 — mark how it feels now.',
+      selfMarkNow: 'Mark how it feels now.',
+      selfBefore: 'Before: {before}/5',
+      selfAfter: 'After: {after}/5',
+      challengeAccepted: '✅ Challenge accepted!',
+      challengeAccept: 'I accept the challenge (+{xp} XP)',
+      challengeBadge: 'Real micro-challenge • Zero fear',
+      checklistTitle: 'Day 1 checklist',
+      checklistDone: '🎉 Complete! Now take the first step at the bank.',
+      bankMicroMove: 'Micro-move:',
+      bankOn: 'to',
+      bankBuffer: 'Buffer:',
+      bankSavingsAccount: 'to a savings account',
+      bankEtfLater: 'ETF later — example {amount}/mo.',
+      bankHorizon: 'horizon',
+      bankParallelBuffer: 'In parallel, buffer:',
+      bankTitle: 'Sample plan at Commerzbank',
+      bankToday: 'Today',
+      bankTarget: 'Day 14 — target plan',
+      bankLaterPrefix: 'Example for later — ',
+      bankEstimate: 'educational estimate in today’s PLN •',
+      bankEtfReal: 'Broad ETF (real)',
+      bankCashReal: 'Contributions in 0% account (real)',
+      bankNominal: 'nominal ETF: approx.',
+      bankCta: 'Take the Day 1 step or preview the sample plan at Commerzbank',
+      leaderboardTitle: 'Friends leaderboard',
+      leaderboardDemo: 'Sample friends (demo)',
+      leaderboardStreakTitle: 'Day streak',
+      leaderboardLeveled: '⬆️ Level Up!',
+      leaderboardMissing:
+        'You need <span class="tabular-nums">{xp} XP</span> to reach 1st place — come back tomorrow for Day 2!',
+      leaderboardLeading: 'You lead the leaderboard — keep the streak tomorrow!',
+      leaderboardChallenge: '⚔️ Challenge a friend',
+      friendText:
+        'I challenge you in Finance Quest! I finished Day 1 of 14 and have {xp} XP. Will you join and try to catch me? 🔥',
+      friendCopied: '⚔️ Invitation copied to the clipboard — send it to a friend!',
+      friendCopyFailed: 'Could not copy. Invitation text: {text}',
+      modalBankPreview: 'Preview of the bank app screen — in demo mode nothing will be executed.',
+      modalChooseStep: 'Choose a step',
+      modalOptionA: 'Option A — Step for today',
+      modalRecommended: 'Recommended',
+      modalOptionB: 'Option B — Sample plan for Day 14',
+      modalBuffer: 'Buffer:',
+      modalSavings: 'to a savings account; ETF later (example {amount}/mo.)',
+      modalKyc:
+        'In the production version: suitability test, identity verification (KYC), information about costs and risk.',
+      modalSimulate: 'Simulate executing the step at the bank (Demo)',
+      modalDone: 'Well done! Day 1 step complete — your streak continues, see you tomorrow for Day 2!',
+      modalDoneNote: 'Simulation: {summary} • In demo mode nothing was executed.',
+      modalNextGeneration: 'Try another generation (Demo)',
+      modalClose: 'Close',
+      modalTodayStep: 'Step for today',
+      modalTargetPlan: 'Sample plan for Day 14:',
+      modalTransfer: 'Transfer {amount} to {account}',
+    },
+    pl: {
+      pageTitle: 'Finance Quest — Commerzbank',
+      metaDescription:
+        'Finance Quest od Commerzbank — zbuduj pewność inwestowania w 14 dni, 5 minut dziennie.',
+      skipToContent: 'Przejdź do treści',
+      headerSubtitle: 'Commerzbank • 14-dniowy Sprint Pewności',
+      langGroupAria: 'Język',
+      resetBtn: 'Reset / Profil',
+      resetBtnTitle: 'Powrót do wyboru profilu',
+      logoResetAria: 'Finance Quest — powrót do wyboru profilu',
+      demoModeAria: 'Demo Mode — przykładowe profile',
+      hdrDayWord: 'Dzień',
+      hdrDayOf: 'z',
+      hdrLvlWord: 'Poz.',
+      hdrReadinessLabel: 'Gotowość',
+      hdrReadinessAria: 'Gotowość',
+      onbTitle: 'Zbuduj pewność inwestowania w 14 dni. 5 minut dziennie.',
+      onbSubtitle: '6 szybkich pytań odcina zbędny szum w stylu Speakly i buduje Twój plan.',
+      onbQuickStartPre: 'Szybki start: wybierz profil w',
+      onbQuickStartPost: 'na górze.',
+      qAge: 'Wiek',
+      qNetIncome: 'Zarobki netto',
+      qNetIncomeHint: 'miesięcznie, na rękę',
+      qFreeCash: 'Wolne środki miesięcznie',
+      qFreeCashMaxPrefix: 'maks.',
+      qFreeCashMaxSuffix: 'nie więcej niż zarobki netto',
+      qBuffer: 'Poduszka finansowa (min. 3 miesiące wydatków)',
+      qBufferYes: 'Tak, mam poduszkę',
+      qBufferNo: 'Dopiero ją buduję',
+      qConcern: 'Czego najbardziej się obawiasz?',
+      concernFreeze: 'Boję się, że zamrożę pieniądze',
+      concernNoTime: 'Nie mam czasu na giełdę',
+      concernLose: 'Boję się, że stracę pieniądze',
+      concernTooLate: 'Chyba za późno na start',
+      qConfidence: 'Jak pewnie czujesz się z inwestowaniem pierwszych pieniędzy?',
+      qConfMin: '1 — wcale',
+      qConfMax: '5 — bardzo pewnie',
+      ctaOnboarding: 'Zbuduj mój 14-dniowy plan Speakly',
+      ctaBusy: 'Filtruję zbędną teorię...',
+      screenFilterTitle: 'Twój plan na Dzień 1: mapa 14 dni, filtr Speakly i Wehikuł Czasu',
+      tmTitle: 'Wehikuł Czasu: gotówka vs szeroki ETF',
+      tmSubtitlePrefix: 'w dzisiejszych złotych • przykład:',
+      tmSliderLabel: 'Przewiń czas',
+      tmMinYear: '1 rok',
+      tmMaxYear: '20 lat',
+      kpiCashLabel: 'Wpłaty na koncie 0% (realnie, dzisiejsze złote)',
+      kpiPaidPrefix: 'wpłacono łącznie',
+      kpiEtfLabel: 'Szeroki ETF (realnie, założenia poniżej)',
+      kpiNominalPrefix: 'nominalnie ok.',
+      kpiWinTitle: 'Okresy historyczne (ilustracyjnie)',
+      kpiWinPrefix: 'W ilustracyjnych okresach historycznych',
+      kpiWinSuffix: 'zakończyło się dodatnim wynikiem realnym',
+      kpiWinNote: 'dane ilustracyjne, edukacyjne',
+      legendEtf: 'Szeroki ETF (realnie)',
+      legendCash: 'Wpłaty na koncie 0% (realnie)',
+      legendStress: 'Scenariusz wahania -20% w roku 3 (edukacyjny)',
+      tmSimNote: 'Symulacja historyczna; wyniki się różnią i nie gwarantują przyszłych zysków.',
+      tmChartAria:
+        'Wykres: wartość wpłat na koncie 0% i szerokiego ETF w dzisiejszych złotych, ze scenariuszem -20% w roku 3',
+      currencyUnit: 'zł',
+      ctaStartMission: 'Rozpocznij symulację Dnia 1 z AI Coachem',
+      screenMissionTitle: 'Dzień 1 z 14 — symulacja decyzji z Corą',
+      msDayWord: 'Dzień',
+      msSimLabel: 'Symulacja wyborów',
+      msStepWord: 'Krok',
+      msPortfolioLabel: 'Portfel symulowany (nominalnie)',
+      coachRole: 'Twój codzienny AI Coach',
+      coachAnalyzing: 'Cora analizuje Twoją odpowiedź...',
+      msPromptHeading: 'Co robisz?',
+      msPromptHint: 'Wybierz kartę albo odpowiedz własnymi słowami',
+      msInputLabel: 'Twoja własna odpowiedź dla AI Coacha',
+      msInputPlaceholder: 'Albo powiedz AI Coachowi Corze własnymi słowami, co robisz i dlaczego...',
+      msSend: 'Wyślij',
+      msSending: 'Wysyłam...',
+      msEnterHint: 'Enter — wyślij, Shift+Enter — nowa linia',
+      aiDisclaimer:
+        'AI Coach Cora może popełniać błędy. Wyłącznie symulacja edukacyjna — to nie porada inwestycyjna (MiFID II).',
+      ctaFinishDay: 'Zakończ Dzień 1 i zobacz podsumowanie',
+      screenChecklistTitle: 'Podsumowanie Dnia 1 z 14',
+      modalBankTitle: 'Przykładowy plan w Commerzbanku',
+      closeModalAria: 'Zamknij',
+      complianceText:
+        'Aplikacja Finance Quest ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na ' +
+        'uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka ' +
+        'walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji ' +
+        'w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.',
+      levelObserver: 'Obserwator',
+      levelConfident: 'Świadomy Start',
+      levelSteady: 'Konsekwentny Start',
+      ageGroupYoung: 'Młody Start (20+)',
+      ageGroupMid: 'Kariera i Rodzina (30–50)',
+      ageGroupSenior: 'Ochrona Kapitału (50+)',
+      fieldAge: 'Wiek musi mieścić się w przedziale 18–70 lat.',
+      fieldNetIncome: 'Zarobki netto: od 2 500 do 25 000 zł.',
+      fieldFreeCash: 'Wolne środki: od 200 do 10 000 zł i nie więcej niż zarobki netto.',
+      fieldEmergencyFund: 'Zaznacz, czy masz już poduszkę.',
+      fieldMainConcern: 'Wybierz, czego najbardziej się obawiasz.',
+      fieldSelfConfidence: 'Wybierz ocenę od 1 do 5.',
+      errorGeneric: 'Coś poszło nie tak. Spróbuj ponownie.',
+      errorNetwork: 'Brak połączenia z serwerem. Uruchom backend: uvicorn backend.main:app --port 8000',
+      errorTimeout: 'Serwer nie odpowiedział na czas. Spróbuj ponownie.',
+      error422: 'Sprawdź odpowiedzi w ankiecie — część wartości jest poza zakresem.',
+      error404: 'Nie znaleziono zasobu na serwerze (404).',
+      errorServer: 'Błąd serwera ({status}). Spróbuj ponownie.',
+      toastFixFields: 'Popraw zaznaczone pola ankiety.',
+      toastFillFields: 'Uzupełnij zaznaczone pytania ankiety.',
+      toastPersonasFailed:
+        'Nie udało się pobrać profili demo. Uruchom backend: uvicorn backend.main:app --port 8000',
+      planIntroHorizon: 'Horyzont:',
+      planIntroConcern: 'Obawa:',
+      roadmapActive: 'Aktywny — Dziś',
+      roadmapLocked: 'Zablokowany',
+      roadmapDayWord: 'Dzień',
+      roadmapTitle: 'Mapa 14 dni',
+      roadmapMeta: 'Dzień {day} z {total} • 5–10 min dziennie',
+      lessonDone: 'Zaliczone • +{xp} XP',
+      lessonUnderstood: 'Rozumiem! (+{xp} XP)',
+      lessonSeconds: '{seconds} sek.',
+      speaklyTitle: 'Filtr Speakly i mikro-lekcje Dnia 1',
+      speaklySkipped: '⚡ Pominęliśmy {n} {word}, których nie potrzebujesz na start',
+      lessonsTitle: 'Mikro-lekcje Dnia 1',
+      lessonsOptional: 'opcjonalnie • maks. +{xp} XP',
+      prioritiesTitle: 'Twoje 3 priorytety na dziś',
+      skippedTitle: 'Nie musisz tego robić na starcie',
+      splitLabel: 'Przykładowa kwota docelowa (miesięcznie)',
+      splitCushion: 'Poduszka',
+      splitEtf: 'Trening w szeroki ETF',
+      splitShare: 'ok. {cushion}% na poduszkę • ok. {etf}% na trening w szeroki ETF',
+      splitSim: 'W symulacji poniżej:',
+      splitSimEtf: 'w szerokim ETF.',
+      splitPerMonth: '/mies.',
+      splitLater: 'ETF później — poniżej przykład na {amount} zł/mies.',
+      splitTitle: 'Przykładowy podział wolnych środków',
+      chartYearZero: 'Rok 0',
+      chartYear: 'Rok {year}',
+      chartEtf: 'Szeroki ETF (realnie)',
+      chartCash: 'Wpłaty na koncie 0% (realnie)',
+      chartStress: 'Scenariusz wahania -20% w roku 3 (edukacyjny)',
+      chartAxis: 'zł (w dzisiejszych złotych)',
+      feedbackGood: 'Trafna decyzja',
+      feedbackTip: 'Wskazówka od Cory',
+      feedbackAnswer: 'Twoja odpowiedź: „{answer}”',
+      feedbackReadiness: 'Gotowość +{delta} pkt',
+      feedbackLevel: '🏆 Awans: Poziom {level} {title}',
+      toastWriteMore: 'Napisz kilka słów albo wybierz jedną z kart.',
+      errorMessageLength: 'Odpowiedź musi mieć od 1 do {max} znaków.',
+      errorRestoreSession: 'Nie udało się odtworzyć sesji. Wróć do ankiety i spróbuj ponownie.',
+      levelBannerLeveled: '🏆 DZIEŃ {day} Z {total} UKOŃCZONY! AWANS: {title}',
+      levelBannerDone: 'DZIEŃ {day} Z {total} UKOŃCZONY',
+      pillLevel: 'Poziom {level}',
+      pillMicroXp: '+{xp} XP z mikro-lekcji',
+      pillStreak: '🔥 Seria: {days} {dayWord}',
+      missingXp: 'Do Poziomu 2 brakuje <span class="tabular-nums">{xp} XP</span> — wróć jutro i nadrób!',
+      streakStarted: '🔥 Seria rozpoczęta! Wróć jutro po Dzień 2.',
+      readiness: 'Gotowość',
+      readinessTo: 'do',
+      readinessNote: 'Pełną gotowość da dopiero Dzień 14.',
+      selfQuestion: 'Jak pewnie czujesz się teraz? (1–5)',
+      selfBeforeHint: 'Przed: {before}/5 — zaznacz, jak jest teraz.',
+      selfMarkNow: 'Zaznacz, jak jest teraz.',
+      selfBefore: 'Przed: {before}/5',
+      selfAfter: 'Po: {after}/5',
+      challengeAccepted: '✅ Wyzwanie przyjęte!',
+      challengeAccept: 'Podejmuję wyzwanie (+{xp} XP)',
+      challengeBadge: 'Realne mikro-wyzwanie • Zero strachu',
+      checklistTitle: 'Checklista Dnia 1',
+      checklistDone: '🎉 Komplet! Teraz zrób pierwszy krok w banku.',
+      bankMicroMove: 'Mikro-ruch:',
+      bankOn: 'na',
+      bankBuffer: 'Poduszka:',
+      bankSavingsAccount: 'na konto oszczędnościowe',
+      bankEtfLater: 'ETF na później — przykład {amount}/mies.',
+      bankHorizon: 'horyzont',
+      bankParallelBuffer: 'Równolegle poduszka:',
+      bankTitle: 'Przykładowy plan w Commerzbanku',
+      bankToday: 'Dziś',
+      bankTarget: 'Dzień 14 — plan docelowy',
+      bankLaterPrefix: 'Przykład na później — ',
+      bankEstimate: 'szacunek edukacyjny w dzisiejszych złotych •',
+      bankEtfReal: 'Szeroki ETF (realnie)',
+      bankCashReal: 'Wpłaty na koncie 0% (realnie)',
+      bankNominal: 'nominalnie ETF: ok.',
+      bankCta: 'Wykonaj krok Dnia 1 lub zobacz przykładowy plan w Commerzbanku',
+      leaderboardTitle: 'Ranking znajomych',
+      leaderboardDemo: 'Przykładowi znajomi (demo)',
+      leaderboardStreakTitle: 'Seria dni',
+      leaderboardLeveled: '⬆️ Awans!',
+      leaderboardMissing:
+        'Do 1. miejsca brakuje Ci <span class="tabular-nums">{xp} XP</span> — wróć jutro po Dzień 2!',
+      leaderboardLeading: 'Prowadzisz w rankingu — utrzymaj serię jutro!',
+      leaderboardChallenge: '⚔️ Wyzwij znajomego',
+      friendText:
+        'Rzucam Ci wyzwanie w Finance Quest! Mam za sobą Dzień 1 z 14 planu i {xp} XP. Dołączysz i spróbujesz mnie dogonić? 🔥',
+      friendCopied: '⚔️ Zaproszenie skopiowane do schowka — wyślij je znajomemu!',
+      friendCopyFailed: 'Nie udało się skopiować. Treść zaproszenia: {text}',
+      modalBankPreview: 'Podgląd ekranu aplikacji bankowej — w wersji demo nic nie zostanie wykonane.',
+      modalChooseStep: 'Wybierz krok',
+      modalOptionA: 'Opcja A — Krok na dziś',
+      modalRecommended: 'Polecana',
+      modalOptionB: 'Opcja B — Przykładowy plan na Dzień 14',
+      modalBuffer: 'Poduszka:',
+      modalSavings: 'na konto oszczędnościowe; ETF później (przykład {amount}/mies.)',
+      modalKyc:
+        'W wersji produkcyjnej: test odpowiedniości, weryfikacja tożsamości (KYC), informacja o kosztach i ryzyku.',
+      modalSimulate: 'Symuluj wykonanie kroku w banku (Demo)',
+      modalDone: 'Brawo! Krok Dnia 1 zaliczony — Twoja seria trwa, widzimy się jutro na Dniu 2!',
+      modalDoneNote: 'Symulacja: {summary} • W wersji demo nic nie zostało wykonane.',
+      modalNextGeneration: 'Przetestuj inne pokolenie (Demo)',
+      modalClose: 'Zamknij',
+      modalTodayStep: 'Krok na dziś',
+      modalTargetPlan: 'Przykładowy plan na Dzień 14:',
+      modalTransfer: 'Przelew {amount} na {account}',
+    },
+  };
 
-  // Komunikaty przy polach ankiety (walidacja lokalna i błędy 422 z API).
-  const FIELD_MESSAGES = Object.freeze({
-    age: 'Wiek musi mieścić się w przedziale 18–70 lat.',
-    net_income: 'Zarobki netto: od 2 500 do 25 000 zł.',
-    free_cash: 'Wolne środki: od 200 do 10 000 zł i nie więcej niż zarobki netto.',
-    has_emergency_fund: 'Zaznacz, czy masz już poduszkę.',
-    main_concern: 'Wybierz, czego najbardziej się obawiasz.',
-    self_confidence_start: 'Wybierz ocenę od 1 do 5.',
-  });
-  const FORM_FIELDS = Object.keys(FIELD_MESSAGES);
+  function normalizeLang(lang) {
+    return String(lang || '').toLowerCase() === 'pl' ? 'pl' : 'en';
+  }
+
+  function readStoredLang() {
+    try {
+      return normalizeLang(window.localStorage.getItem(LANG_STORAGE_KEY));
+    } catch (err) {
+      return 'en';
+    }
+  }
+
+  // Tłumaczenie klucza z podstawianiem {placeholderów}; brak klucza -> EN -> klucz.
+  function t(key, params) {
+    const dict = I18N[state.lang] || I18N.en;
+    let value = Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : I18N.en[key];
+    if (typeof value !== 'string') return key;
+    if (params) {
+      value = value.replace(/\{(\w+)\}/g, (match, name) =>
+        Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match
+      );
+    }
+    return value;
+  }
+
+  function concernLabels() {
+    return {
+      freeze_money: t('concernFreeze'),
+      no_time: t('concernNoTime'),
+      lose_money: t('concernLose'),
+      too_late: t('concernTooLate'),
+    };
+  }
+
+  function fieldMessages() {
+    return {
+      age: t('fieldAge'),
+      net_income: t('fieldNetIncome'),
+      free_cash: t('fieldFreeCash'),
+      has_emergency_fund: t('fieldEmergencyFund'),
+      main_concern: t('fieldMainConcern'),
+      self_confidence_start: t('fieldSelfConfidence'),
+    };
+  }
+
+  const FORM_FIELDS = Object.freeze([
+    'age',
+    'net_income',
+    'free_cash',
+    'has_emergency_fund',
+    'main_concern',
+    'self_confidence_start',
+  ]);
 
   // ------------------------------------------------------------------------
   // 2. Stan aplikacji
   // ------------------------------------------------------------------------
 
   const state = {
+    lang: readStoredLang(),   // 'en' (domyślnie) | 'pl' — patrz I18N
     currentScreen: SCREENS.ONBOARDING,
     busy: false,
     personas: [],            // list[DemoPersona] z GET /api/demo-personas
@@ -230,18 +700,21 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  // „33 844" — separator tysięcy zawsze (także dla 4 cyfr: „1 214"), twarda spacja.
+  // „33,844" (EN) / „33 844" (PL) — separator tysięcy zawsze, także dla 4 cyfr („1,214").
   function formatNumber(value) {
     const n = Math.round(Number(value) || 0);
     const sign = n < 0 ? '-' : '';
-    return sign + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, NBSP);
+    const separator = state.lang === 'en' ? ',' : NBSP;
+    return sign + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, separator);
   }
 
   function formatPLN(value) {
-    return formatNumber(value) + NBSP + 'zł';
+    return state.lang === 'en'
+      ? formatNumber(value) + NBSP + 'PLN'
+      : formatNumber(value) + NBSP + 'zł';
   }
 
-  // Polska odmiana: 1 rok / 2–4 lata / 5+ lat (z wyjątkiem 12–14).
+  // Polska odmiana: 1 rok / 2–4 lata / 5+ lat (z wyjątkiem 12–14); EN: year/years.
   function pluralPL(n, one, few, many) {
     const abs = Math.abs(n);
     if (abs === 1) return one;
@@ -251,11 +724,18 @@
   }
 
   function yearsLabel(n) {
+    if (state.lang === 'en') return n + NBSP + (Math.abs(n) === 1 ? 'year' : 'years');
     return n + NBSP + pluralPL(n, 'rok', 'lata', 'lat');
   }
 
   function pluralDays(n) {
+    if (state.lang === 'en') return Math.abs(n) === 1 ? 'day' : 'days';
     return n === 1 ? 'dzień' : 'dni';
+  }
+
+  // Odmiana rzeczownika „temat" dla badge’a Speakly (PL) / EN: topic(s).
+  function pluralTopics(n) {
+    return state.lang === 'en' ? (n === 1 ? 'topic' : 'topics') : pluralPL(n, 'temat', 'tematy', 'tematów');
   }
 
   function escapeHtml(value) {
@@ -389,34 +869,47 @@
   }
 
   const api = {
-    getDemoPersonas: () => apiRequest('/api/demo-personas'),
-    analyze: (profile) => apiRequest('/api/onboarding/analyze', { method: 'POST', body: profile }),
+    getDemoPersonas: () => apiRequest('/api/demo-personas?lang=' + encodeURIComponent(state.lang)),
+    analyze: (profile) =>
+      apiRequest('/api/onboarding/analyze', {
+        method: 'POST',
+        body: Object.assign({}, profile, { lang: state.lang }),
+      }),
     // Wywołuj przez withSessionRecovery — przy 404 sesja jest po cichu odtwarzana (docs/02 §5).
-    missionTurn: (payload) => apiRequest('/api/mission/turn', { method: 'POST', body: payload }),
-    acceptChallenge: (sessionId) => apiRequest('/api/challenge/accept', { method: 'POST', body: { session_id: sessionId } }),
+    missionTurn: (payload) =>
+      apiRequest('/api/mission/turn', {
+        method: 'POST',
+        body: Object.assign({}, payload, { lang: state.lang }),
+      }),
+    acceptChallenge: (sessionId) =>
+      apiRequest('/api/challenge/accept', {
+        method: 'POST',
+        body: { session_id: sessionId, lang: state.lang },
+      }),
   };
 
   function describeApiError(err) {
-    if (!(err instanceof ApiError)) return 'Coś poszło nie tak. Spróbuj ponownie.';
-    if (err.kind === 'network') return 'Brak połączenia z serwerem. Uruchom backend: uvicorn backend.main:app --port 8000';
-    if (err.kind === 'timeout') return 'Serwer nie odpowiedział na czas. Spróbuj ponownie.';
-    if (err.status === 422) return 'Sprawdź odpowiedzi w ankiecie — część wartości jest poza zakresem.';
-    if (err.status === 404) return 'Nie znaleziono zasobu na serwerze (404).';
-    return 'Błąd serwera (' + err.status + '). Spróbuj ponownie.';
+    if (!(err instanceof ApiError)) return t('errorGeneric');
+    if (err.kind === 'network') return t('errorNetwork');
+    if (err.kind === 'timeout') return t('errorTimeout');
+    if (err.status === 422) return t('error422');
+    if (err.status === 404) return t('error404');
+    return t('errorServer', { status: err.status });
   }
 
   // FastAPI 422: {"detail": [{"loc": ["body", "free_cash"], "msg": "..."}]}.
   // Walidator modelu (free_cash > net_income) ma loc ["body"] — rozpoznajemy po treści.
   function mapValidationErrors(data) {
     const errors = {};
+    const messages = fieldMessages();
     const detail = data && Array.isArray(data.detail) ? data.detail : [];
     detail.forEach((item) => {
       const loc = Array.isArray(item.loc) ? item.loc : [];
       let field = loc.length > 1 ? String(loc[loc.length - 1]) : null;
-      if (!field || !FIELD_MESSAGES[field]) {
+      if (!field || !messages[field]) {
         field = /free_cash|net_income/.test(String(item.msg || '')) ? 'free_cash' : null;
       }
-      if (field && !errors[field]) errors[field] = FIELD_MESSAGES[field];
+      if (field && !errors[field]) errors[field] = messages[field];
     });
     return errors;
   }
@@ -469,7 +962,7 @@
   // ------------------------------------------------------------------------
 
   function currentGamification() {
-    return (state.turn && state.turn.gamification) || DEFAULT_GAMIFICATION;
+    return (state.turn && state.turn.gamification) || defaultGamification();
   }
 
   // Reguła monotonicznego XP: gamification.xp + microLessonBonusXp (docs/01 §7 Ekran 2).
@@ -491,7 +984,7 @@
     els.day.textContent = state.session ? state.session.current_day : 1;
     els.totalDays.textContent = state.session ? state.session.total_program_days : 14;
 
-    // Poziom: ⭐ Poz. 1: Obserwator (XP) -> 🏆 Poz. 2: Świadomy Start
+    // Poziom: ⭐ Poz. 1: Observer (XP) -> 🏆 Poz. 2+: Confident Start / Steady Builder
     els.levelIcon.textContent = g.level >= 2 ? '🏆' : '⭐';
     els.levelNum.textContent = g.level;
     els.levelTitle.textContent = g.level_title;
@@ -540,6 +1033,116 @@
   }
 
   // ------------------------------------------------------------------------
+  // 5b. Język EN | PL (docs/01 §9)
+  // ------------------------------------------------------------------------
+
+  // Aktualizuje statyczne teksty z index.html (atrybuty data-i18n*) i metadane strony.
+  function applyStaticTranslations() {
+    state.lang = normalizeLang(state.lang);
+    document.documentElement.lang = state.lang;
+    document.title = t('pageTitle');
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute('content', t('metaDescription'));
+
+    const setText = (selector, attribute) => {
+      Array.from(document.querySelectorAll(selector)).forEach((el) => {
+        const key = el.getAttribute(attribute);
+        if (!key) return;
+        el.textContent = t(key);
+        if (el.hasAttribute('data-label')) el.dataset.idleText = el.textContent;
+      });
+    };
+    setText('[data-i18n]', 'data-i18n');
+
+    Array.from(document.querySelectorAll('[data-i18n-placeholder]')).forEach((el) => {
+      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder')));
+    });
+    Array.from(document.querySelectorAll('[data-i18n-aria]')).forEach((el) => {
+      el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria')));
+    });
+    Array.from(document.querySelectorAll('[data-i18n-title]')).forEach((el) => {
+      el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+    });
+
+    Array.from(document.querySelectorAll('[data-action="set-lang"]')).forEach((btn) => {
+      btn.setAttribute('aria-pressed', String(normalizeLang(btn.dataset.lang) === state.lang));
+    });
+  }
+
+  function persistLang(lang) {
+    try {
+      window.localStorage.setItem(LANG_STORAGE_KEY, lang);
+    } catch (err) {
+      // Tryb prywatny bez localStorage — język działa do końca sesji.
+    }
+  }
+
+  // Pełne przełączenie języka w locie: statyczne teksty, formularz, nagłówek i bieżący ekran.
+  async function setLanguage(nextLang) {
+    const lang = normalizeLang(nextLang);
+    if (lang === state.lang) {
+      applyStaticTranslations();
+      return;
+    }
+    state.lang = lang;
+    persistLang(lang);
+    applyStaticTranslations();
+    syncFormOutputs();
+    renderPersonaPills();
+    renderHeader({ animate: false });
+
+    if (state.currentScreen === SCREENS.FILTER && state.lastProfile) {
+      await analyzeProfile(state.lastProfile);
+    } else if (state.currentScreen === SCREENS.MISSION && state.turn) {
+      renderMission({ animate: false });
+    } else if (state.currentScreen === SCREENS.CHECKLIST && state.turn) {
+      renderSummary({ animate: false });
+    }
+    const modal = document.getElementById('modal_bank_order');
+    if (modal && !modal.hidden) renderBankModal();
+    if (timeMachineChart && state.timeMachine.year != null) {
+      const series = (state.session && state.session.projection_series) || [];
+      renderTimeMachineChart(series, state.timeMachine.year);
+    }
+    refreshIcons();
+    loadPersonas();
+  }
+
+  // ↺ Reset / Profile — powrót do ankiety i wyboru profilu (bez przeładowania strony).
+  function resetDemo() {
+    const modal = document.getElementById('modal_bank_order');
+    if (modal && !modal.hidden) closeModal('modal_bank_order');
+
+    state.mission.token += 1;
+    state.session = null;
+    state.turn = null;
+    state.activePersonaId = null;
+    state.lastProfile = null;
+    state.microLessonBonusXp = 0;
+    state.completedLessons = new Set();
+    state.timeMachine = { year: null, point: null };
+    resetHeaderBaseline();
+    resetMission();
+    clearSummary();
+    setBusy(false);
+
+    // Domyślne wartości ankiety (docs/01 §7 Ekran 1): 35 lat, 6 000 zł netto, 1 000 zł wolnych.
+    if (els.fAge) els.fAge.value = '35';
+    if (els.fNet) els.fNet.value = '6000';
+    if (els.fFree) els.fFree.value = '1000';
+    if (els.form) {
+      els.form.querySelectorAll('input[type="radio"]').forEach((input) => {
+        input.checked = false;
+      });
+    }
+    clearFieldErrors();
+    syncFormOutputs();
+    renderPersonaPills();
+    renderHeader({ animate: false });
+    showScreen(SCREENS.ONBOARDING);
+  }
+
+  // ------------------------------------------------------------------------
   // 6. Router ekranów
   // ------------------------------------------------------------------------
 
@@ -565,9 +1168,9 @@
   // ------------------------------------------------------------------------
 
   function ageGroupLabel(age) {
-    if (age < 30) return 'Młody Start (20+)';
-    if (age <= 50) return 'Kariera i Rodzina (30–50)';
-    return 'Ochrona Kapitału (50+)';
+    if (age < 30) return t('ageGroupYoung');
+    if (age <= 50) return t('ageGroupMid');
+    return t('ageGroupSenior');
   }
 
   // Maksimum wolnych środków = min(10 000, net_income); obniżenie zarobków obniża suwak.
@@ -660,15 +1263,17 @@
     };
 
     const errors = {};
-    if (!(profile.age >= 18 && profile.age <= 70)) errors.age = FIELD_MESSAGES.age;
-    if (!(profile.net_income >= 2500 && profile.net_income <= 25000)) errors.net_income = FIELD_MESSAGES.net_income;
+    const messages = fieldMessages();
+    const concerns = concernLabels();
+    if (!(profile.age >= 18 && profile.age <= 70)) errors.age = messages.age;
+    if (!(profile.net_income >= 2500 && profile.net_income <= 25000)) errors.net_income = messages.net_income;
     if (!(profile.free_cash >= 200 && profile.free_cash <= FREE_CASH_CAP && profile.free_cash <= profile.net_income)) {
-      errors.free_cash = FIELD_MESSAGES.free_cash;
+      errors.free_cash = messages.free_cash;
     }
-    if (fund == null) errors.has_emergency_fund = FIELD_MESSAGES.has_emergency_fund;
-    if (!concern || !CONCERN_LABELS[concern]) errors.main_concern = FIELD_MESSAGES.main_concern;
+    if (fund == null) errors.has_emergency_fund = messages.has_emergency_fund;
+    if (!concern || !concerns[concern]) errors.main_concern = messages.main_concern;
     if (!(profile.self_confidence_start >= 1 && profile.self_confidence_start <= 5)) {
-      errors.self_confidence_start = FIELD_MESSAGES.self_confidence_start;
+      errors.self_confidence_start = messages.self_confidence_start;
     }
 
     if (Object.keys(errors).length) {
@@ -746,7 +1351,7 @@
     const label = cta.querySelector('[data-label]');
     if (label) {
       if (!label.dataset.idleText) label.dataset.idleText = label.textContent;
-      label.textContent = isBusy ? 'Filtruję zbędną teorię...' : label.dataset.idleText;
+      label.textContent = isBusy ? t('ctaBusy') : label.dataset.idleText;
     }
     const spinner = cta.querySelector('.fq-spinner');
     const idleIcon = cta.querySelector('[data-idle-icon]');
@@ -800,7 +1405,7 @@
         if (Object.keys(fieldErrors).length) {
           if (state.currentScreen !== SCREENS.ONBOARDING) showScreen(SCREENS.ONBOARDING);
           showFieldErrors(fieldErrors);
-          showToast('Popraw zaznaczone pola ankiety.', 'warn');
+          showToast(t('toastFixFields'), 'warn');
           return null;
         }
       }
@@ -822,7 +1427,7 @@
       persona = findPersona(personaId);
     }
     if (!persona) {
-      showToast('Nie udało się pobrać profili demo. Uruchom backend: uvicorn backend.main:app --port 8000', 'warn');
+      showToast(t('toastPersonasFailed'), 'warn');
       return;
     }
     state.activePersonaId = personaId;
@@ -836,7 +1441,7 @@
     if (state.busy) return;
     const profile = readOnboardingForm();
     if (!profile) {
-      showToast('Uzupełnij zaznaczone pytania ankiety.', 'warn');
+      showToast(t('toastFillFields'), 'warn');
       return;
     }
     await analyzeProfile(profile);
@@ -866,10 +1471,14 @@
   }
 
   function renderPlanIntro(data) {
+    const concerns = concernLabels();
     els.planIntro.innerHTML = [
       chip('user', data.persona_label, 'dark'),
-      chip('calendar-clock', 'Horyzont: ' + yearsLabel(data.default_horizon_years)),
-      chip('heart-handshake', 'Obawa: ' + (CONCERN_LABELS[data.main_concern] || data.main_concern)),
+      chip('calendar-clock', t('planIntroHorizon') + ' ' + yearsLabel(data.default_horizon_years)),
+      chip(
+        'heart-handshake',
+        t('planIntroConcern') + ' ' + (concerns[data.main_concern] || data.main_concern)
+      ),
     ].join('');
   }
 
@@ -888,12 +1497,12 @@
     const cards = (milestones || []).map((m) => {
       const active = m.status === 'active';
       const badge = active
-        ? '<span class="whitespace-nowrap rounded-full bg-brand-yellow px-2 py-0.5 text-[11px] font-extrabold text-brand-dark">Aktywny — Dziś</span>'
-        : '<span class="inline-flex items-center gap-1 text-xs font-bold text-slate-400"><span aria-hidden="true">🔒</span><span class="sr-only">Zablokowany</span></span>';
+        ? '<span class="whitespace-nowrap rounded-full bg-brand-yellow px-2 py-0.5 text-[11px] font-extrabold text-brand-dark">' + escapeHtml(t('roadmapActive')) + '</span>'
+        : '<span class="inline-flex items-center gap-1 text-xs font-bold text-slate-400"><span aria-hidden="true">🔒</span><span class="sr-only">' + escapeHtml(t('roadmapLocked')) + '</span></span>';
       return (
         '<li class="rounded-2xl p-4 ' + (active ? 'border-2 border-brand-yellow bg-brand-yellow/10' : 'border border-slate-200 bg-slate-50') + '">' +
           '<div class="flex flex-wrap items-center justify-between gap-1.5">' +
-            '<span class="whitespace-nowrap text-xs font-extrabold uppercase tracking-wider ' + (active ? 'text-brand-dark' : 'text-slate-500') + '">Dzień ' + escapeHtml(m.day) + '</span>' +
+            '<span class="whitespace-nowrap text-xs font-extrabold uppercase tracking-wider ' + (active ? 'text-brand-dark' : 'text-slate-500') + '">' + escapeHtml(t('roadmapDayWord')) + ' ' + escapeHtml(m.day) + '</span>' +
             badge +
           '</div>' +
           '<p class="mt-2 font-extrabold leading-snug ' + (active ? 'text-brand-dark' : 'text-slate-600') + '">' + escapeHtml(m.title) + '</p>' +
@@ -904,8 +1513,8 @@
 
     els.cardRoadmap.innerHTML =
       '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-        '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Mapa 14 dni</h3>' +
-        '<span class="text-xs font-bold text-slate-500">Dzień ' + today + ' z ' + total + ' • 5–10 min dziennie</span>' +
+        '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('roadmapTitle')) + '</h3>' +
+        '<span class="text-xs font-bold text-slate-500">' + escapeHtml(t('roadmapMeta', { day: today, total })) + '</span>' +
       '</div>' +
       '<div class="mt-3 flex items-center gap-1" aria-hidden="true">' + track + '</div>' +
       '<ol class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">' + cards + '</ol>';
@@ -914,17 +1523,17 @@
   function renderLessonCard(lesson, done) {
     const action = done
       ? '<p class="mt-3 inline-flex min-h-tap items-center gap-2 text-sm font-extrabold text-emerald-700">' +
-          '<i data-lucide="circle-check" class="h-5 w-5" aria-hidden="true"></i>Zaliczone • +' + escapeHtml(lesson.xp_reward) + ' XP</p>'
+          '<i data-lucide="circle-check" class="h-5 w-5" aria-hidden="true"></i>' + escapeHtml(t('lessonDone', { xp: lesson.xp_reward })) + '</p>'
       : '<button type="button" data-action="complete-lesson" data-lesson-id="' + escapeHtml(lesson.id) + '" ' +
           'class="mt-3 inline-flex min-h-tap items-center gap-2 rounded-xl border-2 border-brand-dark/10 bg-white px-4 text-sm font-extrabold transition hover:border-brand-yellow hover:bg-brand-yellow/10">' +
-          'Rozumiem! (+' + escapeHtml(lesson.xp_reward) + ' XP)</button>';
+          escapeHtml(t('lessonUnderstood', { xp: lesson.xp_reward })) + '</button>';
     return (
       '<article data-lesson-card="' + escapeHtml(lesson.id) + '" tabindex="-1" class="rounded-2xl border p-4 transition ' +
         (done ? 'border-etf-green/50 bg-etf-green/5' : 'border-slate-200 bg-white') + '">' +
         '<div class="flex items-start justify-between gap-3">' +
           '<h5 class="font-extrabold leading-snug">' + escapeHtml(lesson.title) + '</h5>' +
           '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">' +
-            '<i data-lucide="timer" class="h-3 w-3" aria-hidden="true"></i>' + escapeHtml(lesson.duration_sec) + ' sek.</span>' +
+            '<i data-lucide="timer" class="h-3 w-3" aria-hidden="true"></i>' + escapeHtml(t('lessonSeconds', { seconds: lesson.duration_sec })) + '</span>' +
         '</div>' +
         '<p class="mt-1.5 text-sm leading-relaxed text-slate-600">' + escapeHtml(lesson.summary) + '</p>' +
         '<p class="mt-2 flex items-start gap-1.5 text-sm font-bold">' +
@@ -956,24 +1565,29 @@
       '<li class="text-sm text-slate-600"><span class="topic-strike" style="--i: ' + i + '">' + escapeHtml(topic) + '</span></li>'
     ).join('');
 
+    const skipped =
+      state.lang === 'en'
+        ? t('speaklySkipped', { n })
+        : t('speaklySkipped', { n, word: pluralTopics(n) });
+
     els.cardSpeakly.innerHTML =
       '<div class="flex flex-wrap items-center justify-between gap-3">' +
-        '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Filtr Speakly i mikro-lekcje Dnia 1</h3>' +
+        '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('speaklyTitle')) + '</h3>' +
         '<span class="inline-flex items-center gap-1.5 rounded-full bg-etf-green/10 px-3 py-1.5 text-xs font-extrabold text-emerald-700 sm:text-sm">' +
-          '⚡ Pominęliśmy ' + n + ' ' + pluralPL(n, 'temat', 'tematy', 'tematów') + ', których nie potrzebujesz na start</span>' +
+          escapeHtml(skipped) + '</span>' +
       '</div>' +
       '<div class="mt-5 grid grid-cols-1 gap-6 md:grid-cols-5">' +
         '<div class="md:col-span-3">' +
           '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-            '<h4 class="font-extrabold">Mikro-lekcje Dnia 1</h4>' +
-            '<span class="text-xs text-slate-500">opcjonalnie • maks. +' + maxBonus + ' XP</span>' +
+            '<h4 class="font-extrabold">' + escapeHtml(t('lessonsTitle')) + '</h4>' +
+            '<span class="text-xs text-slate-500">' + escapeHtml(t('lessonsOptional', { xp: maxBonus })) + '</span>' +
           '</div>' +
           '<div class="mt-3 space-y-3">' + lessonCards + '</div>' +
         '</div>' +
         '<div class="md:col-span-2">' +
-          '<h4 class="font-extrabold">Twoje 3 priorytety na dziś</h4>' +
+          '<h4 class="font-extrabold">' + escapeHtml(t('prioritiesTitle')) + '</h4>' +
           '<ul class="mt-3 space-y-2">' + keptList + '</ul>' +
-          '<h4 class="mt-6 font-extrabold text-slate-500">Nie musisz tego robić na starcie</h4>' +
+          '<h4 class="mt-6 font-extrabold text-slate-500">' + escapeHtml(t('skippedTitle')) + '</h4>' +
           '<ul class="mt-3 space-y-2">' + removedList + '</ul>' +
         '</div>' +
       '</div>';
@@ -997,9 +1611,12 @@
   // Karta C — przykładowy podział wolnych środków wg plan_type (split / invest / savings_first).
   function renderSplit(advice) {
     const a = advice || {};
+    const perMonth = NBSP + t('splitPerMonth');
     const amount = (value, extraClass) =>
       '<span class="tabular-nums ' + (extraClass || '') + '" data-count="' + Number(value || 0) + '">0</span>';
-    const label = '<p class="text-xs font-bold uppercase tracking-wider text-slate-500">Przykładowa kwota docelowa (miesięcznie)</p>';
+    const label =
+      '<p class="text-xs font-bold uppercase tracking-wider text-slate-500">' +
+      escapeHtml(t('splitLabel')) + '</p>';
     let body = '';
 
     if (a.plan_type === 'split') {
@@ -1009,40 +1626,41 @@
         label +
         '<div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">' +
           '<div class="rounded-2xl bg-brand-dark p-4 text-white">' +
-            '<p class="flex items-center gap-1.5 text-xs font-bold text-white/70"><i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i>Poduszka</p>' +
-            '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.emergency_savings_monthly) + NBSP + 'zł/mies.</p>' +
+            '<p class="flex items-center gap-1.5 text-xs font-bold text-white/70"><i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i>' + escapeHtml(t('splitCushion')) + '</p>' +
+            '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.emergency_savings_monthly) + perMonth + '</p>' +
           '</div>' +
           '<div class="rounded-2xl border border-etf-green/30 bg-etf-green/10 p-4">' +
-            '<p class="flex items-center gap-1.5 text-xs font-bold text-emerald-700"><i data-lucide="sprout" class="h-4 w-4" aria-hidden="true"></i>Trening w szeroki ETF</p>' +
-            '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.training_etf_monthly) + NBSP + 'zł/mies.</p>' +
+            '<p class="flex items-center gap-1.5 text-xs font-bold text-emerald-700"><i data-lucide="sprout" class="h-4 w-4" aria-hidden="true"></i>' + escapeHtml(t('splitEtf')) + '</p>' +
+            '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.training_etf_monthly) + perMonth + '</p>' +
           '</div>' +
         '</div>' +
         '<div class="mt-3 flex h-3 overflow-hidden rounded-full" aria-hidden="true">' +
           '<div class="bg-brand-dark" style="width: ' + cushionPct + '%"></div>' +
           '<div class="bg-etf-green" style="width: ' + (100 - cushionPct) + '%"></div>' +
         '</div>' +
-        '<p class="mt-1.5 text-xs font-semibold text-slate-500">ok. ' + cushionPct + '% na poduszkę • ok. ' + (100 - cushionPct) + '% na trening w szeroki ETF</p>';
+        '<p class="mt-1.5 text-xs font-semibold text-slate-500">' +
+          escapeHtml(t('splitShare', { cushion: cushionPct, etf: 100 - cushionPct })) + '</p>';
     } else if (a.plan_type === 'invest') {
       body =
         label +
-        '<p class="mt-2 text-3xl font-extrabold sm:text-4xl">' + amount(a.min_monthly) + ' – ' + amount(a.max_monthly) + NBSP + 'zł / mies.</p>' +
-        '<p class="mt-1 text-sm text-slate-600">W symulacji poniżej: <strong class="tabular-nums text-brand-dark">' +
-          formatPLN(a.recommended_monthly) + '/mies.</strong> w szerokim ETF.</p>';
+        '<p class="mt-2 text-3xl font-extrabold sm:text-4xl">' + amount(a.min_monthly) + ' – ' + amount(a.max_monthly) + perMonth + '</p>' +
+        '<p class="mt-1 text-sm text-slate-600">' + escapeHtml(t('splitSim')) + ' <strong class="tabular-nums text-brand-dark">' +
+          formatPLN(a.recommended_monthly) + escapeHtml(t('splitPerMonth')) + '</strong> ' + escapeHtml(t('splitSimEtf')) + '</p>';
     } else {
       // savings_first — najpierw poduszka; ETF tylko jako przykład (illustrative_only).
       body =
         label +
         '<div class="mt-3 rounded-2xl bg-brand-dark p-4 text-white">' +
-          '<p class="flex items-center gap-1.5 text-xs font-bold text-white/70"><i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i>Poduszka</p>' +
-          '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.emergency_savings_monthly) + NBSP + 'zł/mies.</p>' +
+          '<p class="flex items-center gap-1.5 text-xs font-bold text-white/70"><i data-lucide="shield" class="h-4 w-4" aria-hidden="true"></i>' + escapeHtml(t('splitCushion')) + '</p>' +
+          '<p class="mt-1 text-2xl font-extrabold sm:text-3xl">' + amount(a.emergency_savings_monthly) + perMonth + '</p>' +
         '</div>' +
         '<span class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">' +
-          '<i data-lucide="clock" class="h-3.5 w-3.5" aria-hidden="true"></i>ETF później — poniżej przykład na ' +
-          escapeHtml(formatNumber(a.recommended_monthly)) + NBSP + 'zł/mies.</span>';
+          '<i data-lucide="clock" class="h-3.5 w-3.5" aria-hidden="true"></i>' +
+          escapeHtml(t('splitLater', { amount: formatNumber(a.recommended_monthly) })) + '</span>';
     }
 
     els.cardSplit.innerHTML =
-      '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Przykładowy podział wolnych środków</h3>' +
+      '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('splitTitle')) + '</h3>' +
       '<div class="mt-4">' + body + '</div>' +
       '<p class="mt-4 text-sm leading-relaxed text-slate-600">' + escapeHtml(a.reasoning) + '</p>';
   }
@@ -1050,9 +1668,9 @@
   // Karta D — Wehikuł Czasu: suwak 1–20 lat, 3 KPI w dzisiejszych zł, wykres z punktem Rok 0.
   function setupTimeMachine(data) {
     els.tmYears.value = String(data.default_horizon_years);
-    els.tmMonthly.textContent = formatPLN(data.safe_investment.recommended_monthly) + '/mies.';
+    els.tmMonthly.textContent = formatPLN(data.safe_investment.recommended_monthly) + t('splitPerMonth');
     els.tmAssumptions.textContent = data.assumptions ? data.assumptions.text : '';
-    els.tmCompliance.textContent = COMPLIANCE_TEXT;
+    els.tmCompliance.textContent = t('complianceText');
     els.kpiWinSource.textContent = WIN_RATE_SOURCE_NOTE;
   }
 
@@ -1090,7 +1708,7 @@
   function timeMachineChartData(series, year) {
     const points = series.slice(0, year);
     return {
-      labels: ['Rok 0'].concat(points.map((p) => 'Rok ' + p.year)),
+      labels: [t('chartYearZero')].concat(points.map((p) => t('chartYear', { year: p.year }))),
       etf: [0].concat(points.map((p) => p.etf_real_value)),
       cash: [0].concat(points.map((p) => p.cash_real_value)),
       stress: [0].concat(points.map((p) => p.etf_stress_real_value)),
@@ -1099,7 +1717,11 @@
 
   function compactPLN(value) {
     if (Math.abs(value) >= 1000) {
-      return (value / 1000).toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + NBSP + 'tys.';
+      const scaled = value / 1000;
+      if (state.lang === 'en') {
+        return scaled.toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'k';
+      }
+      return scaled.toLocaleString('pl-PL', { maximumFractionDigits: 1 }) + NBSP + 'tys.';
     }
     return formatNumber(value);
   }
@@ -1110,9 +1732,15 @@
 
     if (timeMachineChart) {
       timeMachineChart.data.labels = d.labels;
+      timeMachineChart.data.datasets[0].label = t('chartEtf');
       timeMachineChart.data.datasets[0].data = d.etf;
+      timeMachineChart.data.datasets[1].label = t('chartCash');
       timeMachineChart.data.datasets[1].data = d.cash;
+      timeMachineChart.data.datasets[2].label = t('chartStress');
       timeMachineChart.data.datasets[2].data = d.stress;
+      if (timeMachineChart.options.scales && timeMachineChart.options.scales.y) {
+        timeMachineChart.options.scales.y.title.text = t('chartAxis');
+      }
       timeMachineChart.update();
       return;
     }
@@ -1133,7 +1761,7 @@
         labels: d.labels,
         datasets: [
           {
-            label: 'Szeroki ETF (realnie)',
+            label: t('chartEtf'),
             data: d.etf,
             borderColor: COLORS.etfGreen,
             backgroundColor: etfFill,
@@ -1145,7 +1773,7 @@
             order: 2,
           },
           {
-            label: 'Wpłaty na koncie 0% (realnie)',
+            label: t('chartCash'),
             data: d.cash,
             borderColor: COLORS.inflationRed,
             borderDash: [7, 5],
@@ -1157,7 +1785,7 @@
             order: 1,
           },
           {
-            label: 'Scenariusz wahania -20% w roku 3 (edukacyjny)',
+            label: t('chartStress'),
             data: d.stress,
             borderColor: COLORS.stressAmber,
             borderDash: [2, 4],
@@ -1194,7 +1822,7 @@
             beginAtZero: true,
             grid: { color: '#F1F5F9' },
             border: { display: false },
-            title: { display: true, text: 'zł (w dzisiejszych złotych)', font: { size: 11, weight: '600' } },
+            title: { display: true, text: t('chartAxis'), font: { size: 11, weight: '600' } },
             ticks: { callback: (value) => compactPLN(value) },
           },
         },
@@ -1203,7 +1831,7 @@
   }
 
   // ------------------------------------------------------------------------
-  // 10. Ekran 3 — symulacja wyborów z Luną (docs/01 §7 Ekran 3, docs/02 §4)
+  // 10. Ekran 3 — symulacja wyborów z Corą (docs/01 §7 Ekran 3, docs/02 §4)
   // ------------------------------------------------------------------------
 
   function resetMission() {
@@ -1228,13 +1856,13 @@
   }
 
   function renderMission(options) {
-    const t = state.turn;
-    if (!t || !els.msLunaMessage) return;
+    const turn = state.turn;
+    if (!turn || !els.msLunaMessage) return;
     const animate = !options || options.animate !== false;
     const s = state.session;
-    const completed = t.mission_completed === true;
-    const total = t.total_steps || 3;
-    const step = clamp(t.step_number || 1, 1, total);
+    const completed = turn.mission_completed === true;
+    const total = turn.total_steps || 3;
+    const step = clamp(turn.step_number || 1, 1, total);
 
     // Mini-panel: Dzień X z 14 • Symulacja wyborów • Krok N z 3
     els.msDay.textContent = s ? s.current_day : 1;
@@ -1245,7 +1873,7 @@
       const n = i + 1;
       bar.dataset.state = completed || n < step ? 'done' : n === step ? 'current' : 'todo';
     });
-    const portfolio = t.portfolio_status || { simulated_value: 0, event_badge: '' };
+    const portfolio = turn.portfolio_status || { simulated_value: 0, event_badge: '' };
     els.msBadgeText.textContent = portfolio.event_badge || '';
     const value = Number(portfolio.simulated_value) || 0;
     if (animate && value !== state.mission.renderedValue) {
@@ -1255,12 +1883,12 @@
     }
     state.mission.renderedValue = value;
 
-    renderMissionFeedback(t, animate);
-    els.msLunaMessage.textContent = t.luna_message || '';
+    renderMissionFeedback(turn, animate);
+    els.msLunaMessage.textContent = turn.luna_message || '';
     if (animate) replayClass(els.msLuna, 'screen-enter');
 
     // Po Kroku 3 znikają karty i pole tekstowe, pojawia się CTA na Ekran 4.
-    renderQuickReplies(completed ? [] : t.quick_replies || []);
+    renderQuickReplies(completed ? [] : turn.quick_replies || []);
     els.msInteraction.hidden = completed;
     els.ctaFinishDay.hidden = !completed;
     refreshIcons();
@@ -1272,24 +1900,26 @@
   }
 
   // Karta feedbacku: zielona przy is_optimal_choice === true, ciepły bursztyn przy false.
-  function renderMissionFeedback(t, animate) {
-    const visible = t.is_optimal_choice != null && !!t.understanding_feedback;
+  function renderMissionFeedback(turn, animate) {
+    const visible = turn.is_optimal_choice != null && !!turn.understanding_feedback;
     els.msFeedback.hidden = !visible;
     if (!visible) return;
-    const good = t.is_optimal_choice === true;
-    const g = t.gamification || DEFAULT_GAMIFICATION;
+    const good = turn.is_optimal_choice === true;
+    const g = turn.gamification || defaultGamification();
     els.msFeedback.dataset.tone = good ? 'good' : 'warm';
-    els.msFeedbackTitle.textContent = good ? 'Trafna decyzja' : 'Wskazówka od Luny';
+    els.msFeedbackTitle.textContent = good ? t('feedbackGood') : t('feedbackTip');
     const answer = state.mission.lastAnswer;
     els.msFeedbackAnswer.hidden = !answer;
-    els.msFeedbackAnswer.textContent = answer ? 'Twoja odpowiedź: „' + shortAnswer(answer) + '”' : '';
-    els.msFeedbackText.textContent = t.understanding_feedback;
+    els.msFeedbackAnswer.textContent = answer
+      ? t('feedbackAnswer', { answer: shortAnswer(answer) })
+      : '';
+    els.msFeedbackText.textContent = turn.understanding_feedback;
     els.msFeedbackXp.textContent = '+' + (g.xp_gained || 0) + NBSP + 'XP';
-    const delta = Number(t.confidence_delta) || 0;
+    const delta = Number(turn.confidence_delta) || 0;
     els.msFeedbackReadiness.hidden = delta <= 0;
-    els.msFeedbackReadiness.textContent = 'Gotowość +' + delta + NBSP + 'pkt';
+    els.msFeedbackReadiness.textContent = t('feedbackReadiness', { delta });
     els.msFeedbackLevel.hidden = !g.leveled_up;
-    els.msFeedbackLevel.textContent = '🏆 Awans: Poziom ' + g.level + ' ' + g.level_title;
+    els.msFeedbackLevel.textContent = t('feedbackLevel', { level: g.level, title: g.level_title });
     if (animate) replayClass(els.msFeedback, 'screen-enter');
   }
 
@@ -1307,7 +1937,7 @@
     if (els.msCount && els.msInput) els.msCount.textContent = String(els.msInput.value.length);
   }
 
-  // Blokada kontrolek na czas żądania (zero dubli). Kropki „Luna analizuje…" tylko dla wolnego tekstu.
+  // Blokada kontrolek na czas żądania (zero dubli). Kropki „Cora analizuje…" tylko dla wolnego tekstu.
   function setMissionBusy(isBusy, options) {
     const opts = options || {};
     state.mission.busy = isBusy;
@@ -1325,7 +1955,7 @@
     els.msThinking.hidden = !thinking;
     els.msLunaMessage.classList.toggle('fq-dim', thinking);
     const label = els.msSend.querySelector('[data-label]');
-    if (label) label.textContent = thinking ? 'Wysyłam...' : 'Wyślij';
+    if (label) label.textContent = thinking ? t('msSending') : t('msSend');
     const spinner = els.msSend.querySelector('.fq-spinner');
     const idleIcon = els.msSend.querySelector('[data-idle-icon]');
     if (spinner) spinner.hidden = !thinking;
@@ -1353,8 +1983,8 @@
   }
 
   function describeMissionError(err) {
-    if (err instanceof ApiError && err.status === 422) return 'Odpowiedź musi mieć od 1 do ' + MISSION_MESSAGE_MAX + ' znaków.';
-    if (isSessionMissing(err)) return 'Nie udało się odtworzyć sesji. Wróć do ankiety i spróbuj ponownie.';
+    if (err instanceof ApiError && err.status === 422) return t('errorMessageLength', { max: MISSION_MESSAGE_MAX });
+    if (isSessionMissing(err)) return t('errorRestoreSession');
     return describeApiError(err);
   }
 
@@ -1410,7 +2040,7 @@
     const text = els.msInput.value.trim();
     if (!text) {
       els.msInput.focus();
-      showToast('Napisz kilka słów albo wybierz jedną z kart.', 'info', 2400);
+      showToast(t('toastWriteMore'), 'info', 2400);
       return;
     }
     sendMissionAnswer({ text });
@@ -1441,49 +2071,53 @@
 
   // Poziomy wg docs/02 §3G (używane po wyzwaniu, które zwraca samo xp).
   function levelForXp(xp) {
-    return xp >= LEVEL_FLOOR_XP[2]
-      ? { level: 2, level_title: 'Świadomy Start', next_level_xp: 250 }
-      : { level: 1, level_title: 'Obserwator', next_level_xp: 100 };
+    if (xp >= LEVEL_FLOOR_XP[3]) return { level: 3, level_title: t('levelSteady'), next_level_xp: 500 };
+    if (xp >= LEVEL_FLOOR_XP[2]) return { level: 2, level_title: t('levelConfident'), next_level_xp: 250 };
+    return { level: 1, level_title: t('levelObserver'), next_level_xp: 100 };
   }
 
   function summaryTurn() {
-    const t = state.turn;
-    return t && t.mission_completed ? t : null;
+    const turn = state.turn;
+    return turn && turn.mission_completed ? turn : null;
   }
 
   // Awans: z tury finałowej (gamification.leveled_up) albo dzięki +50 XP z wyzwania.
-  function userLeveledUp(t) {
-    return !!(t && t.gamification && t.gamification.leveled_up) || state.summary.leveledViaChallenge;
+  function userLeveledUp(turn) {
+    return !!(turn && turn.gamification && turn.gamification.leveled_up) || state.summary.leveledViaChallenge;
   }
 
   function renderSummary(options) {
-    const t = summaryTurn();
-    if (!t || !els.cardLevelup) return;
+    const turn = summaryTurn();
+    if (!turn || !els.cardLevelup) return;
     const animate = !!(options && options.animate);
-    renderLevelBanner(t, { pop: animate });
-    renderChallengeCard(t);
-    renderChecklistCard(t);
-    renderBankCard(t);
-    renderLeaderboardCard(t);
+    renderLevelBanner(turn, { pop: animate });
+    renderChallengeCard(turn);
+    renderChecklistCard(turn);
+    renderBankCard(turn);
+    renderLeaderboardCard(turn);
     els.complianceFooter.innerHTML =
-      '<p class="rounded-2xl border border-slate-200 bg-white/70 p-4 text-xs leading-relaxed text-slate-500">' +
-        '<i data-lucide="scale" class="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true"></i>' +
-        escapeHtml(COMPLIANCE_TEXT) + '</p>';
+      '<div class="space-y-2 rounded-2xl border border-slate-200 bg-white/70 p-4 text-xs leading-relaxed text-slate-500">' +
+        '<p><i data-lucide="scale" class="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true"></i>' +
+          escapeHtml(t('complianceText')) + '</p>' +
+        '<p class="fq-ai-disclaimer font-bold"><i data-lucide="sparkles" class="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true"></i>' +
+          escapeHtml(t('aiDisclaimer')) + '</p>' +
+      '</div>';
     refreshIcons();
   }
 
   // Baner (pełna szerokość): awans albo „brakuje X XP", Gotowość start -> wynik, samoocena „po".
-  function renderLevelBanner(t, options) {
+  function renderLevelBanner(turn, options) {
     const pop = !!(options && options.pop);
-    const g = t.gamification;
+    const g = turn.gamification;
     const s = state.session;
-    const leveled = userLeveledUp(t);
-    const dayLabel = 'DZIEŃ ' + (s ? s.current_day : 1) + ' Z ' + (s ? s.total_program_days : 14);
+    const leveled = userLeveledUp(turn);
+    const dayNum = s ? s.current_day : 1;
+    const totalDays = s ? s.total_program_days : 14;
     const title = leveled
-      ? '🏆 ' + dayLabel + ' UKOŃCZONY! AWANS: ' + g.level_title
-      : dayLabel + ' UKOŃCZONY';
-    const start = clamp(Number(t.confidence_start) || 0, 0, 100);
-    const score = clamp(Number(t.confidence_score) || 0, start, 100);
+      ? t('levelBannerLeveled', { day: dayNum, total: totalDays, title: g.level_title })
+      : t('levelBannerDone', { day: dayNum, total: totalDays });
+    const start = clamp(Number(turn.confidence_start) || 0, 0, 100);
+    const score = clamp(Number(turn.confidence_score) || 0, start, 100);
     const missing = Math.max(0, LEVEL_FLOOR_XP[2] - g.xp);
     const bonus = state.microLessonBonusXp;
     const pill = (text, extra) =>
@@ -1494,25 +2128,23 @@
       '<div data-summary-banner class="' + (pop ? 'level-pop ' : '') + 'rounded-3xl bg-brand-dark p-5 text-white shadow-xl shadow-slate-200/60 sm:p-7">' +
         '<h3 class="text-xl font-extrabold leading-tight tracking-tight text-brand-yellow sm:text-2xl">' + escapeHtml(title) + '</h3>' +
         '<div class="mt-3 flex flex-wrap items-center gap-2">' +
-          pill('Poziom ' + escapeHtml(g.level), 'bg-brand-yellow text-brand-dark') +
+          pill(escapeHtml(t('pillLevel', { level: g.level })), 'bg-brand-yellow text-brand-dark') +
           pill('<span class="tabular-nums">' + formatNumber(g.xp) + NBSP + 'XP</span>') +
-          (bonus > 0 ? pill('<span class="tabular-nums">+' + bonus + NBSP + 'XP z mikro-lekcji</span>', 'bg-white/5 text-white/70') : '') +
-          pill('🔥 Seria: ' + escapeHtml(g.streak_days) + NBSP + pluralDays(g.streak_days), 'bg-streak-orange/20 text-orange-200') +
+          (bonus > 0 ? pill(escapeHtml(t('pillMicroXp', { xp: bonus })), 'bg-white/5 text-white/70') : '') +
+          pill(escapeHtml(t('pillStreak', { days: g.streak_days, dayWord: pluralDays(g.streak_days) })), 'bg-streak-orange/20 text-orange-200') +
         '</div>' +
-        (leveled
-          ? ''
-          : '<p class="mt-3 font-semibold text-white/85">Do Poziomu 2 brakuje <span class="tabular-nums">' + missing + NBSP + 'XP</span> — wróć jutro i nadrób!</p>') +
-        '<p class="mt-2 text-sm font-bold text-orange-200">🔥 Seria rozpoczęta! Wróć jutro po Dzień 2.</p>' +
+        (leveled ? '' : '<p class="mt-3 font-semibold text-white/85">' + t('missingXp', { xp: missing }) + '</p>') +
+        '<p class="mt-2 text-sm font-bold text-orange-200">' + escapeHtml(t('streakStarted')) + '</p>' +
         '<div class="mt-5 grid grid-cols-1 gap-5 border-t border-white/10 pt-5 md:grid-cols-2 md:gap-8">' +
           '<div>' +
-            '<p class="text-sm font-bold text-white/70">Gotowość</p>' +
+            '<p class="text-sm font-bold text-white/70">' + escapeHtml(t('readiness')) + '</p>' +
             '<p class="mt-0.5 text-2xl font-extrabold tabular-nums">' + start + '% <span class="text-brand-yellow" aria-hidden="true">→</span>' +
-              '<span class="sr-only">do</span> ' + score + '%</p>' +
-            '<div class="relative mt-2 h-3 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-label="Gotowość" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '">' +
+              '<span class="sr-only">' + escapeHtml(t('readinessTo')) + '</span> ' + score + '%</p>' +
+            '<div class="relative mt-2 h-3 overflow-hidden rounded-full bg-white/15" role="progressbar" aria-label="' + escapeHtml(t('readiness')) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '">' +
               '<div data-readiness-fill data-target="' + score + '" class="fq-progress-fill absolute inset-y-0 left-0 rounded-full bg-etf-green" style="width: ' + (pop ? start : score) + '%"></div>' +
               '<div class="absolute inset-y-0 left-0 rounded-full bg-white/60" style="width: ' + start + '%"></div>' +
             '</div>' +
-            '<p class="mt-2 text-xs text-white/60">Pełną gotowość da dopiero Dzień 14.</p>' +
+            '<p class="mt-2 text-xs text-white/60">' + escapeHtml(t('readinessNote')) + '</p>' +
           '</div>' +
           renderSelfAssessment() +
         '</div>' +
@@ -1536,7 +2168,7 @@
     ).join('');
     return (
       '<fieldset class="fq-field">' +
-        '<legend class="text-sm font-bold text-white/70">Jak pewnie czujesz się teraz? (1–5)</legend>' +
+        '<legend class="text-sm font-bold text-white/70">' + escapeHtml(t('selfQuestion')) + '</legend>' +
         '<div class="mt-2 grid grid-cols-5 gap-2">' + tiles + '</div>' +
         '<p data-self-compare class="mt-2 text-sm font-bold" aria-live="polite">' + selfCompareHtml() + '</p>' +
       '</fieldset>'
@@ -1548,15 +2180,16 @@
     const after = state.summary.selfAfter;
     if (after == null) {
       return before != null
-        ? '<span class="text-white/60">Przed: ' + before + '/5 — zaznacz, jak jest teraz.</span>'
-        : '<span class="text-white/60">Zaznacz, jak jest teraz.</span>';
+        ? '<span class="text-white/60">' + escapeHtml(t('selfBeforeHint', { before })) + '</span>'
+        : '<span class="text-white/60">' + escapeHtml(t('selfMarkNow')) + '</span>';
     }
     const delta = before != null ? after - before : 0;
     const deltaPill = before != null && delta > 0
       ? ' <span class="ml-1 rounded-full bg-etf-green px-2 py-0.5 text-xs text-white">+' + delta + '</span>'
       : '';
-    return (before != null ? 'Przed: ' + before + '/5 <span class="text-brand-yellow" aria-hidden="true">→</span><span class="sr-only">,</span> ' : '') +
-      'Po: ' + after + '/5' + deltaPill;
+    return (before != null ? escapeHtml(t('selfBefore', { before })) +
+      ' <span class="text-brand-yellow" aria-hidden="true">→</span><span class="sr-only">,</span> ' : '') +
+      escapeHtml(t('selfAfter', { after })) + deltaPill;
   }
 
   function setSelfAfter(value) {
@@ -1567,8 +2200,8 @@
   }
 
   // Karta 1 — realne mikro-wyzwanie (złota ramka).
-  function renderChallengeCard(t) {
-    const c = t.real_world_challenge;
+  function renderChallengeCard(turn) {
+    const c = turn.real_world_challenge;
     if (!c) {
       els.cardChallenge.innerHTML = '';
       return;
@@ -1576,37 +2209,38 @@
     const s = state.summary;
     const action = s.challengeAccepted
       ? '<p class="mt-4 inline-flex min-h-tap items-center gap-2 rounded-2xl bg-etf-green px-4 py-2 font-extrabold text-white" role="status">' +
-          '✅ Wyzwanie przyjęte!' + (s.challengeReward > 0 ? ' +' + s.challengeReward + NBSP + 'XP' : '') + '</p>'
+          escapeHtml(t('challengeAccepted')) + (s.challengeReward > 0 ? ' +' + s.challengeReward + NBSP + 'XP' : '') + '</p>'
       : '<button type="button" data-action="accept-challenge" class="btn-3d mt-4 w-full sm:w-auto"' + (s.challengeBusy ? ' disabled' : '') + '>' +
           (s.challengeBusy ? '<span class="fq-spinner"></span>' : '<i data-lucide="flame" class="h-5 w-5" aria-hidden="true"></i>') +
-          '<span>Podejmuję wyzwanie (+' + escapeHtml(c.reward_xp) + NBSP + 'XP)</span></button>';
+          '<span>' + escapeHtml(t('challengeAccept', { xp: c.reward_xp })) + '</span></button>';
     els.cardChallenge.innerHTML =
       '<div class="rounded-3xl border-2 border-brand-yellow bg-gradient-to-br from-brand-yellow/20 via-white to-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">' +
         '<p class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-brand-yellow-dark">' +
-          '<i data-lucide="target" class="h-4 w-4" aria-hidden="true"></i>Realne mikro-wyzwanie • Zero strachu</p>' +
+          '<i data-lucide="target" class="h-4 w-4" aria-hidden="true"></i>' + escapeHtml(t('challengeBadge')) + '</p>' +
         '<h3 class="mt-2 text-lg font-extrabold leading-snug tracking-tight sm:text-xl">' + escapeHtml(c.title) + '</h3>' +
         '<p class="mt-2 text-sm leading-relaxed text-slate-600">' + escapeHtml(c.description) + '</p>' +
         '<p class="mt-3 inline-flex flex-wrap items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm font-bold shadow-sm">' +
           '<span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span>' +
-          '<i data-lucide="arrow-right" class="h-4 w-4 text-slate-400" aria-hidden="true"></i>' + escapeHtml(c.target_account) + '</p>' +
+          '<i data-lucide="arrow-right" class="h-4 w-4 text-slate-400" aria-hidden="true"></i> ' + escapeHtml(c.target_account) + '</p>' +
         '<div>' + action + '</div>' +
       '</div>';
   }
 
   async function acceptChallenge() {
     const s = state.summary;
-    const t = summaryTurn();
-    if (!t || !t.real_world_challenge || s.challengeAccepted || s.challengeBusy) return;
+    const turn = summaryTurn();
+    if (!turn || !turn.real_world_challenge || s.challengeAccepted || s.challengeBusy) return;
     const token = state.mission.token;
     s.challengeBusy = true;
-    renderChallengeCard(t);
+    renderChallengeCard(turn);
     refreshIcons();
     try {
       const res = await withSessionRecovery((sessionId) => api.acceptChallenge(sessionId));
       if (token !== state.mission.token) return;
-      const g = t.gamification;
-      const crossed = g.xp < LEVEL_FLOOR_XP[2] && res.xp >= LEVEL_FLOOR_XP[2];
-      state.turn = Object.assign({}, t, {
+      const g = turn.gamification;
+      // Awans dzięki wyzwaniu: próg 100 XP (Poziom 2) albo 250 XP (Poziom 3).
+      const crossed = levelForXp(res.xp).level > levelForXp(g.xp).level;
+      state.turn = Object.assign({}, turn, {
         gamification: Object.assign({}, g, levelForXp(res.xp), { xp: res.xp, xp_gained: res.reward_xp }),
       });
       s.challengeBusy = false;
@@ -1625,15 +2259,15 @@
     } catch (err) {
       if (token !== state.mission.token) return;
       s.challengeBusy = false;
-      renderChallengeCard(summaryTurn() || t);
+      renderChallengeCard(summaryTurn() || turn);
       refreshIcons();
       showToast(describeMissionError(err), 'warn');
     }
   }
 
   // Karta 2 — checklista Dnia 1 (4 pozycje); komplet -> pełne konfetti i .glow-pulse na przycisku bankowym.
-  function renderChecklistCard(t) {
-    const items = t.final_checklist || [];
+  function renderChecklistCard(turn) {
+    const items = turn.final_checklist || [];
     const s = state.summary;
     const done = items.filter((item) => s.checked.has(item.id)).length;
     const list = items.map((item) => {
@@ -1649,7 +2283,7 @@
     els.cardChecklist.innerHTML =
       '<div class="' + CARD_CLASS + '">' +
         '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Checklista Dnia 1</h3>' +
+          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('checklistTitle')) + '</h3>' +
           '<span class="text-sm font-extrabold tabular-nums text-slate-500"><span data-check-count>' + done + '</span>/' + items.length + '</span>' +
         '</div>' +
         '<div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">' +
@@ -1657,14 +2291,14 @@
         '</div>' +
         '<ul class="mt-4 space-y-3">' + list + '</ul>' +
         '<p data-check-done class="mt-4 text-sm font-extrabold text-emerald-700" role="status"' + (items.length && done === items.length ? '' : ' hidden') + '>' +
-          '🎉 Komplet! Teraz zrób pierwszy krok w banku.</p>' +
+          escapeHtml(t('checklistDone')) + '</p>' +
       '</div>';
   }
 
   function toggleChecklistItem(id, button) {
-    const t = summaryTurn();
-    if (!t) return;
-    const items = t.final_checklist || [];
+    const turn = summaryTurn();
+    if (!turn) return;
+    const items = turn.final_checklist || [];
     if (!items.some((item) => item.id === id)) return;
     const s = state.summary;
     if (s.checked.has(id)) s.checked.delete(id);
@@ -1690,8 +2324,8 @@
   }
 
   function checklistComplete() {
-    const t = summaryTurn();
-    const items = (t && t.final_checklist) || [];
+    const turn = summaryTurn();
+    const items = (turn && turn.final_checklist) || [];
     return items.length > 0 && items.every((item) => state.summary.checked.has(item.id));
   }
 
@@ -1701,13 +2335,13 @@
   }
 
   // Karta 3 — przykładowy plan w Commerzbanku (bank_draft); savings_first: plan poduszki, ETF „na później".
-  function renderBankCard(t) {
-    const d = t.bank_draft;
+  function renderBankCard(turn) {
+    const d = turn.bank_draft;
     if (!d) {
       els.cardBank.innerHTML = '';
       return;
     }
-    const c = t.real_world_challenge;
+    const c = turn.real_world_challenge;
     const advice = (state.session && state.session.safe_investment) || {};
     const savingsFirst = advice.plan_type === 'savings_first';
     const cushion = Number(advice.emergency_savings_monthly) || 0;
@@ -1718,55 +2352,55 @@
       '</li>';
 
     const today = c
-      ? '<p class="mt-0.5 font-extrabold">Mikro-ruch: <span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span> na ' + escapeHtml(c.target_account) + '</p>'
+      ? '<p class="mt-0.5 font-extrabold">' + escapeHtml(t('bankMicroMove')) + ' <span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span> ' + escapeHtml(t('bankOn')) + ' ' + escapeHtml(c.target_account) + '</p>'
       : '';
     const target = savingsFirst
-      ? '<p class="mt-0.5 font-extrabold">Poduszka: <span class="tabular-nums">' + formatPLN(cushion) + '/mies.</span> na konto oszczędnościowe</p>' +
+      ? '<p class="mt-0.5 font-extrabold">' + escapeHtml(t('bankBuffer')) + ' <span class="tabular-nums">' + formatPLN(cushion) + escapeHtml(t('splitPerMonth')) + '</span> ' + escapeHtml(t('bankSavingsAccount')) + '</p>' +
         '<span class="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">' +
-          '<i data-lucide="clock" class="h-3.5 w-3.5" aria-hidden="true"></i>ETF na później — przykład ' + formatPLN(d.monthly_amount) + '/mies.</span>'
-      : '<p class="mt-0.5 font-extrabold"><span class="tabular-nums">' + formatPLN(d.monthly_amount) + '/mies.</span> • horyzont ' + yearsLabel(d.horizon_years) + '</p>' +
+          '<i data-lucide="clock" class="h-3.5 w-3.5" aria-hidden="true"></i>' + escapeHtml(t('bankEtfLater', { amount: formatPLN(d.monthly_amount) })) + '</span>'
+      : '<p class="mt-0.5 font-extrabold"><span class="tabular-nums">' + formatPLN(d.monthly_amount) + escapeHtml(t('splitPerMonth')) + '</span> • ' + escapeHtml(t('bankHorizon')) + ' ' + yearsLabel(d.horizon_years) + '</p>' +
         '<p class="mt-0.5 text-sm text-slate-600">' + escapeHtml(d.instrument_category) + '</p>' +
-        (cushion > 0 ? '<p class="mt-1 text-sm text-slate-600">Równolegle poduszka: <span class="font-bold tabular-nums">' + formatPLN(cushion) + '/mies.</span> na konto oszczędnościowe.</p>' : '');
+        (cushion > 0 ? '<p class="mt-1 text-sm text-slate-600">' + escapeHtml(t('bankParallelBuffer')) + ' <span class="font-bold tabular-nums">' + formatPLN(cushion) + escapeHtml(t('splitPerMonth')) + '</span> ' + escapeHtml(t('bankSavingsAccount')) + '.</p>' : '');
 
     els.cardBank.innerHTML =
       '<div class="' + CARD_CLASS + '">' +
         '<div class="flex flex-wrap items-center justify-between gap-2">' +
-          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Przykładowy plan w Commerzbanku</h3>' +
+          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('bankTitle')) + '</h3>' +
           '<span class="rounded-full bg-brand-dark px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-brand-yellow">Demo</span>' +
         '</div>' +
         '<ol class="mt-4 space-y-4">' +
-          step(1, 'Dziś', today) +
-          step(2, 'Dzień 14 — plan docelowy', target) +
+          step(1, escapeHtml(t('bankToday')), today) +
+          step(2, escapeHtml(t('bankTarget')), target) +
         '</ol>' +
         '<div class="mt-5 rounded-2xl bg-slate-50 p-4">' +
-          '<p class="text-xs font-bold text-slate-500">' + (savingsFirst ? 'Przykład na później — ' : '') +
-            'szacunek edukacyjny w dzisiejszych złotych • ' + yearsLabel(d.horizon_years) + '</p>' +
+          '<p class="text-xs font-bold text-slate-500">' + (savingsFirst ? escapeHtml(t('bankLaterPrefix')) : '') +
+            escapeHtml(t('bankEstimate')) + ' ' + yearsLabel(d.horizon_years) + '</p>' +
           '<div class="mt-2 grid grid-cols-2 gap-3">' +
-            '<div><p class="text-xs font-bold text-emerald-700">Szeroki ETF (realnie)</p>' +
+            '<div><p class="text-xs font-bold text-emerald-700">' + escapeHtml(t('bankEtfReal')) + '</p>' +
               '<p class="text-xl font-extrabold tabular-nums sm:text-2xl">' + formatPLN(d.projected_etf_real_value) + '</p></div>' +
-            '<div><p class="text-xs font-bold text-rose-600">Wpłaty na koncie 0% (realnie)</p>' +
+            '<div><p class="text-xs font-bold text-rose-600">' + escapeHtml(t('bankCashReal')) + '</p>' +
               '<p class="text-xl font-extrabold tabular-nums sm:text-2xl">' + formatPLN(d.projected_cash_real_value) + '</p></div>' +
           '</div>' +
-          '<p class="mt-1.5 text-xs text-slate-500">nominalnie ETF: ok. <span class="tabular-nums">' + formatPLN(d.projected_etf_nominal_value) + '</span></p>' +
+          '<p class="mt-1.5 text-xs text-slate-500">' + escapeHtml(t('bankNominal')) + ' <span class="tabular-nums">' + formatPLN(d.projected_etf_nominal_value) + '</span></p>' +
         '</div>' +
         '<p class="mt-3 text-[11px] leading-relaxed text-slate-500">' + escapeHtml(d.assumptions_text) + ' ' + escapeHtml(d.costs_note) + '</p>' +
         '<button type="button" data-action="open-bank-modal" class="btn-3d mt-5 w-full text-base">' +
-          '<span>Wykonaj krok Dnia 1 lub zobacz przykładowy plan w Commerzbanku</span>' +
+          '<span>' + escapeHtml(t('bankCta')) + '</span>' +
           '<i data-lucide="arrow-right" class="h-5 w-5 shrink-0" aria-hidden="true"></i></button>' +
       '</div>';
     syncBankGlow();
   }
 
   // Karta 4 — ranking (przykładowi znajomi, demo); „⬆️ Awans!" tylko przy awansie.
-  function renderLeaderboardCard(t, options) {
-    const rows = state.summary.leaderboard || t.leaderboard || [];
-    const leveled = userLeveledUp(t);
+  function renderLeaderboardCard(turn, options) {
+    const rows = state.summary.leaderboard || turn.leaderboard || [];
+    const leveled = userLeveledUp(turn);
     const me = rows.find((r) => r.is_current_user) || null;
     const leader = rows[0] || null;
     const list = rows.map((r) => {
       const isMe = r.is_current_user === true;
-      // Backend dopisuje „(Awans!)" do nazwy — w UI pokazujemy osobny badge.
-      const name = isMe ? String(r.name).replace(/\s*\(Awans!\)\s*$/, '') : r.name;
+      // Backend dopisuje „(Awans!)" / „(Level Up!)" do nazwy — w UI pokazujemy osobny badge.
+      const name = isMe ? String(r.name).replace(/\s*\((?:Awans!|Level Up!)\)\s*$/, '') : r.name;
       return (
         '<li' + (isMe ? ' data-me' : '') + ' class="flex items-center gap-3 rounded-2xl px-3 py-2.5 ' +
           (isMe ? 'bg-brand-yellow/15 ring-2 ring-brand-yellow' : 'odd:bg-slate-50') + '">' +
@@ -1774,10 +2408,10 @@
             (r.rank === 1 ? 'bg-brand-yellow text-brand-dark' : 'bg-white text-slate-600 ring-1 ring-slate-200') + '">' + escapeHtml(r.rank) + '</span>' +
           '<div class="min-w-0 flex-1">' +
             '<p class="flex flex-wrap items-center gap-1.5 font-extrabold leading-tight">' + escapeHtml(name) +
-              (isMe && leveled ? '<span class="rounded-full bg-etf-green px-2 py-0.5 text-[11px] font-extrabold text-white">⬆️ Awans!</span>' : '') + '</p>' +
+              (isMe && leveled ? '<span class="rounded-full bg-etf-green px-2 py-0.5 text-[11px] font-extrabold text-white">' + escapeHtml(t('leaderboardLeveled')) + '</span>' : '') + '</p>' +
             '<p class="text-xs text-slate-500">' + escapeHtml(r.level_title) + '</p>' +
           '</div>' +
-          '<span class="shrink-0 text-xs font-bold text-streak-orange" title="Seria dni">🔥' + NBSP + escapeHtml(r.streak_days) + '</span>' +
+          '<span class="shrink-0 text-xs font-bold text-streak-orange" title="' + escapeHtml(t('leaderboardStreakTitle')) + '">🔥' + NBSP + escapeHtml(r.streak_days) + '</span>' +
           '<span class="w-20 shrink-0 text-right font-extrabold tabular-nums">' + formatNumber(r.xp) + NBSP + 'XP</span>' +
         '</li>'
       );
@@ -1785,21 +2419,21 @@
 
     let hint = '';
     if (me && leader && !leader.is_current_user) {
-      hint = 'Do 1. miejsca brakuje Ci <span class="tabular-nums">' + formatNumber(leader.xp - me.xp) + NBSP + 'XP</span> — wróć jutro po Dzień 2!';
+      hint = t('leaderboardMissing', { xp: formatNumber(leader.xp - me.xp) });
     } else if (me) {
-      hint = 'Prowadzisz w rankingu — utrzymaj serię jutro!';
+      hint = escapeHtml(t('leaderboardLeading'));
     }
 
     els.cardLeaderboard.innerHTML =
       '<div class="' + CARD_CLASS + '">' +
         '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Ranking znajomych</h3>' +
-          '<span class="text-xs font-semibold text-slate-500">Przykładowi znajomi (demo)</span>' +
+          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('leaderboardTitle')) + '</h3>' +
+          '<span class="text-xs font-semibold text-slate-500">' + escapeHtml(t('leaderboardDemo')) + '</span>' +
         '</div>' +
         '<ol class="mt-4 space-y-1.5">' + list + '</ol>' +
         (hint ? '<p class="mt-3 text-sm font-semibold text-slate-600" aria-live="polite">' + hint + '</p>' : '') +
         '<button type="button" data-action="challenge-friend" class="mt-4 inline-flex min-h-tap w-full items-center justify-center gap-2 rounded-2xl border-2 border-brand-dark/10 bg-white px-4 font-extrabold transition hover:border-brand-yellow hover:bg-brand-yellow/10 sm:w-auto">' +
-          '⚔️ Wyzwij znajomego</button>' +
+          escapeHtml(t('leaderboardChallenge')) + '</button>' +
       '</div>';
 
     if (options && options.highlight) {
@@ -1834,35 +2468,36 @@
   }
 
   async function challengeFriend() {
-    const text = 'Rzucam Ci wyzwanie w Finance Quest! Mam za sobą Dzień 1 z 14 planu i ' + displayedXp() +
-      ' XP. Dołączysz i spróbujesz mnie dogonić? 🔥';
+    const text = t('friendText', { xp: displayedXp() });
     const ok = await copyToClipboard(text);
-    if (ok) showToast('⚔️ Zaproszenie skopiowane do schowka — wyślij je znajomemu!', 'success');
-    else showToast('Nie udało się skopiować. Treść zaproszenia: ' + text, 'warn', 6000);
+    if (ok) showToast(t('friendCopied'), 'success');
+    else showToast(t('friendCopyFailed', { text }), 'warn', 6000);
   }
 
   // ------------------------------------------------------------------------
   // 12. Modal bankowy — Zero-Friction Handoff (DEMO, docs/01 §7)
   // ------------------------------------------------------------------------
 
-  function bankOptionSummary(t, option) {
-    const c = t.real_world_challenge;
-    const d = t.bank_draft;
+  function bankOptionSummary(turn, option) {
+    const c = turn.real_world_challenge;
+    const d = turn.bank_draft;
     const advice = (state.session && state.session.safe_investment) || {};
     if (option === 'b') {
       return advice.plan_type === 'savings_first'
-        ? 'Przykładowy plan na Dzień 14: poduszka ' + formatPLN(advice.emergency_savings_monthly || 0) + '/mies.'
-        : 'Przykładowy plan na Dzień 14: ' + formatPLN(d ? d.monthly_amount : 0) + ' / mies.';
+        ? t('modalTargetPlan') + ' ' + escapeHtml(t('modalBuffer')) + ' ' + formatPLN(advice.emergency_savings_monthly || 0) + escapeHtml(t('splitPerMonth'))
+        : t('modalTargetPlan') + ' ' + formatPLN(d ? d.monthly_amount : 0) + escapeHtml(t('splitPerMonth'));
     }
-    return c ? 'Przelew ' + formatPLN(c.amount_pln) + ' na ' + c.target_account : 'Krok na dziś';
+    return c
+      ? t('modalTransfer', { amount: formatPLN(c.amount_pln), account: c.target_account })
+      : t('modalTodayStep');
   }
 
   function renderBankModal() {
-    const t = summaryTurn();
-    if (!t || !els.bankOrderContent) return;
+    const turn = summaryTurn();
+    if (!turn || !els.bankOrderContent) return;
     const s = state.summary;
-    const c = t.real_world_challenge;
-    const d = t.bank_draft;
+    const c = turn.real_world_challenge;
+    const d = turn.bank_draft;
     const advice = (state.session && state.session.safe_investment) || {};
 
     if (s.bankDone) {
@@ -1870,25 +2505,27 @@
         '<div class="text-center" role="status">' +
           '<div class="level-pop mx-auto grid h-16 w-16 place-items-center rounded-full bg-etf-green text-white">' +
             '<i data-lucide="check" class="h-8 w-8" aria-hidden="true"></i></div>' +
-          '<p class="mt-4 text-lg font-extrabold leading-snug">Brawo! Krok Dnia 1 zaliczony — Twoja seria trwa, widzimy się jutro na Dniu 2!</p>' +
-          '<p class="mt-2 text-sm text-slate-600">Symulacja: ' + escapeHtml(bankOptionSummary(t, s.bankOption)) + ' • W wersji demo nic nie zostało wykonane.</p>' +
+          '<p class="mt-4 text-lg font-extrabold leading-snug">' + escapeHtml(t('modalDone')) + '</p>' +
+          '<p class="mt-2 text-sm text-slate-600">' + escapeHtml(t('modalDoneNote', { summary: bankOptionSummary(turn, s.bankOption) })) + '</p>' +
           '<button type="button" data-action="next-generation" class="btn-3d mt-6 w-full">' +
-            '<i data-lucide="users" class="h-5 w-5" aria-hidden="true"></i><span>Przetestuj inne pokolenie (Demo)</span></button>' +
-          '<button type="button" data-action="close-modal" class="mt-2 inline-flex min-h-tap w-full items-center justify-center rounded-2xl font-bold text-slate-600 transition hover:bg-slate-100">Zamknij</button>' +
+            '<i data-lucide="users" class="h-5 w-5" aria-hidden="true"></i><span>' + escapeHtml(t('modalNextGeneration')) + '</span></button>' +
+          '<button type="button" data-action="close-modal" class="mt-2 inline-flex min-h-tap w-full items-center justify-center rounded-2xl font-bold text-slate-600 transition hover:bg-slate-100">' + escapeHtml(t('modalClose')) + '</button>' +
         '</div>';
       refreshIcons();
       return;
     }
 
     const optionB = advice.plan_type === 'savings_first'
-      ? '<span class="mt-1 block text-sm font-semibold text-slate-600">Poduszka: <span class="tabular-nums">' + formatPLN(advice.emergency_savings_monthly || 0) + '/mies.</span> na konto oszczędnościowe; ETF później (przykład ' + formatPLN(d ? d.monthly_amount : 0) + '/mies.)</span>'
-      : '<span class="mt-1 block text-sm font-semibold text-slate-600"><span class="tabular-nums">' + formatPLN(d ? d.monthly_amount : 0) + ' / mies.</span> • ' +
+      ? '<span class="mt-1 block text-sm font-semibold text-slate-600">' + escapeHtml(t('modalBuffer')) +
+        ' <span class="tabular-nums">' + formatPLN(advice.emergency_savings_monthly || 0) + escapeHtml(t('splitPerMonth')) + '</span> ' +
+        escapeHtml(t('modalSavings', { amount: formatPLN(d ? d.monthly_amount : 0) })) + '</span>'
+      : '<span class="mt-1 block text-sm font-semibold text-slate-600"><span class="tabular-nums">' + formatPLN(d ? d.monthly_amount : 0) + escapeHtml(t('splitPerMonth')) + '</span> • ' +
           (d ? yearsLabel(d.horizon_years) : '') + '</span>' +
         '<span class="mt-0.5 block text-xs font-medium text-slate-500">' + escapeHtml(d ? d.instrument_category : '') + '</span>';
     const option = (value, title, badge, body) =>
       '<label class="block cursor-pointer"><input type="radio" name="bank_option" value="' + value + '" class="sr-only"' + (s.bankOption === value ? ' checked' : '') + '>' +
         '<span class="fq-tile fq-tile--top"><span class="fq-radio-dot" aria-hidden="true"></span><span class="min-w-0">' +
-          '<span class="flex flex-wrap items-center gap-2">' + title + badge + '</span>' + body +
+          '<span class="flex flex-wrap items-center gap-2">' + escapeHtml(title) + badge + '</span>' + body +
         '</span></span></label>';
 
     els.bankOrderContent.innerHTML =
@@ -1898,22 +2535,22 @@
             '<i data-lucide="landmark" class="h-4 w-4" aria-hidden="true"></i></span>Commerzbank</span>' +
           '<span class="rounded-full bg-brand-yellow px-2 py-0.5 text-[11px] font-extrabold text-brand-dark">DEMO</span>' +
         '</div>' +
-        '<p class="mt-2 text-xs text-white/70">Podgląd ekranu aplikacji bankowej — w wersji demo nic nie zostanie wykonane.</p>' +
+        '<p class="mt-2 text-xs text-white/70">' + escapeHtml(t('modalBankPreview')) + '</p>' +
       '</div>' +
-      '<fieldset class="fq-field mt-4"><legend class="text-sm font-bold text-slate-600">Wybierz krok</legend>' +
+      '<fieldset class="fq-field mt-4"><legend class="text-sm font-bold text-slate-600">' + escapeHtml(t('modalChooseStep')) + '</legend>' +
         '<div class="mt-2 grid gap-3">' +
-          option('a', 'Opcja A — Krok na dziś',
-            '<span class="rounded-full bg-etf-green px-2 py-0.5 text-[11px] font-extrabold text-white">Polecana</span>',
+          option('a', t('modalOptionA'),
+            '<span class="rounded-full bg-etf-green px-2 py-0.5 text-[11px] font-extrabold text-white">' + escapeHtml(t('modalRecommended')) + '</span>',
             '<span class="mt-1 block text-sm font-semibold text-slate-600">' +
-              (c ? 'Przelew <span class="tabular-nums">' + formatPLN(c.amount_pln) + '</span> na ' + escapeHtml(c.target_account) : '') + '</span>') +
-          option('b', 'Opcja B — Przykładowy plan na Dzień 14', '', optionB) +
+              (c ? escapeHtml(t('modalTransfer', { amount: formatPLN(c.amount_pln), account: c.target_account })) : '') + '</span>') +
+          option('b', t('modalOptionB'), '', optionB) +
         '</div>' +
       '</fieldset>' +
       '<p class="mt-4 flex items-start gap-2 rounded-2xl border border-stress-amber/50 bg-amber-50 p-3 text-xs font-semibold leading-relaxed text-slate-700">' +
         '<i data-lucide="shield-alert" class="mt-0.5 h-4 w-4 shrink-0 text-stress-amber" aria-hidden="true"></i>' +
-        'W wersji produkcyjnej: test odpowiedniości, weryfikacja tożsamości (KYC), informacja o kosztach i ryzyku.</p>' +
+        escapeHtml(t('modalKyc')) + '</p>' +
       '<button type="button" data-action="simulate-bank" class="btn-3d mt-5 w-full">' +
-        '<span>Symuluj wykonanie kroku w banku (Demo)</span></button>';
+        '<span>' + escapeHtml(t('modalSimulate')) + '</span></button>';
     refreshIcons();
   }
 
@@ -2011,6 +2648,10 @@
         selectPersona(target.dataset.personaId);
       } else if (target.dataset.goto) {
         showScreen(target.dataset.goto);
+      } else if (target.dataset.action === 'set-lang') {
+        setLanguage(target.dataset.lang);
+      } else if (target.dataset.action === 'reset-demo') {
+        resetDemo();
       } else if (target.dataset.action === 'submit-onboarding') {
         submitOnboarding();
       } else if (target.dataset.action === 'complete-lesson') {
@@ -2088,6 +2729,7 @@
 
   function init() {
     cacheElements();
+    applyStaticTranslations();
     refreshIcons();
     configureChartDefaults();
     reportMissingVendors();
@@ -2103,7 +2745,15 @@
     API_BASE,
     SCREENS,
     COLORS,
-    COMPLIANCE_TEXT,
+    LANG_STORAGE_KEY,
+    I18N,
+    get COMPLIANCE_TEXT() {
+      return t('complianceText');
+    },
+    t,
+    setLanguage,
+    resetDemo,
+    applyStaticTranslations,
     state,
     api,
     ApiError,
