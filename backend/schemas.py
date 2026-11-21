@@ -189,10 +189,12 @@ class CheckpointSubmitResponse(BaseModel):
 
 
 class CoachExplainRequest(BaseModel):
-    session_id: str
+    session_id: Optional[str] = None
     question: str = Field(..., min_length=1, max_length=400)
     topic_hint: Optional[str] = None
     lang: Optional[Language] = None
+    current_screen: Optional[str] = Field(default=None, max_length=120)
+    user_name: Optional[str] = Field(default=None, max_length=40)
 
 
 class CoachExplainResponse(BaseModel):

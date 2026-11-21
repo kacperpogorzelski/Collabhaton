@@ -323,12 +323,25 @@ def checkpoint_submit(req: CheckpointSubmitRequest, db: Session = Depends(get_db
 def coach_explain(req: CoachExplainRequest, db: Session = Depends(get_db)):
     from backend import luna_service
 
-    session = _get_session_or_404(db, req.session_id)
-    if req.lang is not None:
-        session.lang = req.lang
-        db.commit()
+    sid = (req.session_id or "").strip()
+    if sid:
+        session = _get_session_or_404(db, sid)
+        if req.lang is not None:
+            session.lang = req.lang
+            db.commit()
+        data = _session_data(session)
+        lang = session.lang
+    else:
+        data = {"lang": req.lang or "en"}
+        lang = req.lang or "en"
+
+    if req.current_screen:
+        data["current_screen"] = req.current_screen
+    if req.user_name:
+        data["user_name"] = req.user_name
+
     explain = getattr(luna_service, "explain_with_drill", None)
     if explain is None:  # Issue #30 jeszcze nie zmergowany
         raise HTTPException(status_code=501, detail="explain_with_drill niedostępne")
-    result = explain(_session_data(session), req.question, req.topic_hint, session.lang)
+    result = explain(data, req.question, req.topic_hint, lang)
     return CoachExplainResponse(**result)

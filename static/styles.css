@@ -1163,6 +1163,49 @@ body[data-screen="screen_checkpoint"] main { padding-top: 0; padding-bottom: 200
 .toast__kita { display: block; width: 58px; flex-shrink: 0; }
 .toast__kita svg { width: 100%; height: auto; }
 .toast.is-out { animation: toastOut .25s ease-in forwards; }
+
+/* --------------------------------------------------------------------------
+   16. Commerzbank entry + first-visit Kita flow (Issue #46)
+   -------------------------------------------------------------------------- */
+.bank-entry { max-width: 720px; margin: 12px auto 0; padding: clamp(22px, 5vw, 42px); background: var(--card); border: var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-lg); }
+.bank-entry__eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border: var(--line); border-radius: 999px; background: var(--yellow); font-size: .75rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.bank-entry__eyebrow .ic { width: 17px; height: 17px; }
+.bank-entry__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-top: 28px; }
+.bank-entry__balance { margin-top: 5px; font-size: clamp(2.4rem, 8vw, 4.8rem); }
+.bank-entry__mark { display: grid; place-items: center; width: 64px; height: 64px; flex: 0 0 auto; border: var(--line); border-radius: 18px; background: var(--yellow); box-shadow: var(--shadow); }
+.bank-entry__mark .ic { width: 34px; height: 34px; }
+.bank-entry__transactions { display: grid; gap: 0; margin: 30px 0 24px; border-top: 2px dashed var(--stone-2); }
+.bank-entry__transactions > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--stone); font-size: .9rem; }
+.bank-entry__transactions > div > span { display: inline-flex; align-items: center; gap: 9px; }
+.bank-entry__dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); background: var(--green); }
+.bank-entry__dot--coral { background: var(--coral); }
+.bank-entry__note { margin-top: 14px; text-align: center; }
+.bank-entry__why { display: flex; align-items: center; gap: 18px; max-width: 720px; margin: 28px auto 0; padding: 0 8px; }
+.bank-entry__why .cora { --cora-size: 112px; margin-top: -14px; }
+.bank-entry__why .lead { margin-top: 8px; }
+.modal--center { align-items: center; padding: 16px; }
+.modal--center .modal__panel { max-width: 650px; border-radius: var(--r-xl); box-shadow: var(--shadow-lg); }
+.intro-modal, .name-modal { padding: clamp(20px, 5vw, 34px); }
+.intro-modal__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.intro-modal__scene, .name-modal__scene { display: flex; align-items: center; gap: 18px; margin: 22px 0 26px; }
+.intro-modal__scene .cora, .name-modal__scene .cora { --cora-size: 132px; flex: 0 0 132px; }
+.intro-modal__scene .bubble, .name-modal__scene .bubble { flex: 1; }
+.intro-modal__progress { height: 8px; overflow: hidden; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper-2); }
+.intro-modal__progress span { display: block; width: 33.333%; height: 100%; border-radius: inherit; background: var(--yellow); transition: width .3s var(--spring); }
+.intro-modal__actions, .name-modal__actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+.name-modal__form { display: grid; gap: 8px; }
+.name-modal__actions { align-items: center; }
+.input { width: 100%; min-height: 54px; padding: 0 15px; border: var(--line); border-radius: var(--r-md); background: var(--paper); box-shadow: inset 0 2px 0 rgba(8,41,51,.08); font-weight: 700; }
+.input:focus { outline: 3px solid var(--sky); outline-offset: 2px; }
+@media (max-width: 639px) {
+  .bank-entry { margin-top: 0; }
+  .bank-entry__why { align-items: flex-start; }
+  .bank-entry__why .cora { --cora-size: 82px; flex-basis: 82px; }
+  .intro-modal__scene, .name-modal__scene { align-items: flex-start; gap: 10px; }
+  .intro-modal__scene .cora, .name-modal__scene .cora { --cora-size: 92px; flex-basis: 92px; }
+  .intro-modal__actions, .name-modal__actions { flex-wrap: wrap; }
+  .intro-modal__actions .btn, .name-modal__actions .btn { flex: 1 1 145px; }
+}
 @keyframes toastOut { to { opacity: 0; transform: translateY(10px); } }
 
 /* --------------------------------------------------------------------------
