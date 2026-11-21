@@ -687,6 +687,42 @@ input:checked + .fq-tile .fq-radio-dot {
   box-shadow: inset 0 0 0 4px #fff, inset 0 0 0 10px var(--fq-brand-dark);
 }
 
+/* Przełącznik EN | PL, przycisk Reset / Profile oraz AI Disclaimer (Issue #31). */
+.fq-lang-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 44px;
+  min-block-size: 40px;
+  padding: 0 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.85);
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.fq-lang-btn:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.1);
+}
+.fq-lang-btn[aria-pressed="true"] {
+  background: var(--fq-brand-yellow);
+  color: var(--fq-brand-dark);
+}
+.fq-reset-btn {
+  min-block-size: 44px;
+}
+.fq-ai-disclaimer {
+  border-radius: 0.875rem;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
 /* --------------------------------------------------------------------------
    10. Ograniczenie ruchu (prefers-reduced-motion)
    -------------------------------------------------------------------------- */

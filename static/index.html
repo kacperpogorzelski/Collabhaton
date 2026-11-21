@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#002E3C">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="Finance Quest by Commerzbank — od zera do pierwszej świadomej inwestycji w 14 dni, po 5 minut dziennie.">
+  <meta name="description" content="Finance Quest by Commerzbank — build investing confidence in 14 days, 5 minutes a day.">
   <title>Finance Quest — by Commerzbank</title>
   <!-- Favicon inline (bez żądania /favicon.ico) -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23FFCC00'/%3E%3Cpath d='M7 21l6-6 4 4 8-8' fill='none' stroke='%23002E3C' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 
   <!-- Wszystkie zasoby LOKALNIE z /static/vendor/ — zero CDN w runtime (AGENTS.md §3, docs/01 §5) -->
   <!-- ?v= — cache-busting: po każdej zmianie styles.css/app.js podbij wersję (serwer nie wysyła Cache-Control) -->
-  <link rel="stylesheet" href="/static/styles.css?v=12.1">
+  <link rel="stylesheet" href="/static/styles.css?v=13.0">
   <script>
     // Tailwind Play (plik lokalny z /static/vendor/) zawsze ostrzega o „cdn.tailwindcss.com",
     // choć nic nie jest pobierane z CDN. Wyciszamy tylko ten komunikat na czas wczytania skryptu.
@@ -53,36 +53,57 @@
   </script>
 </head>
 <body class="min-h-screen bg-surface-bg font-sans text-brand-dark antialiased" data-screen="screen_onboarding">
-  <a href="#app-main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-xl focus:bg-brand-yellow focus:px-4 focus:py-3 focus:font-bold">Przejdź do treści</a>
+  <a href="#app-main" data-i18n="skipToContent" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-xl focus:bg-brand-yellow focus:px-4 focus:py-3 focus:font-bold">Skip to content</a>
 
   <!-- ===================== STAŁY NAGŁÓWEK (docs/01 §6) ===================== -->
   <header id="app-header" class="bg-brand-dark text-white">
     <div class="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-      <!-- Lewa: logo -->
-      <div class="flex min-h-tap items-center gap-3">
-        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-yellow text-brand-dark shadow-[0_3px_0_#D9A900]" aria-hidden="true">
-          <i data-lucide="trending-up" class="h-6 w-6"></i>
-        </span>
-        <span class="leading-tight">
-          <span class="block text-lg font-extrabold tracking-tight sm:text-xl">Finance Quest</span>
-          <span class="block text-xs font-medium text-white/70">by Commerzbank • Plan 14 Dni</span>
-        </span>
+      <!-- Lewa: klikalne logo -> powrót do wyboru profilu (Ekran 1) -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <button type="button" id="btn-logo-reset" data-action="reset-demo" data-i18n-aria="logoResetAria" aria-label="Finance Quest — return to profile selection"
+          class="flex min-h-tap items-center gap-3 rounded-xl pr-2 text-left transition hover:opacity-90">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-yellow text-brand-dark shadow-[0_3px_0_#D9A900]" aria-hidden="true">
+            <i data-lucide="trending-up" class="h-6 w-6"></i>
+          </span>
+          <span class="leading-tight">
+            <span class="block text-lg font-extrabold tracking-tight sm:text-xl">Finance Quest</span>
+            <span data-i18n="headerSubtitle" class="block text-xs font-medium text-white/70">by Commerzbank • 14-Day Confidence Sprint</span>
+          </span>
+        </button>
       </div>
 
-      <!-- Prawa: DEMO MODE — 3 pigułki person (GET /api/demo-personas) -->
-      <nav id="demo-mode" aria-label="Demo Mode — przykładowe profile" class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-yellow">
-          <i data-lucide="presentation" class="h-3.5 w-3.5" aria-hidden="true"></i>Demo Mode
-        </span>
-        <div class="grid grid-cols-3 gap-1.5 sm:flex sm:gap-2">
-          <button type="button" data-persona-id="young_20" aria-pressed="false" title="22 l. • Student (Start od zera)"
-            class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-4 sm:text-sm">22 l. Student</button>
-          <button type="button" data-persona-id="mid_38" aria-pressed="false" title="38 l. • Kariera i Rodzina"
-            class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-4 sm:text-sm">38 l. Rodzina</button>
-          <button type="button" data-persona-id="senior_56" aria-pressed="false" title="56 l. • Ochrona Kapitału 50+"
-            class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-4 sm:text-sm">56 l. 50+</button>
+      <!-- Prawa: EN | PL + Reset/Profile + DEMO MODE -->
+      <div class="flex flex-col gap-2 md:items-end">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Przełącznik EN | PL (domyślnie EN) -->
+          <div id="lang-switcher" role="group" data-i18n-aria="langGroupAria" aria-label="Language" class="inline-flex overflow-hidden rounded-full border border-white/25 bg-white/5 p-0.5">
+            <button type="button" data-action="set-lang" data-lang="en" aria-pressed="true" class="fq-lang-btn">EN</button>
+            <button type="button" data-action="set-lang" data-lang="pl" aria-pressed="false" class="fq-lang-btn">PL</button>
+          </div>
+
+          <!-- Reset / Powrót do wyboru profilu -->
+          <button type="button" id="btn-reset-demo" data-action="reset-demo" data-i18n-title="resetBtnTitle" title="Return to profile selection"
+            class="fq-reset-btn inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/5 px-3 text-xs font-bold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 sm:text-sm">
+            <i data-lucide="rotate-ccw" class="h-3.5 w-3.5 shrink-0" aria-hidden="true"></i>
+            <span data-i18n="resetBtn">Reset / Profile</span>
+          </button>
         </div>
-      </nav>
+
+        <!-- DEMO MODE — 3 pigułki person (GET /api/demo-personas?lang=...) -->
+        <nav id="demo-mode" data-i18n-aria="demoModeAria" aria-label="Demo Mode — sample profiles" class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2.5">
+          <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-yellow">
+            <i data-lucide="presentation" class="h-3.5 w-3.5" aria-hidden="true"></i>Demo Mode
+          </span>
+          <div class="grid grid-cols-3 gap-1.5 sm:flex sm:gap-2">
+            <button type="button" data-persona-id="young_20" aria-pressed="false" title="22y • Student (Fresh Start)"
+              class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-3.5 sm:text-sm">22y Student</button>
+            <button type="button" data-persona-id="mid_38" aria-pressed="false" title="38y • Career &amp; Family"
+              class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-3.5 sm:text-sm">38y Family</button>
+            <button type="button" data-persona-id="senior_56" aria-pressed="false" title="56y • Capital Protection 50+"
+              class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-3.5 sm:text-sm">56y 50+</button>
+          </div>
+        </nav>
+      </div>
     </div>
   </header>
 
@@ -91,12 +112,12 @@
     <div class="mx-auto flex max-w-4xl flex-wrap items-center gap-2 px-4 py-2.5 sm:gap-3 sm:px-6 lg:px-8">
       <span class="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-dark/5 px-3 text-xs font-bold sm:text-sm">
         <span aria-hidden="true">📅</span>
-        <span>Dzień <span id="hdr-day" class="tabular-nums">1</span> z <span id="hdr-total-days" class="tabular-nums">14</span></span>
+        <span><span data-i18n="hdrDayWord">Day</span> <span id="hdr-day" class="tabular-nums">1</span> <span data-i18n="hdrDayOf">of</span> <span id="hdr-total-days" class="tabular-nums">14</span></span>
       </span>
 
       <span id="hdr-level" class="inline-flex h-9 items-center gap-2 rounded-full border border-brand-yellow/70 bg-brand-yellow/15 px-3 text-xs font-bold sm:text-sm">
         <span id="hdr-level-icon" aria-hidden="true">⭐</span>
-        <span>Poz. <span id="hdr-level-num">1</span>: <span id="hdr-level-title">Obserwator</span> (<span id="hdr-xp" class="tabular-nums">20</span> XP)</span>
+        <span><span data-i18n="hdrLvlWord">Lvl</span> <span id="hdr-level-num">1</span>: <span id="hdr-level-title">Observer</span> (<span id="hdr-xp" class="tabular-nums">20</span> XP)</span>
         <span class="hidden h-1.5 w-14 overflow-hidden rounded-full bg-brand-yellow/30 sm:block" aria-hidden="true">
           <span id="hdr-xp-fill" class="shimmer-bar block h-full rounded-full bg-brand-yellow-dark transition-[width] duration-700 ease-out" style="width: 20%"></span>
         </span>
@@ -104,16 +125,16 @@
       </span>
 
       <span id="hdr-streak" class="inline-flex h-9 items-center gap-1.5 rounded-full bg-streak-orange/10 px-3 text-xs font-bold text-streak-orange sm:text-sm">
-        <span aria-hidden="true">🔥</span><span id="hdr-streak-text">1 dzień</span>
+        <span aria-hidden="true">🔥</span><span id="hdr-streak-text">1 day</span>
       </span>
 
       <!-- Gotowość: widoczna od Ekranu 2 (confidence_score z API, startuje od samooceny) -->
       <div id="hdr-readiness" class="flex basis-full items-center gap-3 md:min-w-[220px] md:flex-1 md:basis-0" hidden>
         <span class="whitespace-nowrap text-xs font-bold sm:text-sm">
-          Gotowość: <span id="hdr-readiness-value" class="tabular-nums">0%</span>
+          <span data-i18n="hdrReadinessLabel">Readiness</span>: <span id="hdr-readiness-value" class="tabular-nums">0%</span>
           <span id="hdr-readiness-delta" class="ml-0.5 text-etf-green tabular-nums" aria-hidden="true" hidden></span>
         </span>
-        <div id="hdr-readiness-bar" class="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-200/80" role="progressbar" aria-label="Gotowość" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div id="hdr-readiness-bar" class="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-200/80" role="progressbar" data-i18n-aria="hdrReadinessAria" aria-label="Readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div id="hdr-readiness-fill" class="shimmer-bar h-full rounded-full bg-gradient-to-r from-etf-green to-emerald-400 transition-[width] duration-700 ease-out" style="width: 0%"></div>
         </div>
       </div>
@@ -126,11 +147,11 @@
     <!-- Ekran 1: Ankieta (docs/01 §7 Ekran 1) -->
     <section id="screen_onboarding" class="screen screen-enter" aria-labelledby="screen_onboarding_title">
       <div class="mb-6 max-w-2xl sm:mb-8">
-        <h1 id="screen_onboarding_title" data-screen-title tabindex="-1" class="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">Zbuduj pewność inwestycyjną w 14 dni. Po 5 minut dziennie.</h1>
-        <p class="mt-3 text-base text-slate-600 sm:text-lg">6 szybkich pytań wytnie zbędną teorię w stylu Speakly i ułoży Twój plan.</p>
+        <h1 id="screen_onboarding_title" data-screen-title data-i18n="onbTitle" tabindex="-1" class="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">Build investing confidence in 14 days. 5 minutes a day.</h1>
+        <p data-i18n="onbSubtitle" class="mt-3 text-base text-slate-600 sm:text-lg">6 quick questions cut out the noise Speakly-style and build your plan.</p>
         <p class="mt-2 flex items-center gap-2 text-sm text-slate-500">
           <i data-lucide="mouse-pointer-click" class="h-4 w-4 shrink-0 text-brand-yellow-dark" aria-hidden="true"></i>
-          <span>Szybki start: wybierz profil w <strong class="font-bold text-brand-dark">Demo Mode</strong> u góry ekranu.</span>
+          <span><span data-i18n="onbQuickStartPre">Quick start: pick a profile in</span> <strong class="font-bold text-brand-dark">Demo Mode</strong> <span data-i18n="onbQuickStartPost">at the top.</span></span>
         </p>
       </div>
 
@@ -140,47 +161,47 @@
           <!-- 1. Wiek -->
           <div class="fq-field" data-field="age">
             <div class="flex items-baseline justify-between gap-3">
-              <label for="f-age" class="fq-q"><span class="fq-q-num">1</span>Wiek</label>
-              <output id="f-age-out" for="f-age" class="text-2xl font-extrabold tabular-nums">35 lat</output>
+              <label for="f-age" class="fq-q"><span class="fq-q-num">1</span><span data-i18n="qAge">Age</span></label>
+              <output id="f-age-out" for="f-age" class="text-2xl font-extrabold tabular-nums">35 years</output>
             </div>
             <input id="f-age" name="age" type="range" min="18" max="70" step="1" value="35" class="fq-range mt-1 w-full" aria-describedby="f-age-group">
-            <span id="f-age-group" class="inline-flex self-start rounded-full bg-brand-dark/5 px-2.5 py-1 text-xs font-bold text-brand-dark">Kariera i Rodzina (30–50)</span>
+            <span id="f-age-group" class="inline-flex self-start rounded-full bg-brand-dark/5 px-2.5 py-1 text-xs font-bold text-brand-dark">Career &amp; Family (30–50)</span>
             <p class="fq-error" data-error-for="age" role="alert" hidden></p>
           </div>
 
           <!-- 2. Zarobki netto -->
           <div class="fq-field" data-field="net_income">
             <div class="flex items-baseline justify-between gap-3">
-              <label for="f-net" class="fq-q"><span class="fq-q-num">2</span>Zarobki netto</label>
-              <output id="f-net-out" for="f-net" class="text-2xl font-extrabold tabular-nums">6 000 zł</output>
+              <label for="f-net" class="fq-q"><span class="fq-q-num">2</span><span data-i18n="qNetIncome">Net income</span></label>
+              <output id="f-net-out" for="f-net" class="text-2xl font-extrabold tabular-nums">6,000 PLN</output>
             </div>
             <input id="f-net" name="net_income" type="range" min="2500" max="25000" step="500" value="6000" class="fq-range mt-1 w-full">
-            <p class="text-xs text-slate-500">miesięcznie, „na rękę”</p>
+            <p data-i18n="qNetIncomeHint" class="text-xs text-slate-500">monthly, take-home</p>
             <p class="fq-error" data-error-for="net_income" role="alert" hidden></p>
           </div>
 
           <!-- 3. Wolne środki -->
           <div class="fq-field" data-field="free_cash">
             <div class="flex items-baseline justify-between gap-3">
-              <label for="f-free" class="fq-q"><span class="fq-q-num">3</span>Wolne środki miesięcznie</label>
-              <output id="f-free-out" for="f-free" class="text-2xl font-extrabold tabular-nums">1 000 zł</output>
+              <label for="f-free" class="fq-q"><span class="fq-q-num">3</span><span data-i18n="qFreeCash">Monthly free cash</span></label>
+              <output id="f-free-out" for="f-free" class="text-2xl font-extrabold tabular-nums">1,000 PLN</output>
             </div>
             <input id="f-free" name="free_cash" type="range" min="200" max="6000" step="100" value="1000" class="fq-range mt-1 w-full" aria-describedby="f-free-hint">
-            <p id="f-free-hint" class="text-xs text-slate-500">maks. <span id="f-free-max" class="tabular-nums">6 000 zł</span> — nie więcej niż zarobki netto</p>
+            <p id="f-free-hint" class="text-xs text-slate-500"><span data-i18n="qFreeCashMaxPrefix">max.</span> <span id="f-free-max" class="tabular-nums">6,000 PLN</span> — <span data-i18n="qFreeCashMaxSuffix">no more than net income</span></p>
             <p class="fq-error" data-error-for="free_cash" role="alert" hidden></p>
           </div>
 
           <!-- 4. Poduszka -->
           <fieldset class="fq-field" data-field="has_emergency_fund">
-            <legend class="fq-q"><span class="fq-q-num">4</span>Poduszka (min. 3 mies. wydatków)</legend>
+            <legend class="fq-q"><span class="fq-q-num">4</span><span data-i18n="qBuffer">Emergency buffer (min. 3 months of expenses)</span></legend>
             <div class="mt-3 grid grid-cols-2 gap-3">
               <label class="block cursor-pointer">
                 <input type="radio" name="has_emergency_fund" value="true" class="sr-only">
-                <span class="fq-tile"><i data-lucide="shield-check" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Tak, mam poduszkę</span>
+                <span class="fq-tile"><i data-lucide="shield-check" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span data-i18n="qBufferYes">Yes, I have a buffer</span></span>
               </label>
               <label class="block cursor-pointer">
                 <input type="radio" name="has_emergency_fund" value="false" class="sr-only">
-                <span class="fq-tile"><i data-lucide="piggy-bank" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Jeszcze ją buduję</span>
+                <span class="fq-tile"><i data-lucide="piggy-bank" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span data-i18n="qBufferNo">Still building it</span></span>
               </label>
             </div>
             <p class="fq-error" data-error-for="has_emergency_fund" role="alert" hidden></p>
@@ -188,23 +209,23 @@
 
           <!-- 5. Główna obawa -->
           <fieldset class="fq-field md:col-span-2" data-field="main_concern">
-            <legend class="fq-q"><span class="fq-q-num">5</span>Czego najbardziej się obawiasz?</legend>
+            <legend class="fq-q"><span class="fq-q-num">5</span><span data-i18n="qConcern">What is your biggest concern?</span></legend>
             <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label class="block cursor-pointer">
                 <input type="radio" name="main_concern" value="freeze_money" class="sr-only">
-                <span class="fq-tile"><i data-lucide="snowflake" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Boję się, że zamrożę pieniądze</span>
+                <span class="fq-tile"><i data-lucide="snowflake" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span data-i18n="concernFreeze">I'm afraid I'll freeze my money</span></span>
               </label>
               <label class="block cursor-pointer">
                 <input type="radio" name="main_concern" value="no_time" class="sr-only">
-                <span class="fq-tile"><i data-lucide="clock" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Nie mam czasu na giełdę</span>
+                <span class="fq-tile"><i data-lucide="clock" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span data-i18n="concernNoTime">I don't have time for the market</span></span>
               </label>
               <label class="block cursor-pointer">
                 <input type="radio" name="main_concern" value="lose_money" class="sr-only">
-                <span class="fq-tile"><i data-lucide="trending-down" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Boję się, że stracę pieniądze</span>
+                <span class="fq-tile"><i data-lucide="trending-down" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span data-i18n="concernLose">I'm afraid I'll lose money</span></span>
               </label>
               <label class="block cursor-pointer">
                 <input type="radio" name="main_concern" value="too_late" class="sr-only">
-                <span class="fq-tile"><i data-lucide="hourglass" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Chyba za późno na start</span>
+                <span class="fq-tile"><i data-lucide="hourglass" class="h-5 w-5 shrink-0" aria-hidden="true"></i><span data-i18n="concernTooLate">Maybe it's too late to start</span></span>
               </label>
             </div>
             <p class="fq-error" data-error-for="main_concern" role="alert" hidden></p>
@@ -212,7 +233,7 @@
 
           <!-- 6. Samoocena pewności -->
           <fieldset class="fq-field md:col-span-2" data-field="self_confidence_start">
-            <legend class="fq-q"><span class="fq-q-num">6</span>Jak pewnie czujesz się na myśl o zainwestowaniu pierwszych pieniędzy?</legend>
+            <legend class="fq-q"><span class="fq-q-num">6</span><span data-i18n="qConfidence">How confident do you feel about investing your first money?</span></legend>
             <div class="mt-3 grid grid-cols-5 gap-2 sm:gap-3">
               <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="1" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">1</span></label>
               <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="2" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">2</span></label>
@@ -220,7 +241,7 @@
               <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="4" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">4</span></label>
               <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="5" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">5</span></label>
             </div>
-            <div class="mt-1.5 flex justify-between text-xs text-slate-500" aria-hidden="true"><span>1 — wcale</span><span>5 — bardzo pewnie</span></div>
+            <div class="mt-1.5 flex justify-between text-xs text-slate-500" aria-hidden="true"><span data-i18n="qConfMin">1 — not at all</span><span data-i18n="qConfMax">5 — very confident</span></div>
             <p class="fq-error" data-error-for="self_confidence_start" role="alert" hidden></p>
           </fieldset>
         </div>
@@ -229,7 +250,7 @@
       <div class="mt-6">
         <button type="button" id="cta-onboarding" data-action="submit-onboarding" class="btn-3d w-full text-base sm:w-auto sm:text-lg">
           <span class="fq-spinner" aria-hidden="true" hidden></span>
-          <span data-label>Ułóż mój 14-dniowy plan Speakly</span>
+          <span data-label data-i18n="ctaOnboarding">Build my 14-day Speakly plan</span>
           <span data-idle-icon class="inline-flex"><i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i></span>
         </button>
       </div>
@@ -237,68 +258,68 @@
 
     <!-- Ekran 2: Mapa 14 dni, Filtr Speakly + mikro-lekcje, podział środków, Wehikuł Czasu (docs/01 §7 Ekran 2) -->
     <section id="screen_filter_and_timemachine" class="screen" aria-labelledby="screen_filter_title" hidden>
-      <h2 id="screen_filter_title" data-screen-title tabindex="-1" class="sr-only">Twój plan Dnia 1: mapa 14 dni, filtr Speakly i Wehikuł Czasu</h2>
+      <h2 id="screen_filter_title" data-screen-title data-i18n="screenFilterTitle" tabindex="-1" class="sr-only">Your Day 1 plan: 14-day map, Speakly filter and Time Machine</h2>
       <div id="plan-intro" class="mb-4 flex flex-wrap items-center gap-2 md:mb-6"></div>
 
       <div class="grid grid-cols-1 gap-4 md:gap-6">
         <!-- Karta A — Mapa 14 dni (roadmap_milestones) -->
-        <div id="card-roadmap" data-slot="Karta A — Mapa 14 dni" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
+        <div id="card-roadmap" data-slot="Card A — 14-day roadmap" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
 
         <!-- Karta B — Filtr Speakly + 3 mikro-lekcje (speakly_filter, micro_lessons) -->
-        <div id="card-speakly" data-slot="Karta B — Filtr Speakly i 3 mikro-lekcje" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
+        <div id="card-speakly" data-slot="Card B — Speakly filter and micro-lessons" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
 
         <!-- Karta C — Przykładowy podział wolnych środków (safe_investment) -->
-        <div id="card-split" data-slot="Karta C — Przykładowy podział wolnych środków" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
+        <div id="card-split" data-slot="Card C — Sample free-cash split" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
 
         <!-- Karta D — Wehikuł Czasu (projection_series, assumptions) -->
         <div id="card-timemachine" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6">
           <div class="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Wehikuł Czasu: gotówka vs szeroki ETF</h3>
-              <p class="text-sm text-slate-500">w dzisiejszych złotych • przykład: <span id="tm-monthly" class="font-bold text-brand-dark tabular-nums">0 zł/mies.</span></p>
+              <h3 data-i18n="tmTitle" class="text-lg font-extrabold tracking-tight sm:text-xl">Time Machine: cash vs broad ETF</h3>
+              <p class="text-sm text-slate-500"><span data-i18n="tmSubtitlePrefix">in today's PLN • example:</span> <span id="tm-monthly" class="font-bold text-brand-dark tabular-nums">0 PLN/mo</span></p>
             </div>
           </div>
 
           <div class="mt-4">
             <div class="flex items-baseline justify-between gap-3">
-              <label for="tm-years" class="text-sm font-bold">Przewiń czas</label>
-              <output id="tm-years-out" for="tm-years" class="text-2xl font-extrabold tabular-nums">15 lat</output>
+              <label for="tm-years" data-i18n="tmSliderLabel" class="text-sm font-bold">Rewind time</label>
+              <output id="tm-years-out" for="tm-years" class="text-2xl font-extrabold tabular-nums">15 years</output>
             </div>
             <input id="tm-years" type="range" min="1" max="20" step="1" value="15" class="fq-range w-full">
-            <div class="flex justify-between text-xs text-slate-400" aria-hidden="true"><span>1 rok</span><span>20 lat</span></div>
+            <div class="flex justify-between text-xs text-slate-400" aria-hidden="true"><span data-i18n="tmMinYear">1 year</span><span data-i18n="tmMaxYear">20 years</span></div>
           </div>
 
           <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div class="rounded-2xl border border-inflation-red/25 bg-inflation-red/5 p-4">
-              <p class="text-xs font-bold leading-snug text-inflation-red">Wpłaty na koncie 0% (realnie, w dzisiejszych zł)</p>
-              <p class="mt-1.5 text-2xl font-extrabold tabular-nums"><span id="kpi-cash">0</span> zł</p>
-              <p class="mt-0.5 text-xs text-slate-500">wpłacono łącznie <span id="kpi-paid" class="tabular-nums">0</span> zł</p>
+              <p data-i18n="kpiCashLabel" class="text-xs font-bold leading-snug text-inflation-red">Contributions in 0% account (real, today's PLN)</p>
+              <p class="mt-1.5 text-2xl font-extrabold tabular-nums"><span id="kpi-cash">0</span> <span data-i18n="currencyUnit">PLN</span></p>
+              <p class="mt-0.5 text-xs text-slate-500"><span data-i18n="kpiPaidPrefix">paid in total</span> <span id="kpi-paid" class="tabular-nums">0</span> <span data-i18n="currencyUnit">PLN</span></p>
             </div>
             <div class="rounded-2xl border border-etf-green/30 bg-etf-green/5 p-4">
-              <p class="text-xs font-bold leading-snug text-emerald-700">Szeroki ETF (realnie, założenia poniżej)</p>
-              <p class="mt-1.5 text-2xl font-extrabold tabular-nums"><span id="kpi-etf">0</span> zł</p>
-              <p class="mt-0.5 text-xs text-slate-500">nominalnie ok. <span id="kpi-etf-nominal" class="tabular-nums">0</span> zł</p>
+              <p data-i18n="kpiEtfLabel" class="text-xs font-bold leading-snug text-emerald-700">Broad ETF (real, assumptions below)</p>
+              <p class="mt-1.5 text-2xl font-extrabold tabular-nums"><span id="kpi-etf">0</span> <span data-i18n="currencyUnit">PLN</span></p>
+              <p class="mt-0.5 text-xs text-slate-500"><span data-i18n="kpiNominalPrefix">nominal approx.</span> <span id="kpi-etf-nominal" class="tabular-nums">0</span> <span data-i18n="currencyUnit">PLN</span></p>
             </div>
             <div class="rounded-2xl border border-brand-yellow/70 bg-brand-yellow/10 p-4">
-              <p class="text-xs font-bold leading-snug text-brand-yellow-dark">Okna historyczne (ilustracyjnie)</p>
-              <p class="mt-1.5 text-sm leading-snug">W ilustracyjnych oknach historycznych <strong id="kpi-win" class="text-2xl font-extrabold tabular-nums">0%</strong> kończyło się dodatnim wynikiem realnym</p>
+              <p data-i18n="kpiWinTitle" class="text-xs font-bold leading-snug text-brand-yellow-dark">Historical windows (illustrative)</p>
+              <p class="mt-1.5 text-sm leading-snug"><span data-i18n="kpiWinPrefix">In illustrative historical windows</span> <strong id="kpi-win" class="text-2xl font-extrabold tabular-nums">0%</strong> <span data-i18n="kpiWinSuffix">ended with a positive real return</span></p>
               <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-brand-yellow/30" aria-hidden="true"><div id="kpi-win-bar" class="h-full rounded-full bg-brand-yellow-dark transition-[width] duration-500" style="width: 0%"></div></div>
-              <p class="mt-1.5 text-[11px] text-slate-500">ilustracyjne dane edukacyjne<span id="kpi-win-source"></span></p>
+              <p class="mt-1.5 text-[11px] text-slate-500"><span data-i18n="kpiWinNote">illustrative educational data</span><span id="kpi-win-source"></span></p>
             </div>
           </div>
 
           <div class="relative mt-5 h-64 sm:h-72 lg:h-80">
-            <canvas id="tm-chart" role="img" aria-label="Wykres: wartość wpłat na koncie 0% i w szerokim ETF w dzisiejszych złotych, ze scenariuszem wahania -20% w roku 3"></canvas>
+            <canvas id="tm-chart" role="img" data-i18n-aria="tmChartAria" aria-label="Chart: value of 0% account contributions and broad ETF in today's PLN, with a -20% dip scenario in year 3"></canvas>
           </div>
           <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-600">
-            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--solid" aria-hidden="true"></span>Szeroki ETF (realnie)</li>
-            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--dashed" aria-hidden="true"></span>Wpłaty na koncie 0% (realnie)</li>
-            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--dotted" aria-hidden="true"></span>Scenariusz wahania -20% w roku 3 (edukacyjny)</li>
+            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--solid" aria-hidden="true"></span><span data-i18n="legendEtf">Broad ETF (real)</span></li>
+            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--dashed" aria-hidden="true"></span><span data-i18n="legendCash">Contributions in 0% account (real)</span></li>
+            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--dotted" aria-hidden="true"></span><span data-i18n="legendStress">-20% dip scenario in year 3 (educational)</span></li>
           </ul>
 
           <div class="mt-4 space-y-1.5 border-t border-slate-100 pt-4 text-xs leading-relaxed text-slate-500">
             <p id="tm-assumptions" class="font-semibold text-slate-600"></p>
-            <p>Symulacja historyczna; wyniki są zmienne i nie gwarantują przyszłych zysków.</p>
+            <p data-i18n="tmSimNote">Historical simulation; results vary and do not guarantee future profits.</p>
             <p id="tm-compliance"></p>
           </div>
         </div>
@@ -306,15 +327,15 @@
 
       <div class="mt-6">
         <button type="button" data-goto="screen_mission_live" class="btn-3d w-full text-base sm:w-auto sm:text-lg">
-          <span data-label>Rozpocznij Symulację Dnia 1 z AI Coachem</span>
+          <span data-label data-i18n="ctaStartMission">Start Day 1 Simulation with AI Coach</span>
           <i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i>
         </button>
       </div>
     </section>
 
-    <!-- Ekran 3: Symulacja wyborów z Luną (3 kroki) -->
+    <!-- Ekran 3: Symulacja wyborów z Corą (3 kroki) -->
     <section id="screen_mission_live" class="screen" aria-labelledby="screen_mission_title" hidden>
-      <h2 id="screen_mission_title" data-screen-title tabindex="-1" class="sr-only">Dzień 1 z 14 — symulacja wyborów z Luną</h2>
+      <h2 id="screen_mission_title" data-screen-title data-i18n="screenMissionTitle" tabindex="-1" class="sr-only">Day 1 of 14 — decision simulation with Cora</h2>
       <div id="mission-root" class="grid grid-cols-1 gap-4 md:gap-6">
 
         <!-- Mini-panel: krok, wartość portfela (nominalnie), zdarzenie -->
@@ -322,9 +343,9 @@
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div class="min-w-0">
               <p class="text-xs font-extrabold uppercase tracking-wider text-brand-yellow sm:text-sm">
-                Dzień <span id="ms-day" class="tabular-nums">1</span> z <span id="ms-total-days" class="tabular-nums">14</span>
-                <span aria-hidden="true">•</span> Symulacja wyborów <span aria-hidden="true">•</span>
-                Krok <span id="ms-step" class="tabular-nums">1</span> z <span id="ms-total-steps" class="tabular-nums">3</span>
+                <span data-i18n="msDayWord">Day</span> <span id="ms-day" class="tabular-nums">1</span> <span data-i18n="hdrDayOf">of</span> <span id="ms-total-days" class="tabular-nums">14</span>
+                <span aria-hidden="true">•</span> <span data-i18n="msSimLabel">Decision Simulation</span> <span aria-hidden="true">•</span>
+                <span data-i18n="msStepWord">Step</span> <span id="ms-step" class="tabular-nums">1</span> <span data-i18n="hdrDayOf">of</span> <span id="ms-total-steps" class="tabular-nums">3</span>
               </p>
               <div id="ms-steps" class="mt-3 flex w-48 max-w-full gap-1.5" aria-hidden="true">
                 <span class="fq-step"></span><span class="fq-step"></span><span class="fq-step"></span>
@@ -334,8 +355,8 @@
               </span>
             </div>
             <div class="sm:text-right">
-              <p class="text-xs font-bold text-white/60">Portfel w symulacji (nominalnie)</p>
-              <p class="mt-0.5 text-3xl font-extrabold sm:text-4xl"><span id="ms-value" class="tabular-nums">0</span>&nbsp;zł</p>
+              <p data-i18n="msPortfolioLabel" class="text-xs font-bold text-white/60">Simulated portfolio (nominal)</p>
+              <p class="mt-0.5 text-3xl font-extrabold sm:text-4xl"><span id="ms-value" class="tabular-nums">0</span>&nbsp;<span data-i18n="currencyUnit">PLN</span></p>
             </div>
           </div>
         </div>
@@ -360,52 +381,54 @@
           </div>
         </div>
 
-        <!-- Karta Luny -->
+        <!-- Karta Cory (ID #ms-luna zachowane dla stabilności referencji) -->
         <div id="ms-luna" class="fq-scroll-anchor rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6">
           <div class="flex items-center gap-3">
             <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-yellow text-brand-dark shadow-md shadow-brand-yellow/40" aria-hidden="true">
               <i data-lucide="sparkles" class="h-6 w-6"></i>
             </span>
-            <p class="font-extrabold leading-tight">Luna <span class="text-slate-400" aria-hidden="true">•</span> <span class="font-semibold text-slate-500">Twój codzienny AI Coach</span></p>
+            <p class="font-extrabold leading-tight">Cora <span class="text-slate-400" aria-hidden="true">•</span> <span data-i18n="coachRole" class="font-semibold text-slate-500">Your daily AI Coach</span></p>
           </div>
           <p id="ms-luna-message" class="mt-4 text-base leading-relaxed sm:text-lg" aria-live="polite"></p>
           <div id="ms-thinking" class="mt-4 inline-flex items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600" role="status" hidden>
             <span class="fq-typing" aria-hidden="true"><span></span><span></span><span></span></span>
-            Luna analizuje Twoją odpowiedź...
+            <span data-i18n="coachAnalyzing">Cora is analyzing your answer...</span>
           </div>
         </div>
 
         <!-- Odpowiedź: 3 karty quick_replies (natychmiast, bez LLM) lub własny tekst -->
         <div id="ms-interaction" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6">
           <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 class="text-lg font-extrabold tracking-tight">Co robisz?</h3>
-            <span class="text-xs font-semibold text-slate-500">Kliknij kartę albo odpowiedz własnymi słowami</span>
+            <h3 data-i18n="msPromptHeading" class="text-lg font-extrabold tracking-tight">What do you do?</h3>
+            <span data-i18n="msPromptHint" class="text-xs font-semibold text-slate-500">Pick a card or answer in your own words</span>
           </div>
           <div id="ms-replies" class="mt-4 grid grid-cols-1 gap-3"></div>
 
           <form id="ms-form" class="mt-5" novalidate>
-            <label for="ms-input" class="sr-only">Własna odpowiedź dla AI Coacha</label>
+            <label for="ms-input" data-i18n="msInputLabel" class="sr-only">Your own answer for AI Coach</label>
             <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
               <textarea id="ms-input" name="user_message" rows="2" maxlength="600"
                 class="fq-textarea min-h-[56px] flex-1"
-                placeholder="Lub napisz AI Coachowi własnymi słowami, co robisz i dlaczego..."></textarea>
+                data-i18n-placeholder="msInputPlaceholder"
+                placeholder="Or tell AI Coach Cora in your own words what you do and why..."></textarea>
               <button type="submit" id="ms-send" class="inline-flex min-h-tap items-center justify-center gap-2 rounded-2xl bg-brand-dark px-5 font-extrabold text-white transition hover:bg-brand-dark/90 disabled:cursor-not-allowed disabled:opacity-50">
                 <span class="fq-spinner fq-spinner--light" hidden></span>
                 <i data-lucide="send" data-idle-icon class="h-4 w-4" aria-hidden="true"></i>
-                <span data-label>Wyślij</span>
+                <span data-label data-i18n="msSend">Send</span>
               </button>
             </div>
             <div class="mt-1.5 flex justify-between gap-3 text-xs text-slate-500">
-              <span>Enter — wyślij, Shift+Enter — nowa linia</span>
+              <span data-i18n="msEnterHint">Enter — send, Shift+Enter — new line</span>
               <span class="tabular-nums" aria-hidden="true"><span id="ms-count">0</span>/600</span>
             </div>
+            <p id="ms-ai-disclaimer" class="fq-ai-disclaimer mt-3" data-i18n="aiDisclaimer">AI Coach Cora can make mistakes. Educational simulation only — not financial advice (MiFID II).</p>
           </form>
         </div>
       </div>
 
       <div class="mt-6">
         <button type="button" id="cta-finish-day" data-goto="screen_checklist" class="btn-3d w-full text-base sm:w-auto sm:text-lg" hidden>
-          <span data-label>Zakończ Dzień 1 i odbierz podsumowanie</span>
+          <span data-label data-i18n="ctaFinishDay">Finish Day 1 and get summary</span>
           <i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i>
         </button>
       </div>
@@ -413,7 +436,7 @@
 
     <!-- Ekran 4: Ukończenie Dnia 1, wyzwanie, ranking, Commerzbank -->
     <section id="screen_checklist" class="screen" aria-labelledby="screen_checklist_title" hidden>
-      <h2 id="screen_checklist_title" data-screen-title tabindex="-1" class="sr-only">Podsumowanie Dnia 1 z 14</h2>
+      <h2 id="screen_checklist_title" data-screen-title data-i18n="screenChecklistTitle" tabindex="-1" class="sr-only">Day 1 of 14 summary</h2>
       <!-- Baner ukończenia Dnia 1 / awansu (.level-pop), Gotowość start -> wynik, samoocena „po" -->
       <div id="card-levelup" class="mb-4 md:mb-6"></div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
@@ -428,7 +451,7 @@
           <div id="card-leaderboard"></div>
         </div>
       </div>
-      <!-- Stopka compliance (docs/01 §7 Ekran 4, pkt 4) -->
+      <!-- Stopka compliance + AI disclaimer (docs/01 §7 Ekran 4, pkt 4) -->
       <footer id="compliance-footer" class="mt-8"></footer>
     </section>
   </main>
@@ -438,8 +461,8 @@
     <div class="absolute inset-0 bg-brand-dark/60 backdrop-blur-sm" data-action="close-modal"></div>
     <div class="screen-enter relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card-bg p-6 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-8">
       <div class="flex items-start justify-between gap-4">
-        <h2 id="modal_bank_order_title" class="text-xl font-extrabold">Przykładowy plan w Commerzbanku</h2>
-        <button type="button" data-action="close-modal" aria-label="Zamknij" class="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-brand-dark">
+        <h2 id="modal_bank_order_title" data-i18n="modalBankTitle" class="text-xl font-extrabold">Sample plan at Commerzbank</h2>
+        <button type="button" data-action="close-modal" data-i18n-aria="closeModalAria" aria-label="Close" class="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-brand-dark">
           <i data-lucide="x" class="h-5 w-5" aria-hidden="true"></i>
         </button>
       </div>
@@ -453,6 +476,6 @@
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
   <script src="/static/vendor/lucide.min.js"></script>
-  <script src="/static/app.js?v=12.1"></script>
+  <script src="/static/app.js?v=13.0"></script>
 </body>
 </html>
