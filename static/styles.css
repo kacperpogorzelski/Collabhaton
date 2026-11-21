@@ -724,6 +724,221 @@ input:checked + .fq-tile .fq-radio-dot {
 }
 
 /* --------------------------------------------------------------------------
+   9b. Fazy sprintu, grywalne Dni 1–4, Checkpoint #1 (Issue #32)
+   -------------------------------------------------------------------------- */
+
+/* Skrót Demo Mode: Jump to Day 4 / Checkpoint #1 */
+.fq-demo-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Faza na mapie 14 dni (Phase 1 / 2 / 3) */
+.fq-phase {
+  border-radius: 1.25rem;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  padding: 1rem;
+}
+.fq-phase[data-phase-state="active"] {
+  border-color: rgba(255, 204, 0, 0.85);
+  background: rgba(255, 204, 0, 0.08);
+}
+.fq-phase[data-phase-state="locked"] {
+  opacity: 0.85;
+}
+.fq-phase-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.fq-phase-title {
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.fq-phase-hint {
+  border-radius: 9999px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #64748B;
+  white-space: nowrap;
+}
+.fq-phase-badge {
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.fq-phase-badge[data-badge-state="available"] {
+  background: var(--fq-brand-dark);
+  color: var(--fq-brand-yellow);
+}
+.fq-phase-badge[data-badge-state="passed"] {
+  background: var(--fq-etf-green);
+  color: #FFFFFF;
+}
+.fq-phase-badge[data-badge-state="locked"] {
+  background: #E2E8F0;
+  color: #475569;
+}
+
+/* Klikalne dni 1–4 na osi sprintu */
+.fq-day-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-inline-size: 2.5rem;
+  min-block-size: 40px;
+  padding: 0 0.625rem;
+  border-radius: 0.875rem;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: #334155;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 120ms ease;
+}
+.fq-day-chip:hover:not([data-state="locked"]) {
+  border-color: rgba(255, 204, 0, 0.95);
+  background: rgba(255, 204, 0, 0.12);
+}
+.fq-day-chip:active:not([data-state="locked"]) {
+  transform: translateY(1px);
+}
+.fq-day-chip:focus-visible {
+  outline: 3px solid var(--fq-brand-yellow-dark);
+  outline-offset: 2px;
+}
+.fq-day-chip[data-state="done"] {
+  border-color: rgba(16, 185, 129, 0.6);
+  background: #ECFDF5;
+  color: #047857;
+}
+.fq-day-chip[data-state="current"] {
+  border-color: var(--fq-brand-dark);
+  background: var(--fq-brand-dark);
+  color: var(--fq-brand-yellow);
+}
+.fq-day-chip[data-state="locked"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Delikatny pasek postępu dni 1–14 (segmentowany) */
+.fq-day-track {
+  display: flex;
+  gap: 2px;
+  width: 100%;
+}
+.fq-day-track span {
+  height: 0.5rem;
+  flex: 1 1 0;
+  border-radius: 9999px;
+  background: #E2E8F0;
+}
+.fq-day-track span[data-state="done"] { background: var(--fq-etf-green); }
+.fq-day-track span[data-state="active"] { background: var(--fq-brand-yellow); }
+.fq-day-track span[data-state="checkpoint"] { background: var(--fq-brand-dark); }
+
+/* Baner feedbacku przy allow_retry (invalid): 0 XP, zostaje na kroku */
+.fq-feedback[data-tone="retry"] {
+  border-color: rgba(244, 63, 94, 0.55);
+  background: #FFF1F2;
+}
+.fq-feedback[data-tone="retry"] .fq-feedback-icon { background: var(--fq-inflation-red); }
+.fq-feedback[data-tone="retry"] [data-tone-icon="good"] { display: none; }
+.fq-feedback[data-tone="retry"] #ms-feedback-title { color: #9F1239; }
+
+/* Checkpoint #1: pytania i odpowiedzi */
+.fq-cp-question {
+  border-radius: 1.25rem;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  padding: 1rem;
+}
+.fq-cp-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  border-radius: 0.875rem;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.fq-cp-option:hover { border-color: rgba(255, 204, 0, 0.9); background: rgba(255, 204, 0, 0.07); }
+.fq-cp-option:has(input:checked) {
+  border-color: var(--fq-brand-dark);
+  background: rgba(0, 46, 60, 0.06);
+}
+.fq-cp-option:has(input:focus-visible) {
+  outline: 3px solid var(--fq-brand-yellow-dark);
+  outline-offset: 2px;
+}
+.fq-cp-option[data-result="correct"] { border-color: rgba(16, 185, 129, 0.65); background: #ECFDF5; }
+.fq-cp-option[data-result="wrong"] { border-color: rgba(244, 63, 94, 0.5); background: #FFF1F2; }
+.fq-cp-key {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: 9999px;
+  background: #F1F5F9;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #475569;
+}
+.fq-cp-option:has(input:checked) .fq-cp-key {
+  background: var(--fq-brand-dark);
+  color: var(--fq-brand-yellow);
+}
+.fq-cp-progress {
+  position: relative;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: #E2E8F0;
+}
+.fq-cp-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 9999px;
+  background: var(--fq-etf-green);
+  transition: width 300ms ease;
+}
+
+/* After Day 14 — Continuous Learning */
+.fq-after14-card {
+  border-radius: 1.25rem;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  padding: 0.875rem;
+}
+.fq-after14-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: rgba(0, 46, 60, 0.08);
+  color: var(--fq-brand-dark);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+
+/* --------------------------------------------------------------------------
    10. Ograniczenie ruchu (prefers-reduced-motion)
    -------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {

@@ -45,8 +45,13 @@
     ONBOARDING: 'screen_onboarding',
     FILTER: 'screen_filter_and_timemachine',
     MISSION: 'screen_mission_live',
+    CHECKPOINT: 'screen_checkpoint',
     CHECKLIST: 'screen_checklist',
   });
+
+  // Dni 1–4 to jedyne grywalne dni sprintu (docs/01 §2); 14 dni to sprint startowy.
+  const PLAYABLE_DAYS = 4;
+  const SPRINT_DAYS = 14;
 
   // Te same wartości co tailwind.config w index.html i :root w styles.css (np. dla Chart.js).
   const COLORS = Object.freeze({
@@ -144,6 +149,8 @@
       currencyUnit: 'PLN',
       ctaStartMission: 'Start Day 1 Simulation with AI Coach',
       screenMissionTitle: 'Day 1 of 14 — decision simulation with Cora',
+      screenMissionTitleDynamic: 'Day {day} of 14 — decision simulation with Cora',
+      screenChecklistTitleDynamic: 'Day {day} of 14 summary',
       msDayWord: 'Day',
       msSimLabel: 'Decision Simulation',
       msStepWord: 'Step',
@@ -192,11 +199,6 @@
         'Could not load the demo profiles. Start the backend: uvicorn backend.main:app --port 8000',
       planIntroHorizon: 'Horizon:',
       planIntroConcern: 'Concern:',
-      roadmapActive: 'Active — Today',
-      roadmapLocked: 'Locked',
-      roadmapDayWord: 'Day',
-      roadmapTitle: '14-day map',
-      roadmapMeta: 'Day {day} of {total} • 5–10 min a day',
       lessonDone: 'Done • +{xp} XP',
       lessonUnderstood: 'Got it! (+{xp} XP)',
       lessonSeconds: '{seconds} sec.',
@@ -231,11 +233,13 @@
       errorRestoreSession: 'Could not restore the session. Go back to the survey and try again.',
       levelBannerLeveled: '🏆 DAY {day} OF {total} COMPLETE! LEVEL UP: {title}',
       levelBannerDone: 'DAY {day} OF {total} COMPLETE',
+      streakNextDay: '🔥 Streak started! See you tomorrow for Day {day}.',
+      streakCheckpoint: '🔥 Day 4 done — take Checkpoint #1 to lock in the foundations.',
+      streakContinuous: '🔥 Foundations locked in — continuous learning starts right after the sprint.',
       pillLevel: 'Level {level}',
       pillMicroXp: '+{xp} XP from micro-lessons',
       pillStreak: '🔥 Streak: {days} {dayWord}',
       missingXp: 'You need <span class="tabular-nums">{xp} XP</span> to reach Level 2 — come back tomorrow!',
-      streakStarted: '🔥 Streak started! See you tomorrow for Day 2.',
       readiness: 'Readiness',
       readinessTo: 'to',
       readinessNote: 'Full readiness comes only on Day 14.',
@@ -247,7 +251,7 @@
       challengeAccepted: '✅ Challenge accepted!',
       challengeAccept: 'I accept the challenge (+{xp} XP)',
       challengeBadge: 'Real micro-challenge • Zero fear',
-      checklistTitle: 'Day 1 checklist',
+      checklistTitleDynamic: 'Day {day} checklist',
       checklistDone: '🎉 Complete! Now take the first step at the bank.',
       bankMicroMove: 'Micro-move:',
       bankOn: 'to',
@@ -264,13 +268,13 @@
       bankEtfReal: 'Broad ETF (real)',
       bankCashReal: 'Contributions in 0% account (real)',
       bankNominal: 'nominal ETF: approx.',
-      bankCta: 'Take the Day 1 step or preview the sample plan at Commerzbank',
+      bankCtaDynamic: 'Take the Day {day} step or preview the sample plan at Commerzbank',
       leaderboardTitle: 'Friends leaderboard',
       leaderboardDemo: 'Sample friends (demo)',
       leaderboardStreakTitle: 'Day streak',
       leaderboardLeveled: '⬆️ Level Up!',
       leaderboardMissing:
-        'You need <span class="tabular-nums">{xp} XP</span> to reach 1st place — come back tomorrow for Day 2!',
+        'You need <span class="tabular-nums">{xp} XP</span> to reach 1st place — keep the streak tomorrow!',
       leaderboardLeading: 'You lead the leaderboard — keep the streak tomorrow!',
       leaderboardChallenge: '⚔️ Challenge a friend',
       friendText:
@@ -294,6 +298,68 @@
       modalTodayStep: 'Step for today',
       modalTargetPlan: 'Sample plan for Day 14:',
       modalTransfer: 'Transfer {amount} to {account}',
+
+      // --- Issue #32: phased timeline, Days 1–4, Checkpoint #1, After Day 14 ---
+      demoShortcutTitle: 'Demo shortcut — jump straight to Day 4 or Checkpoint #1',
+      demoJumpDay4: 'Jump to Day 4',
+      demoCheckpoint: 'Checkpoint #1',
+      roadmapTitlePhases: '14-Day Confidence Sprint — 3 phases',
+      roadmapSprintNote:
+        '14 days is the starter sprint that builds confidence for your first deposits (~5 min/day). After Day 14 continuous learning begins — not a finish line.',
+      roadmapPhase1: 'Phase 1: Days 1–4 · Foundations & First Step',
+      roadmapPhase2: 'Phase 2: Days 5–9 · Risk, Safety & Emotions',
+      roadmapPhase3: 'Phase 3: Days 10–14 · Your Real Plan',
+      roadmapCheckpoint1: 'Checkpoint #1',
+      roadmapCheckpoint2: 'Checkpoint #2',
+      roadmapSprintFinale: 'Sprint finale',
+      roadmapAvailableNow: 'Available now',
+      roadmapCompletedDays: '{done} of 4 days completed',
+      roadmapDayAria: 'Go to Day {day}',
+      roadmapLockedDayAria: 'Day {day} is locked',
+      roadmapDayLabel: 'Day {day}',
+      roadmapPhaseLocked: 'Locked',
+      roadmapAfter14Title: 'After Day 14 — Continuous Learning',
+      roadmapAfter14Note:
+        'The sprint ends on Day 14, but the learning continues: rebalancing, IKE/IKZE, bonds and monthly AI check-ins with Cora.',
+      nextStepTitle: 'Your next step',
+      nextStepDayDone: 'Day {day} completed',
+      nextStepContinue: 'Continue to Day {day}',
+      nextStepContinueHint: 'Day {day} takes ~5 min: new micro-lessons and 2 decisions with Cora.',
+      nextStepCheckpoint: 'Take Checkpoint #1 Quiz',
+      nextStepCheckpointReview: 'Review Checkpoint #1',
+      nextStepCheckpointHint:
+        'A 4-question knowledge check from Days 1–4. Pass at 75% to earn +100 XP and the Foundation Ready badge.',
+      nextStepProgress: 'Days completed: {done} of 4',
+      nextStepReviewMap: 'Review the 14-day map',
+      screenCheckpointTitle: 'Checkpoint #1 — knowledge check',
+      cpIntroTitle: 'Checkpoint #1 — knowledge check',
+      cpIntroBody:
+        'Four quick questions from Days 1–4: inflation, buffer, costs and volatility. It takes about 2 minutes.',
+      cpThreshold: 'Pass threshold: 75% • reward: +100 XP',
+      cpProgress: 'Answered {answered} of {total}',
+      cpQuestion: 'Question {n}',
+      cpSubmit: 'Submit answers',
+      cpSubmitting: 'Checking...',
+      cpIncomplete: 'Answer every question before submitting.',
+      cpEmpty: 'Checkpoint questions are not available yet. Complete Day 4 first.',
+      cpErrorMessage: 'Could not submit the checkpoint. Please try again.',
+      cpCorrectCount: '{correct} of {total} correct',
+      cpPassed: 'Checkpoint #1 passed!',
+      cpFailed: 'Not passed yet — review the explanations and try again.',
+      cpBadgeEarned: 'Badge earned: {badge}',
+      cpReward: 'Bonus: +{xp} XP',
+      cpResultsTitle: 'Answer explanations',
+      cpCorrectAnswer: 'Correct answer: {answer}',
+      cpCorrect: 'Correct',
+      cpIncorrect: 'Not this time',
+      cpRetry: 'Try again',
+      cpBackToSummary: 'Back to the day summary',
+      feedbackRetryTitle: "Let's try again",
+      feedbackZeroXp: '0 XP',
+      ctaFinishDayDynamic: 'Finish Day {day} and get summary',
+      ctaStartMissionDynamic: 'Start Day {day} simulation with AI Coach',
+      dayStartedToast: 'Day {day} unlocked — ~5 min, let’s go!',
+      errorDayStart: 'Could not load that day. Please try again.',
     },
     pl: {
       pageTitle: 'Finance Quest — Commerzbank',
@@ -357,6 +423,8 @@
       currencyUnit: 'zł',
       ctaStartMission: 'Rozpocznij symulację Dnia 1 z AI Coachem',
       screenMissionTitle: 'Dzień 1 z 14 — symulacja decyzji z Corą',
+      screenMissionTitleDynamic: 'Dzień {day} z 14 — symulacja decyzji z Corą',
+      screenChecklistTitleDynamic: 'Podsumowanie Dnia {day} z 14',
       msDayWord: 'Dzień',
       msSimLabel: 'Symulacja wyborów',
       msStepWord: 'Krok',
@@ -405,11 +473,6 @@
         'Nie udało się pobrać profili demo. Uruchom backend: uvicorn backend.main:app --port 8000',
       planIntroHorizon: 'Horyzont:',
       planIntroConcern: 'Obawa:',
-      roadmapActive: 'Aktywny — Dziś',
-      roadmapLocked: 'Zablokowany',
-      roadmapDayWord: 'Dzień',
-      roadmapTitle: 'Mapa 14 dni',
-      roadmapMeta: 'Dzień {day} z {total} • 5–10 min dziennie',
       lessonDone: 'Zaliczone • +{xp} XP',
       lessonUnderstood: 'Rozumiem! (+{xp} XP)',
       lessonSeconds: '{seconds} sek.',
@@ -444,11 +507,13 @@
       errorRestoreSession: 'Nie udało się odtworzyć sesji. Wróć do ankiety i spróbuj ponownie.',
       levelBannerLeveled: '🏆 DZIEŃ {day} Z {total} UKOŃCZONY! AWANS: {title}',
       levelBannerDone: 'DZIEŃ {day} Z {total} UKOŃCZONY',
+      streakNextDay: '🔥 Seria rozpoczęta! Wróć jutro po Dzień {day}.',
+      streakCheckpoint: '🔥 Dzień 4 gotowy — rozwiąż Checkpoint #1, żeby domknąć fundamenty.',
+      streakContinuous: '🔥 Fundamenty domknięte — ciągła nauka zaczyna się zaraz po sprincie.',
       pillLevel: 'Poziom {level}',
       pillMicroXp: '+{xp} XP z mikro-lekcji',
       pillStreak: '🔥 Seria: {days} {dayWord}',
       missingXp: 'Do Poziomu 2 brakuje <span class="tabular-nums">{xp} XP</span> — wróć jutro i nadrób!',
-      streakStarted: '🔥 Seria rozpoczęta! Wróć jutro po Dzień 2.',
       readiness: 'Gotowość',
       readinessTo: 'do',
       readinessNote: 'Pełną gotowość da dopiero Dzień 14.',
@@ -460,7 +525,7 @@
       challengeAccepted: '✅ Wyzwanie przyjęte!',
       challengeAccept: 'Podejmuję wyzwanie (+{xp} XP)',
       challengeBadge: 'Realne mikro-wyzwanie • Zero strachu',
-      checklistTitle: 'Checklista Dnia 1',
+      checklistTitleDynamic: 'Checklista Dnia {day}',
       checklistDone: '🎉 Komplet! Teraz zrób pierwszy krok w banku.',
       bankMicroMove: 'Mikro-ruch:',
       bankOn: 'na',
@@ -477,13 +542,13 @@
       bankEtfReal: 'Szeroki ETF (realnie)',
       bankCashReal: 'Wpłaty na koncie 0% (realnie)',
       bankNominal: 'nominalnie ETF: ok.',
-      bankCta: 'Wykonaj krok Dnia 1 lub zobacz przykładowy plan w Commerzbanku',
+      bankCtaDynamic: 'Wykonaj krok Dnia {day} lub zobacz przykładowy plan w Commerzbanku',
       leaderboardTitle: 'Ranking znajomych',
       leaderboardDemo: 'Przykładowi znajomi (demo)',
       leaderboardStreakTitle: 'Seria dni',
       leaderboardLeveled: '⬆️ Awans!',
       leaderboardMissing:
-        'Do 1. miejsca brakuje Ci <span class="tabular-nums">{xp} XP</span> — wróć jutro po Dzień 2!',
+        'Do 1. miejsca brakuje Ci <span class="tabular-nums">{xp} XP</span> — utrzymaj serię jutro!',
       leaderboardLeading: 'Prowadzisz w rankingu — utrzymaj serię jutro!',
       leaderboardChallenge: '⚔️ Wyzwij znajomego',
       friendText:
@@ -507,6 +572,68 @@
       modalTodayStep: 'Krok na dziś',
       modalTargetPlan: 'Przykładowy plan na Dzień 14:',
       modalTransfer: 'Przelew {amount} na {account}',
+
+      // --- Issue #32: fazy, Dni 1–4, Checkpoint #1, After Day 14 ---
+      demoShortcutTitle: 'Skrót demo — przejdź prosto do Dnia 4 lub Checkpointu #1',
+      demoJumpDay4: 'Skok do Dnia 4',
+      demoCheckpoint: 'Checkpoint #1',
+      roadmapTitlePhases: '14-dniowy Sprint Pewności — 3 fazy',
+      roadmapSprintNote:
+        '14 dni to sprint startowy budujący pewność do pierwszych wpłat (~5 min/dzień). Po Dniu 14 zaczyna się ciągła nauka — to nie meta.',
+      roadmapPhase1: 'Faza 1: Dni 1–4 · Fundamenty i pierwszy krok',
+      roadmapPhase2: 'Faza 2: Dni 5–9 · Ryzyko, bezpieczeństwo i emocje',
+      roadmapPhase3: 'Faza 3: Dni 10–14 · Twój prawdziwy plan',
+      roadmapCheckpoint1: 'Checkpoint #1',
+      roadmapCheckpoint2: 'Checkpoint #2',
+      roadmapSprintFinale: 'Finał sprintu',
+      roadmapAvailableNow: 'Dostępne teraz',
+      roadmapCompletedDays: '{done} z 4 dni ukończonych',
+      roadmapDayAria: 'Przejdź do Dnia {day}',
+      roadmapLockedDayAria: 'Dzień {day} jest zablokowany',
+      roadmapDayLabel: 'Dzień {day}',
+      roadmapPhaseLocked: 'Zablokowane',
+      roadmapAfter14Title: 'After Day 14 — Continuous Learning',
+      roadmapAfter14Note:
+        'Sprint kończy się w Dniu 14, ale nauka trwa dalej: rebalansowanie, IKE/IKZE, obligacje i miesięczne check-iny z Corą.',
+      nextStepTitle: 'Twój następny krok',
+      nextStepDayDone: 'Dzień {day} ukończony',
+      nextStepContinue: 'Przejdź do Dnia {day}',
+      nextStepContinueHint: 'Dzień {day} zajmuje ~5 min: nowe mikro-lekcje i 2 decyzje z Corą.',
+      nextStepCheckpoint: 'Rozwiąż quiz Checkpoint #1',
+      nextStepCheckpointReview: 'Zobacz wynik Checkpointu #1',
+      nextStepCheckpointHint:
+        'Test wiedzy z 4 pytań z Dni 1–4. Próg 75%, +100 XP i odznaka Foundation Ready.',
+      nextStepProgress: 'Ukończone dni: {done} z 4',
+      nextStepReviewMap: 'Zobacz mapę 14 dni',
+      screenCheckpointTitle: 'Checkpoint #1 — test wiedzy',
+      cpIntroTitle: 'Checkpoint #1 — test wiedzy',
+      cpIntroBody:
+        'Cztery szybkie pytania z Dni 1–4: inflacja, poduszka, koszty i wahania. Zajmie około 2 minut.',
+      cpThreshold: 'Próg zaliczenia: 75% • nagroda: +100 XP',
+      cpProgress: 'Odpowiedziano {answered} z {total}',
+      cpQuestion: 'Pytanie {n}',
+      cpSubmit: 'Wyślij odpowiedzi',
+      cpSubmitting: 'Sprawdzam...',
+      cpIncomplete: 'Odpowiedz na wszystkie pytania przed wysłaniem.',
+      cpEmpty: 'Pytania Checkpointu nie są jeszcze dostępne. Najpierw ukończ Dzień 4.',
+      cpErrorMessage: 'Nie udało się wysłać Checkpointu. Spróbuj ponownie.',
+      cpCorrectCount: '{correct} z {total} poprawnych',
+      cpPassed: 'Checkpoint #1 zaliczony!',
+      cpFailed: 'Jeszcze niezaliczony — przejrzyj wyjaśnienia i spróbuj ponownie.',
+      cpBadgeEarned: 'Odznaka: {badge}',
+      cpReward: 'Bonus: +{xp} XP',
+      cpResultsTitle: 'Wyjaśnienia odpowiedzi',
+      cpCorrectAnswer: 'Poprawna odpowiedź: {answer}',
+      cpCorrect: 'Poprawnie',
+      cpIncorrect: 'Tym razem nie',
+      cpRetry: 'Spróbuj ponownie',
+      cpBackToSummary: 'Wróć do podsumowania dnia',
+      feedbackRetryTitle: 'Spróbujmy jeszcze raz',
+      feedbackZeroXp: '0 XP',
+      ctaFinishDayDynamic: 'Zakończ Dzień {day} i zobacz podsumowanie',
+      ctaStartMissionDynamic: 'Rozpocznij symulację Dnia {day} z AI Coachem',
+      dayStartedToast: 'Dzień {day} odblokowany — ~5 min, zaczynamy!',
+      errorDayStart: 'Nie udało się wczytać tego dnia. Spróbuj ponownie.',
     },
   };
 
@@ -572,6 +699,7 @@
     lang: readStoredLang(),   // 'en' (domyślnie) | 'pl' — patrz I18N
     currentScreen: SCREENS.ONBOARDING,
     busy: false,
+    dayBusy: false,          // trwa POST /api/day/start (blokada podwójnego kliku)
     personas: [],            // list[DemoPersona] z GET /api/demo-personas
     activePersonaId: null,
     lastProfile: null,       // ostatni OnboardingRequest (do cichego ponowienia analyze po 404)
@@ -579,6 +707,9 @@
     turn: null,              // ostatni MissionTurnResponse (initial_mission_turn lub tura)
     microLessonBonusXp: 0,   // lokalny bonus z mikro-lekcji (reguła monotonicznego XP)
     completedLessons: new Set(),
+    completedDays: new Set(), // ukończone dni sprintu 1–4 (z turn.completed_days)
+    challenges: { acceptedDays: new Set(), rewards: {} }, // mini-wyzwania per dzień (1–4)
+    checkpoint: { answers: {}, busy: false, result: null, passed: false },
     timeMachine: { year: null, point: null },
     rendered: { xp: null, level: null, readiness: null }, // ostatnio narysowane wartości nagłówka
     mission: {
@@ -678,12 +809,22 @@
 
     // Ekran 4 i modal bankowy
     els.cardLevelup = byId('card-levelup');
+    els.cardNextStep = byId('card-next-step');
     els.cardChallenge = byId('card-challenge');
     els.cardChecklist = byId('card-checklist');
     els.cardBank = byId('card-bank');
     els.cardLeaderboard = byId('card-leaderboard');
+    els.cardAfter14 = byId('card-after14');
     els.complianceFooter = byId('compliance-footer');
     els.bankOrderContent = byId('bank-order-content');
+
+    // Checkpoint #1
+    els.cpHead = byId('checkpoint-head');
+    els.cpForm = byId('checkpoint-form');
+    els.cpQuestions = byId('checkpoint-questions');
+    els.cpSubmit = byId('checkpoint-submit');
+    els.cpResult = byId('checkpoint-result');
+    els.cpAfter14 = byId('checkpoint-after14');
   }
 
   // ------------------------------------------------------------------------
@@ -832,6 +973,49 @@
   }
 
   // ------------------------------------------------------------------------
+  // 3b. Dni sprintu 1–4 (docs/01 §1–§2)
+  // ------------------------------------------------------------------------
+
+  // Bieżący dzień: tura misji > sesja (OnboardingResponse.current_day) > 1.
+  function currentDay() {
+    const fromTurn = state.turn && Number(state.turn.day);
+    if (fromTurn >= 1 && fromTurn <= PLAYABLE_DAYS) return fromTurn;
+    const fromSession = state.session && Number(state.session.current_day);
+    if (fromSession >= 1 && fromSession <= PLAYABLE_DAYS) return fromSession;
+    return 1;
+  }
+
+  function totalDays() {
+    return (state.session && Number(state.session.total_program_days)) || SPRINT_DAYS;
+  }
+
+  // Ukończone dni: lokalny zbiór + turn.completed_days (źródło prawdy z backendu).
+  function completedDaySet() {
+    const days = new Set(state.completedDays);
+    ((state.turn && state.turn.completed_days) || []).forEach((day) => {
+      const n = Number(day);
+      if (n >= 1 && n <= PLAYABLE_DAYS) days.add(n);
+    });
+    return days;
+  }
+
+  function isDayUnlocked(day) {
+    const n = Number(day);
+    if (!(n >= 1 && n <= PLAYABLE_DAYS)) return false;
+    if (n === 1) return true;
+    const done = completedDaySet();
+    return done.has(n) || done.has(n - 1) || n <= currentDay();
+  }
+
+  // Nagłówek pokazuje Dzień z sesji — po /api/day/start i po turze synchronizujemy oba źródła.
+  function syncSessionDay(day) {
+    const n = Number(day);
+    if (!(n >= 1 && n <= PLAYABLE_DAYS)) return;
+    if (state.session) state.session.current_day = n;
+    if (state.turn) state.turn = Object.assign({}, state.turn, { day: n });
+  }
+
+  // ------------------------------------------------------------------------
   // 4. API
   // ------------------------------------------------------------------------
 
@@ -879,12 +1063,22 @@
     missionTurn: (payload) =>
       apiRequest('/api/mission/turn', {
         method: 'POST',
-        body: Object.assign({}, payload, { lang: state.lang }),
+        body: Object.assign({ day: currentDay() }, payload, { lang: state.lang }),
       }),
-    acceptChallenge: (sessionId) =>
+    dayStart: (sessionId, day) =>
+      apiRequest('/api/day/start', {
+        method: 'POST',
+        body: { session_id: sessionId, day, lang: state.lang },
+      }),
+    acceptChallenge: (sessionId, day) =>
       apiRequest('/api/challenge/accept', {
         method: 'POST',
-        body: { session_id: sessionId, lang: state.lang },
+        body: { session_id: sessionId, day: day || currentDay(), lang: state.lang },
+      }),
+    checkpointSubmit: (sessionId, answers) =>
+      apiRequest('/api/checkpoint/submit', {
+        method: 'POST',
+        body: { session_id: sessionId, answers: answers || {}, lang: state.lang },
       }),
   };
 
@@ -927,12 +1121,17 @@
     if (!state.lastProfile) return Promise.reject(new ApiError(404, null, 'http'));
     if (!state.mission.restoring) {
       const profile = state.lastProfile;
+      const day = currentDay();
       const log = state.mission.log.slice();
       const token = state.mission.token;
       state.mission.restoring = (async () => {
         const data = await api.analyze(profile);
+        if (day > 1) {
+          await api.dayStart(data.session_id, day);
+          data.current_day = day;
+        }
         for (const entry of log) {
-          await api.missionTurn(Object.assign({ session_id: data.session_id }, entry));
+          await api.missionTurn(Object.assign({ session_id: data.session_id, day }, entry));
         }
         // W międzyczasie nowa analiza (np. Demo Mode)? Wtedy nie nadpisujemy jej sesji.
         if (token === state.mission.token) state.session = data;
@@ -961,6 +1160,15 @@
   // 5. Stały nagłówek (docs/01 §6)
   // ------------------------------------------------------------------------
 
+  // Tytuł poziomu zawsze w języku UI (backendowy tytuł bywa w języku startowym sesji).
+  function levelTitleFor(level, fallback) {
+    const n = Number(level) || 1;
+    if (n >= 3) return t('levelSteady');
+    if (n === 2) return t('levelConfident');
+    if (n === 1) return t('levelObserver');
+    return fallback || '';
+  }
+
   function currentGamification() {
     return (state.turn && state.turn.gamification) || defaultGamification();
   }
@@ -987,7 +1195,7 @@
     // Poziom: ⭐ Poz. 1: Observer (XP) -> 🏆 Poz. 2+: Confident Start / Steady Builder
     els.levelIcon.textContent = g.level >= 2 ? '🏆' : '⭐';
     els.levelNum.textContent = g.level;
-    els.levelTitle.textContent = g.level_title;
+    els.levelTitle.textContent = levelTitleFor(g.level, g.level_title);
     if (animate && prev.level != null && g.level > prev.level) {
       replayClass(els.level, 'level-pop');
     }
@@ -1095,6 +1303,8 @@
       await analyzeProfile(state.lastProfile);
     } else if (state.currentScreen === SCREENS.MISSION && state.turn) {
       renderMission({ animate: false });
+    } else if (state.currentScreen === SCREENS.CHECKPOINT) {
+      renderCheckpoint();
     } else if (state.currentScreen === SCREENS.CHECKLIST && state.turn) {
       renderSummary({ animate: false });
     }
@@ -1120,6 +1330,9 @@
     state.lastProfile = null;
     state.microLessonBonusXp = 0;
     state.completedLessons = new Set();
+    state.completedDays = new Set();
+    state.challenges = { acceptedDays: new Set(), rewards: {} };
+    state.checkpoint = { answers: {}, busy: false, result: null, passed: false };
     state.timeMachine = { year: null, point: null };
     resetHeaderBaseline();
     resetMission();
@@ -1139,6 +1352,13 @@
     syncFormOutputs();
     renderPersonaPills();
     renderHeader({ animate: false });
+    if (els.cpHead) els.cpHead.innerHTML = '';
+    if (els.cpQuestions) els.cpQuestions.innerHTML = '';
+    if (els.cpResult) {
+      els.cpResult.hidden = true;
+      els.cpResult.innerHTML = '';
+    }
+    if (els.cpAfter14) els.cpAfter14.innerHTML = '';
     showScreen(SCREENS.ONBOARDING);
   }
 
@@ -1147,6 +1367,9 @@
   // ------------------------------------------------------------------------
 
   function showScreen(id) {
+    if (id === SCREENS.CHECKLIST && !summaryTurn()) {
+      id = state.session ? SCREENS.FILTER : SCREENS.ONBOARDING;
+    }
     const target = document.getElementById(id);
     if (!target || !target.classList.contains('screen')) return;
     state.currentScreen = id;
@@ -1160,6 +1383,14 @@
     const title = target.querySelector('[data-screen-title]');
     if (title) title.focus({ preventScroll: true });
     renderHeader();
+    if (id === SCREENS.FILTER && state.session) {
+      // Powrót na mapę: odśwież fazy, ukończone dni i lekcje bieżącego dnia (bez resetu suwaka).
+      renderRoadmap(state.session.roadmap_milestones, state.session.current_day, state.session.total_program_days);
+      renderLessons(state.session.micro_lessons);
+      syncFilterCta();
+      refreshIcons();
+    }
+    if (id === SCREENS.CHECKPOINT) renderCheckpoint();
     if (id === SCREENS.CHECKLIST) renderSummary({ animate: true });
   }
 
@@ -1365,6 +1596,9 @@
     state.turn = data.initial_mission_turn;
     state.microLessonBonusXp = 0;
     state.completedLessons = new Set();
+    state.completedDays = new Set();
+    state.challenges = { acceptedDays: new Set(), rewards: {} };
+    state.checkpoint = { answers: {}, busy: false, result: null, passed: false };
     state.timeMachine = { year: null, point: null };
     resetHeaderBaseline();
     resetMission();
@@ -1374,6 +1608,14 @@
   // Wynik tury misji — nagłówek animuje wzrost XP i Gotowości, Ekran 3 pokazuje kolejny krok.
   function applyMissionTurn(turn) {
     state.turn = turn;
+    if (turn && turn.day) syncSessionDay(turn.day);
+    if (turn && turn.mission_completed) {
+      (turn.completed_days || []).forEach((day) => {
+        const n = Number(day);
+        if (n >= 1 && n <= PLAYABLE_DAYS) state.completedDays.add(n);
+      });
+      if (turn.day) state.completedDays.add(Number(turn.day));
+    }
     renderHeader();
     renderMission();
     if (turn.mission_completed) renderSummary({ animate: false });
@@ -1457,7 +1699,17 @@
     renderSpeakly(data.speakly_filter, data.micro_lessons);
     renderSplit(data.safe_investment);
     setupTimeMachine(data);
+    syncFilterCta();
     refreshIcons();
+  }
+
+  // CTA Ekranu 2 pokazuje bieżący dzień sprintu (Dni 1–4).
+  function syncFilterCta() {
+    const btn = document.querySelector('[data-goto="screen_mission_live"]');
+    if (!btn) return;
+    const label = btn.querySelector('[data-label]');
+    if (label) label.textContent = t('ctaStartMissionDynamic', { day: currentDay() });
+    btn.disabled = !state.session;
   }
 
   function chip(icon, text, tone) {
@@ -1482,42 +1734,154 @@
     ].join('');
   }
 
-  // Karta A — oś 4 kamieni milowych (Dzień 1 aktywny, 4/9/14 zablokowane).
-  function renderRoadmap(milestones, currentDay, totalDays) {
-    const total = totalDays || 14;
-    const today = currentDay || 1;
-    const milestoneDays = new Set((milestones || []).map((m) => m.day));
+  // Grupowanie kamieni milowych w 3 fazy (m.phase z backendu; fallback po numerze dnia).
+  function phaseGroups(milestones) {
+    const list = milestones || [];
+    const groups = [];
+    list.forEach((m) => {
+      const key = m.phase || '';
+      let group = groups.find((g) => g.key === key);
+      if (!group) {
+        group = { key, items: [] };
+        groups.push(group);
+      }
+      group.items.push(m);
+    });
+    if (groups.length === 1 && groups[0].items.length > 1) {
+      const split = [
+        { key: 'fallback-1', items: groups[0].items.filter((m) => Number(m.day) <= 4) },
+        { key: 'fallback-2', items: groups[0].items.filter((m) => Number(m.day) > 4 && Number(m.day) <= 9) },
+        { key: 'fallback-3', items: groups[0].items.filter((m) => Number(m.day) > 9) },
+      ].filter((g) => g.items.length > 0);
+      if (split.length > 1) return split;
+    }
+    return groups;
+  }
+
+  const PHASE_FALLBACK_KEYS = Object.freeze(['roadmapPhase1', 'roadmapPhase2', 'roadmapPhase3']);
+
+  function phaseLabel(group, index) {
+    if (group.key) return group.key;
+    return t(PHASE_FALLBACK_KEYS[Math.min(index, PHASE_FALLBACK_KEYS.length - 1)]);
+  }
+
+  function checkpointBadgeHtml(index) {
+    if (index === 0) {
+      const passed = completedDaySet().has(4) || !!state.checkpoint.passed;
+      return '<span class="fq-phase-badge" data-badge-state="' + (passed ? 'passed' : 'available') + '">' +
+        escapeHtml(t('roadmapCheckpoint1')) + '</span>';
+    }
+    if (index === 1) {
+      return '<span class="fq-phase-badge" data-badge-state="locked">' + escapeHtml(t('roadmapCheckpoint2')) + '</span>';
+    }
+    return '<span class="fq-phase-badge" data-badge-state="locked">' + escapeHtml(t('roadmapSprintFinale')) + '</span>';
+  }
+
+  function dayChipHtml(day) {
+    const n = Number(day);
+    const done = completedDaySet();
+    const playable = n >= 1 && n <= PLAYABLE_DAYS;
+    const unlocked = playable && isDayUnlocked(n);
+    const isCurrent = playable && n === currentDay();
+    const stateAttr = done.has(n) ? 'done' : isCurrent ? 'current' : unlocked ? 'available' : 'locked';
+    const label = t('roadmapDayLabel', { day: n });
+    const desc = unlocked ? t('roadmapDayAria', { day: n }) : t('roadmapLockedDayAria', { day: n });
+    const mark = done.has(n) ? '<span aria-hidden="true">✓</span>' : '';
+    if (!unlocked) {
+      return '<span class="fq-day-chip" data-state="locked" aria-label="' + escapeHtml(desc) + '" aria-disabled="true">' +
+        label + '</span>';
+    }
+    return '<button type="button" class="fq-day-chip" data-state="' + stateAttr + '" data-action="start-day" data-day="' + n + '" ' +
+      'aria-label="' + escapeHtml(desc) + '">' + mark + label + '</button>';
+  }
+
+  // Karta A — 14-Day Confidence Sprint w 3 fazach (docs/01 §2 pkt 2, §7 Ekran 2).
+  function renderRoadmap(milestones, currentDayValue, totalDaysValue) {
+    const total = totalDaysValue || SPRINT_DAYS;
+    const today = currentDayValue || currentDay();
+    const done = completedDaySet();
+    const milestoneDays = new Set((milestones || []).map((m) => Number(m.day)));
+    const groups = phaseGroups(milestones);
 
     const track = Array.from({ length: total }, (_, i) => {
       const day = i + 1;
-      const cls = day <= today ? 'bg-brand-yellow' : milestoneDays.has(day) ? 'bg-slate-400' : 'bg-slate-200';
-      return '<span class="h-2 flex-1 rounded-full ' + cls + '"></span>';
+      const cls = done.has(day) ? 'done' : day === today ? 'active' : milestoneDays.has(day) ? 'checkpoint' : '';
+      return '<span data-state="' + cls + '"></span>';
     }).join('');
 
-    const cards = (milestones || []).map((m) => {
-      const active = m.status === 'active';
-      const badge = active
-        ? '<span class="whitespace-nowrap rounded-full bg-brand-yellow px-2 py-0.5 text-[11px] font-extrabold text-brand-dark">' + escapeHtml(t('roadmapActive')) + '</span>'
-        : '<span class="inline-flex items-center gap-1 text-xs font-bold text-slate-400"><span aria-hidden="true">🔒</span><span class="sr-only">' + escapeHtml(t('roadmapLocked')) + '</span></span>';
-      return (
-        '<li class="rounded-2xl p-4 ' + (active ? 'border-2 border-brand-yellow bg-brand-yellow/10' : 'border border-slate-200 bg-slate-50') + '">' +
-          '<div class="flex flex-wrap items-center justify-between gap-1.5">' +
-            '<span class="whitespace-nowrap text-xs font-extrabold uppercase tracking-wider ' + (active ? 'text-brand-dark' : 'text-slate-500') + '">' + escapeHtml(t('roadmapDayWord')) + ' ' + escapeHtml(m.day) + '</span>' +
-            badge +
-          '</div>' +
-          '<p class="mt-2 font-extrabold leading-snug ' + (active ? 'text-brand-dark' : 'text-slate-600') + '">' + escapeHtml(m.title) + '</p>' +
-          '<p class="mt-1 text-xs leading-snug ' + (active ? 'text-slate-700' : 'text-slate-500') + '">' + escapeHtml(m.focus) + '</p>' +
+    const phases = groups.map((group, index) => {
+      const active = index === 0;
+      const items = group.items.map((m) =>
+        '<li class="flex items-start gap-2 text-sm">' +
+          '<span class="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px] font-extrabold text-brand-dark ring-1 ring-slate-200" aria-hidden="true">' + escapeHtml(m.day) + '</span>' +
+          '<span class="min-w-0"><span class="block font-extrabold leading-snug">' + escapeHtml(m.title) + '</span>' +
+          '<span class="mt-0.5 block text-xs leading-snug text-slate-500">' + escapeHtml(m.focus) + '</span></span>' +
         '</li>'
+      ).join('');
+      const hint = (group.items[0] && group.items[0].duration_hint) || '~5 min/day';
+      // Phase 1 pokazuje wszystkie grywalne dni 1–4 (także te bez kamienia milowego).
+      const chipDays = index === 0
+        ? Array.from({ length: PLAYABLE_DAYS }, (_, i) => i + 1)
+        : group.items.map((m) => Number(m.day));
+      const chips = chipDays.map((day) => dayChipHtml(day)).join('');
+      return (
+        '<section class="fq-phase" data-phase-state="' + (active ? 'active' : 'locked') + '">' +
+          '<div class="fq-phase-head">' +
+            '<span class="fq-phase-title">' + escapeHtml(phaseLabel(group, index)) + '</span>' +
+            '<span class="fq-phase-hint">' + escapeHtml(hint) + '</span>' +
+            checkpointBadgeHtml(index) +
+          '</div>' +
+          '<p class="mt-1 text-[11px] font-bold uppercase tracking-wider ' + (active ? 'text-brand-yellow-dark' : 'text-slate-400') + '">' +
+            escapeHtml(active ? t('roadmapAvailableNow') : t('roadmapPhaseLocked')) + '</p>' +
+          '<div class="mt-3 flex flex-wrap gap-2">' + chips + '</div>' +
+          '<ul class="mt-3 space-y-2">' + items + '</ul>' +
+        '</section>'
       );
     }).join('');
 
     els.cardRoadmap.innerHTML =
       '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-        '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('roadmapTitle')) + '</h3>' +
-        '<span class="text-xs font-bold text-slate-500">' + escapeHtml(t('roadmapMeta', { day: today, total })) + '</span>' +
+        '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('roadmapTitlePhases')) + '</h3>' +
+        '<span class="text-xs font-bold text-slate-500">' + escapeHtml(t('roadmapCompletedDays', { done: done.size })) + '</span>' +
       '</div>' +
-      '<div class="mt-3 flex items-center gap-1" aria-hidden="true">' + track + '</div>' +
-      '<ol class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">' + cards + '</ol>';
+      '<div class="mt-3 fq-day-track" aria-hidden="true">' + track + '</div>' +
+      '<p class="mt-2 text-xs leading-relaxed text-slate-500">' + escapeHtml(t('roadmapSprintNote')) + '</p>' +
+      '<div class="mt-4 space-y-3">' + phases + '</div>' +
+      after14Html(state.session && state.session.post_14_paths, { compact: true });
+  }
+
+  // Krótki podgląd After Day 14 (pod mapą oraz jako sekcja na Ekranie 4 / po Checkpoincie).
+  function after14Html(paths, options) {
+    const list = paths || [];
+    if (!list.length) return '';
+    const compact = !!(options && options.compact);
+    const cards = list.map((path) =>
+      '<li class="fq-after14-card">' +
+        '<div class="flex flex-wrap items-center gap-2">' +
+          '<span class="fq-after14-badge">' + escapeHtml(path.badge || '') + '</span>' +
+          '<span class="text-xs font-bold text-slate-500">' + escapeHtml(path.cadence || '') + '</span>' +
+        '</div>' +
+        '<p class="mt-1.5 font-extrabold leading-snug">' + escapeHtml(path.title) + '</p>' +
+        '<p class="mt-1 text-sm leading-snug text-slate-600">' + escapeHtml(path.description) + '</p>' +
+      '</li>'
+    ).join('');
+    return (
+      '<section class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4" data-after14>' +
+        '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
+          '<h4 class="font-extrabold tracking-tight">' + escapeHtml(t('roadmapAfter14Title')) + '</h4>' +
+          (compact ? '<span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">' + escapeHtml(t('roadmapSprintFinale')) + '</span>' : '') +
+        '</div>' +
+        '<p class="mt-1 text-xs leading-relaxed text-slate-600">' + escapeHtml(t('roadmapAfter14Note')) + '</p>' +
+        '<ul class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">' + cards + '</ul>' +
+      '</section>'
+    );
+  }
+
+  // Wstawia podgląd After Day 14 do kontenera (Ekran 4 / wynik Checkpointu).
+  function renderAfter14(target, paths) {
+    if (!target) return;
+    const list = paths || (state.session && state.session.post_14_paths) || [];
+    target.innerHTML = after14Html(list);
   }
 
   function renderLessonCard(lesson, done) {
@@ -1851,7 +2215,8 @@
   function clearSummary() {
     const modal = document.getElementById('modal_bank_order');
     if (modal && !modal.hidden) closeModal('modal_bank_order');
-    [els.cardLevelup, els.cardChallenge, els.cardChecklist, els.cardBank, els.cardLeaderboard, els.complianceFooter, els.bankOrderContent]
+    [els.cardLevelup, els.cardNextStep, els.cardChallenge, els.cardChecklist, els.cardBank,
+      els.cardLeaderboard, els.cardAfter14, els.complianceFooter, els.bankOrderContent]
       .forEach((el) => { if (el) el.innerHTML = ''; });
   }
 
@@ -1866,11 +2231,14 @@
 
     // Mini-panel: Dzień X z 14 • Symulacja wyborów • Krok N z 3
     els.msDay.textContent = s ? s.current_day : 1;
+    const screenTitle = document.getElementById('screen_mission_title');
+    if (screenTitle) screenTitle.textContent = t('screenMissionTitleDynamic', { day: s ? s.current_day || 1 : 1 });
     els.msTotalDays.textContent = s ? s.total_program_days : 14;
     els.msStep.textContent = step;
     els.msTotalSteps.textContent = total;
     Array.from(els.msSteps.children).forEach((bar, i) => {
       const n = i + 1;
+      bar.hidden = n > total;
       bar.dataset.state = completed || n < step ? 'done' : n === step ? 'current' : 'todo';
     });
     const portfolio = turn.portfolio_status || { simulated_value: 0, event_badge: '' };
@@ -1887,10 +2255,12 @@
     els.msLunaMessage.textContent = turn.luna_message || '';
     if (animate) replayClass(els.msLuna, 'screen-enter');
 
-    // Po Kroku 3 znikają karty i pole tekstowe, pojawia się CTA na Ekran 4.
+    // Po ostatnim kroku dnia znikają karty i pole tekstowe, pojawia się CTA na Ekran 4.
     renderQuickReplies(completed ? [] : turn.quick_replies || []);
     els.msInteraction.hidden = completed;
     els.ctaFinishDay.hidden = !completed;
+    const ctaLabel = els.ctaFinishDay.querySelector('[data-label]');
+    if (ctaLabel) ctaLabel.textContent = t('ctaFinishDayDynamic', { day: s ? s.current_day || 1 : 1 });
     refreshIcons();
   }
 
@@ -1899,27 +2269,32 @@
     return value.length > ANSWER_PREVIEW_MAX ? value.slice(0, ANSWER_PREVIEW_MAX - 1).trimEnd() + '…' : value;
   }
 
-  // Karta feedbacku: zielona przy is_optimal_choice === true, ciepły bursztyn przy false.
+  // Karta feedbacku: zielona (optimal), ciepły bursztyn (partial), czerwień + 0 XP (allow_retry).
   function renderMissionFeedback(turn, animate) {
-    const visible = turn.is_optimal_choice != null && !!turn.understanding_feedback;
+    const retry = turn.allow_retry === true || turn.answer_quality === 'invalid';
+    const visible = (turn.is_optimal_choice != null || retry) && !!turn.understanding_feedback;
     els.msFeedback.hidden = !visible;
     if (!visible) return;
     const good = turn.is_optimal_choice === true;
     const g = turn.gamification || defaultGamification();
-    els.msFeedback.dataset.tone = good ? 'good' : 'warm';
-    els.msFeedbackTitle.textContent = good ? t('feedbackGood') : t('feedbackTip');
+    els.msFeedback.dataset.tone = retry ? 'retry' : good ? 'good' : 'warm';
+    els.msFeedbackTitle.textContent = retry
+      ? t('feedbackRetryTitle')
+      : good ? t('feedbackGood') : t('feedbackTip');
     const answer = state.mission.lastAnswer;
     els.msFeedbackAnswer.hidden = !answer;
     els.msFeedbackAnswer.textContent = answer
       ? t('feedbackAnswer', { answer: shortAnswer(answer) })
       : '';
     els.msFeedbackText.textContent = turn.understanding_feedback;
-    els.msFeedbackXp.textContent = '+' + (g.xp_gained || 0) + NBSP + 'XP';
+    els.msFeedbackXp.textContent = retry
+      ? t('feedbackZeroXp')
+      : '+' + (g.xp_gained || 0) + NBSP + 'XP';
     const delta = Number(turn.confidence_delta) || 0;
     els.msFeedbackReadiness.hidden = delta <= 0;
     els.msFeedbackReadiness.textContent = t('feedbackReadiness', { delta });
     els.msFeedbackLevel.hidden = !g.leveled_up;
-    els.msFeedbackLevel.textContent = t('feedbackLevel', { level: g.level, title: g.level_title });
+    els.msFeedbackLevel.textContent = t('feedbackLevel', { level: g.level, title: levelTitleFor(g.level, g.level_title) });
     if (animate) replayClass(els.msFeedback, 'screen-enter');
   }
 
@@ -2007,18 +2382,26 @@
         api.missionTurn(Object.assign({ session_id: sessionId }, payload))
       );
       if (token !== m.token) return false; // w międzyczasie nowa analiza — odpowiedź starej sesji
-      m.log.push(payload);
+      // Rygorystyczna ocena: invalid/allow_retry nie przechodzi dalej, 0 XP i brak konfetti.
+      const retry = turn.allow_retry === true || turn.answer_quality === 'invalid';
       m.lastAnswer = text;
-      if (!quickReplyId) {
+      if (!retry) {
+        m.log.push(payload);
         els.msInput.value = '';
         syncMissionCounter();
       }
       setMissionBusy(false);
       applyMissionTurn(turn);
-      if (turn.trigger_confetti === true) fireConfetti('micro');
-      revealMissionResult();
-      if (turn.mission_completed) els.ctaFinishDay.focus({ preventScroll: true });
-      return true;
+      if (!retry && turn.trigger_confetti === true) fireConfetti('micro');
+      if (retry) {
+        // Pole tekstowe i karty zostają aktywne — użytkownik poprawia odpowiedź.
+        revealElement(els.msFeedback);
+        if (!quickReplyId) els.msInput.focus();
+      } else {
+        revealMissionResult();
+      }
+      if (!retry && turn.mission_completed) els.ctaFinishDay.focus({ preventScroll: true });
+      return !retry;
     } catch (err) {
       if (token === m.token) {
         setMissionBusy(false);
@@ -2047,7 +2430,307 @@
   }
 
   // ------------------------------------------------------------------------
-  // 11. Ekran 4 — ukończenie Dnia 1, wyzwanie, checklista, plan, ranking (docs/01 §7 Ekran 4)
+  // 10b. Dni 1–4 (POST /api/day/start), skrót Demo Mode i Checkpoint #1
+  // ------------------------------------------------------------------------
+
+  // Skok do wybranego dnia: ładuje mikro-lekcje dnia + Krok 1, zachowuje XP i Gotowość.
+  async function startDay(day) {
+    const target = Number(day);
+    if (!(target >= 1 && target <= PLAYABLE_DAYS)) return false;
+    if (!state.session || state.mission.busy || state.dayBusy) return false;
+    state.dayBusy = true;
+    const token = state.mission.token;
+    try {
+      const data = await withSessionRecovery((sessionId) => api.dayStart(sessionId, target));
+      if (token !== state.mission.token) return false;
+      state.session.current_day = data.day;
+      if (Array.isArray(data.micro_lessons) && data.micro_lessons.length) {
+        state.session.micro_lessons = data.micro_lessons;
+      }
+      state.turn = data.initial_mission_turn;
+      state.summary = freshSummary();
+      state.checkpoint = { answers: {}, busy: false, result: null, passed: state.checkpoint.passed };
+      state.mission.log = [];
+      state.mission.lastAnswer = null;
+      state.mission.renderedValue = 0;
+      if (els.msInput) els.msInput.value = '';
+      syncMissionCounter();
+      clearSummary();
+      resetHeaderBaseline();
+      renderHeader({ animate: false });
+      renderMission({ animate: true });
+      showScreen(SCREENS.MISSION);
+      showToast(t('dayStartedToast', { day: data.day }), 'info', 2000);
+      return true;
+    } catch (err) {
+      showToast(t('errorDayStart'), 'warn');
+      return false;
+    } finally {
+      state.dayBusy = false;
+    }
+  }
+
+  // Demo Mode: jeśli nie ma sesji, najpierw analiza domyślnej persony `young_20`.
+  const DEFAULT_DEMO_PROFILE = Object.freeze({
+    age: 22,
+    net_income: 4500,
+    free_cash: 1000,
+    has_emergency_fund: false,
+    main_concern: 'freeze_money',
+    self_confidence_start: 2,
+  });
+
+  async function ensureDemoSession() {
+    if (state.session) return true;
+    if (state.busy) return false;
+    let persona = findPersona('young_20');
+    if (!persona) {
+      await loadPersonas();
+      persona = findPersona('young_20');
+    }
+    const profile = persona ? profileFromPersona(persona) : Object.assign({}, DEFAULT_DEMO_PROFILE);
+    if (persona) {
+      state.activePersonaId = persona.id;
+      renderPersonaPills();
+      fillOnboardingForm(profile);
+    }
+    const data = await analyzeProfile(profile);
+    return !!data;
+  }
+
+  async function demoJumpToDay(day) {
+    if (!(await ensureDemoSession())) return;
+    await startDay(Number(day) || PLAYABLE_DAYS);
+  }
+
+  async function demoOpenCheckpoint() {
+    if (!(await ensureDemoSession())) return;
+    showScreen(SCREENS.CHECKPOINT);
+  }
+
+  // Aktualizacja XP/poziomu po odpowiedzi serwera (wyzwanie, Checkpoint #1).
+  function applyServerXp(xp, leveledUp) {
+    const prev = currentGamification();
+    const total = Number(xp);
+    const next = Object.assign({}, prev, levelForXp(Number.isFinite(total) ? total : prev.xp), {
+      xp: Number.isFinite(total) ? total : prev.xp,
+      leveled_up: !!leveledUp,
+    });
+    if (state.turn) state.turn = Object.assign({}, state.turn, { gamification: next });
+    renderHeader();
+  }
+
+  function checkpointQuestions() {
+    return (state.session && state.session.checkpoint_questions) || [];
+  }
+
+  function checkpointAnsweredCount() {
+    const answers = state.checkpoint.answers || {};
+    return checkpointQuestions().filter((q) => !!answers[q.id]).length;
+  }
+
+  function cpQuestionIndex(question) {
+    const id = question.id;
+    return checkpointQuestions().findIndex((q) => q.id === id);
+  }
+
+  function cpOptionText(questionId, optionId) {
+    const question = checkpointQuestions().find((q) => q.id === questionId);
+    const option = question && (question.options || []).find((o) => o.id === optionId);
+    return option ? option.text : optionId;
+  }
+
+  function renderCheckpointHead(total) {
+    const answered = checkpointAnsweredCount();
+    const pct = total ? Math.round((answered / total) * 100) : 0;
+    const passed = !!state.checkpoint.passed;
+    els.cpHead.innerHTML =
+      '<div class="rounded-3xl bg-brand-dark p-5 text-white shadow-xl shadow-slate-200/60 sm:p-6">' +
+        '<div class="flex flex-wrap items-start justify-between gap-3">' +
+          '<div class="min-w-0">' +
+            '<h3 class="text-xl font-extrabold leading-tight tracking-tight text-brand-yellow sm:text-2xl">' +
+              escapeHtml(t('cpIntroTitle')) + '</h3>' +
+            '<p class="mt-1 text-sm leading-relaxed text-white/80">' + escapeHtml(t('cpIntroBody')) + '</p>' +
+            '<p class="mt-2 text-xs font-bold text-white/60">' + escapeHtml(t('cpThreshold')) + '</p>' +
+          '</div>' +
+          (passed
+            ? '<span class="inline-flex items-center gap-1.5 rounded-full bg-etf-green px-3 py-1 text-xs font-extrabold text-white">' +
+                '<i data-lucide="check" class="h-3.5 w-3.5" aria-hidden="true"></i>' + escapeHtml(t('roadmapCheckpoint1')) + '</span>'
+            : '<span class="fq-phase-badge" data-badge-state="available">' + escapeHtml(t('roadmapCheckpoint1')) + '</span>') +
+        '</div>' +
+        '<div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-white/70">' +
+          '<span>' + escapeHtml(t('cpProgress', { answered, total })) + '</span>' +
+          '<span class="tabular-nums">' + pct + '%</span>' +
+        '</div>' +
+        '<div class="mt-2 fq-cp-progress" role="progressbar" aria-label="' + escapeHtml(t('cpProgress', { answered, total })) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '">' +
+          '<span style="width: ' + pct + '%"></span>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function renderCheckpointQuestion(question, index) {
+    const chosen = state.checkpoint.answers[question.id];
+    const options = (question.options || []).map((option, i) =>
+      '<label class="fq-cp-option' + (chosen === option.id ? ' is-selected' : '') + '">' +
+        '<input type="radio" name="cp_' + escapeHtml(question.id) + '" value="' + escapeHtml(option.id) + '" class="sr-only"' +
+          (chosen === option.id ? ' checked' : '') + '>' +
+        '<span class="fq-cp-key" aria-hidden="true">' + (REPLY_KEYS[i] || i + 1) + '</span>' +
+        '<span class="min-w-0">' + escapeHtml(option.text) + '</span>' +
+      '</label>'
+    ).join('');
+    return (
+      '<fieldset class="fq-cp-question" data-question-id="' + escapeHtml(question.id) + '">' +
+        '<legend class="flex flex-wrap items-center gap-2">' +
+          '<span class="rounded-full bg-brand-dark/5 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">' +
+            escapeHtml(t('cpQuestion', { n: index + 1 })) + '</span>' +
+          '<span class="text-base font-extrabold leading-snug">' + escapeHtml(question.question) + '</span>' +
+        '</legend>' +
+        '<div class="mt-3 grid gap-2">' + options + '</div>' +
+      '</fieldset>'
+    );
+  }
+
+  function renderCheckpoint() {
+    if (!els.cpQuestions || !els.cpHead) return;
+    const questions = checkpointQuestions();
+    const result = state.checkpoint.result;
+    els.cpResult.hidden = true;
+    els.cpResult.innerHTML = '';
+    els.cpAfter14.innerHTML = '';
+
+    if (!questions.length) {
+      els.cpHead.innerHTML =
+        '<div class="rounded-3xl border border-slate-200 bg-white p-5 text-sm font-semibold text-slate-600">' +
+          escapeHtml(t('cpEmpty')) + '</div>';
+      els.cpQuestions.innerHTML = '';
+      els.cpSubmit.disabled = true;
+      refreshIcons();
+      return;
+    }
+
+    renderCheckpointHead(questions.length);
+    els.cpQuestions.innerHTML = questions.map(renderCheckpointQuestion).join('');
+    els.cpSubmit.disabled = false;
+    renderAfter14(els.cpAfter14, state.session.post_14_paths);
+    if (result) renderCheckpointResult(result);
+    refreshIcons();
+  }
+
+  function setCheckpointBusy(isBusy) {
+    if (!els.cpSubmit) return;
+    els.cpSubmit.disabled = isBusy;
+    els.cpQuestions.querySelectorAll('input[type="radio"]').forEach((input) => {
+      input.disabled = isBusy;
+    });
+    const label = els.cpSubmit.querySelector('[data-label]');
+    if (label) label.textContent = isBusy ? t('cpSubmitting') : t('cpSubmit');
+    const spinner = els.cpSubmit.querySelector('.fq-spinner');
+    const idleIcon = els.cpSubmit.querySelector('[data-idle-icon]');
+    if (spinner) spinner.hidden = !isBusy;
+    if (idleIcon) idleIcon.toggleAttribute('hidden', isBusy);
+  }
+
+  async function submitCheckpoint(event) {
+    if (event) event.preventDefault();
+    const questions = checkpointQuestions();
+    if (!questions.length || state.checkpoint.busy) return;
+    const missing = questions.some((q) => !state.checkpoint.answers[q.id]);
+    if (missing) {
+      showToast(t('cpIncomplete'), 'warn');
+      return;
+    }
+    state.checkpoint.busy = true;
+    setCheckpointBusy(true);
+    try {
+      const res = await withSessionRecovery((sessionId) =>
+        api.checkpointSubmit(sessionId, state.checkpoint.answers)
+      );
+      state.checkpoint.result = res;
+      state.checkpoint.passed = !!res.passed;
+      state.summary.leaderboard = Array.isArray(res.leaderboard) ? res.leaderboard : state.summary.leaderboard;
+      applyServerXp(res.xp, res.leveled_up);
+      if (res.passed) state.completedDays.add(PLAYABLE_DAYS);
+      renderCheckpointResult(res);
+      if (res.passed) fireConfetti('full');
+    } catch (err) {
+      showToast(t('cpErrorMessage'), 'warn');
+    } finally {
+      state.checkpoint.busy = false;
+      setCheckpointBusy(false);
+    }
+  }
+
+  function renderCheckpointResult(res) {
+    if (!els.cpResult) return;
+    const passed = !!res.passed;
+    const results = res.results || [];
+    const rows = results.map((item, i) => {
+      const question = checkpointQuestions().find((q) => q.id === item.id);
+      const correctText = cpOptionText(item.id, item.correct_option_id);
+      return (
+        '<li class="rounded-2xl border p-3 ' + (item.correct ? 'border-etf-green/50 bg-etf-green/5' : 'border-inflation-red/40 bg-rose-50') + '">' +
+          '<div class="flex flex-wrap items-center gap-2">' +
+            '<span class="rounded-full px-2 py-0.5 text-[11px] font-extrabold ' +
+              (item.correct ? 'bg-etf-green text-white' : 'bg-inflation-red text-white') + '">' +
+              escapeHtml(item.correct ? t('cpCorrect') : t('cpIncorrect')) + '</span>' +
+            '<span class="text-xs font-bold text-slate-500">' + escapeHtml(t('cpQuestion', { n: i + 1 })) + '</span>' +
+          '</div>' +
+          (question ? '<p class="mt-1.5 font-extrabold leading-snug">' + escapeHtml(question.question) + '</p>' : '') +
+          '<p class="mt-1 text-sm leading-snug text-slate-600">' + escapeHtml(item.explanation) + '</p>' +
+          '<p class="mt-1 text-xs font-bold text-slate-500">' +
+            escapeHtml(t('cpCorrectAnswer', { answer: correctText })) + '</p>' +
+        '</li>'
+      );
+    }).join('');
+
+    els.cpResult.hidden = false;
+    els.cpResult.innerHTML =
+      '<div class="rounded-3xl border-2 p-5 shadow-xl shadow-slate-200/60 sm:p-6 ' +
+        (passed ? 'border-etf-green/60 bg-white' : 'border-stress-amber/60 bg-white') + '">' +
+        '<div class="flex flex-wrap items-start justify-between gap-3">' +
+          '<div class="min-w-0">' +
+            '<h3 class="text-xl font-extrabold leading-tight tracking-tight sm:text-2xl ' +
+              (passed ? 'text-emerald-700' : 'text-amber-700') + '">' +
+              (passed ? '🎉 ' : '') + escapeHtml(passed ? t('cpPassed') : t('cpFailed')) + '</h3>' +
+            '<p class="mt-1 text-3xl font-extrabold tabular-nums text-brand-dark">' + escapeHtml(String(res.score_pct)) + '%</p>' +
+            '<p class="mt-0.5 text-sm font-bold text-slate-600">' +
+              escapeHtml(t('cpCorrectCount', { correct: res.correct_count, total: res.total_questions })) + '</p>' +
+          '</div>' +
+          (passed
+            ? '<span class="inline-flex items-center gap-1.5 rounded-full bg-brand-dark px-3 py-1.5 text-xs font-extrabold text-brand-yellow">' +
+                '<i data-lucide="award" class="h-4 w-4" aria-hidden="true"></i>' +
+                escapeHtml(t('cpBadgeEarned', { badge: res.badge_title })) + '</span>'
+            : '<span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">' +
+                escapeHtml(t('cpThreshold')) + '</span>') +
+        '</div>' +
+        '<div class="mt-3 flex flex-wrap items-center gap-2">' +
+          (res.reward_xp > 0
+            ? '<span class="fq-pill fq-pill--xp tabular-nums">' + escapeHtml(t('cpReward', { xp: res.reward_xp })) + '</span>'
+            : '') +
+          '<span class="fq-pill tabular-nums">' + formatNumber(res.xp) + NBSP + 'XP</span>' +
+        '</div>' +
+        '<h4 class="mt-5 font-extrabold">' + escapeHtml(t('cpResultsTitle')) + '</h4>' +
+        '<ol class="mt-3 space-y-2">' + rows + '</ol>' +
+        '<div class="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">' +
+          (passed ? '' :
+            '<button type="button" data-action="retry-checkpoint" class="btn-3d w-full sm:w-auto">' +
+              '<i data-lucide="rotate-ccw" class="h-5 w-5" aria-hidden="true"></i>' +
+              '<span>' + escapeHtml(t('cpRetry')) + '</span></button>') +
+          '<button type="button" data-goto="screen_checklist" class="inline-flex min-h-tap w-full items-center justify-center rounded-2xl border-2 border-brand-dark/10 bg-white px-4 font-extrabold transition hover:border-brand-yellow hover:bg-brand-yellow/10 sm:w-auto">' +
+            escapeHtml(t('cpBackToSummary')) + '</button>' +
+        '</div>' +
+      '</div>';
+    refreshIcons();
+  }
+
+  function retryCheckpoint() {
+    state.checkpoint = { answers: {}, busy: false, result: null, passed: state.checkpoint.passed };
+    renderCheckpoint();
+  }
+
+
+  // ------------------------------------------------------------------------
+  // 11. Ekran 4 — ukończenie dnia, wyzwanie, checklista, plan, ranking (docs/01 §7 Ekran 4)
   // ------------------------------------------------------------------------
 
   const CARD_CLASS = 'rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6';
@@ -2059,7 +2742,7 @@
       challengeBusy: false,
       challengeAccepted: false,
       challengeReward: 0,
-      leveledViaChallenge: false, // próg 100 XP przekroczony dopiero dzięki wyzwaniu (+50 XP)
+      leveledViaChallenge: false, // próg 100/250 XP przekroczony dopiero dzięki wyzwaniu (+50 XP)
       leaderboard: null,          // ranking z POST /api/challenge/accept (nadpisuje ten z tury)
       checked: new Set(),
       celebrated: false,
@@ -2090,17 +2773,74 @@
     const turn = summaryTurn();
     if (!turn || !els.cardLevelup) return;
     const animate = !!(options && options.animate);
+    const dayForTitle = Number(turn.day) || currentDay();
+    const checklistTitle = document.getElementById('screen_checklist_title');
+    if (checklistTitle) checklistTitle.textContent = t('screenChecklistTitleDynamic', { day: dayForTitle });
     renderLevelBanner(turn, { pop: animate });
+    renderNextStepCard(turn);
     renderChallengeCard(turn);
     renderChecklistCard(turn);
     renderBankCard(turn);
     renderLeaderboardCard(turn);
+    renderAfter14(els.cardAfter14, (state.session && state.session.post_14_paths) || turn.post_14_paths);
     els.complianceFooter.innerHTML =
       '<div class="space-y-2 rounded-2xl border border-slate-200 bg-white/70 p-4 text-xs leading-relaxed text-slate-500">' +
         '<p><i data-lucide="scale" class="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true"></i>' +
           escapeHtml(t('complianceText')) + '</p>' +
         '<p class="fq-ai-disclaimer font-bold"><i data-lucide="sparkles" class="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true"></i>' +
           escapeHtml(t('aiDisclaimer')) + '</p>' +
+      '</div>';
+    refreshIcons();
+  }
+
+  // CTA wielodniowe: Continue to Day X (Dni 1–3) albo Checkpoint #1 (po Dniu 4).
+  function renderNextStepCard(turn) {
+    if (!els.cardNextStep) return;
+    const day = Number(turn.day) || currentDay();
+    if (!turn.mission_completed) {
+      els.cardNextStep.innerHTML = '';
+      return;
+    }
+    const done = completedDaySet();
+    const progress = t('nextStepProgress', { done: done.size });
+    const progressBar =
+      '<div class="mt-3 fq-cp-progress" aria-hidden="true"><span style="width: ' +
+        Math.round((Math.min(done.size, PLAYABLE_DAYS) / PLAYABLE_DAYS) * 100) + '%"></span></div>';
+
+    let action = '';
+    if (day >= PLAYABLE_DAYS) {
+      const passed = !!state.checkpoint.passed;
+      action =
+        '<button type="button" data-action="open-checkpoint" class="btn-3d mt-4 w-full text-base sm:w-auto">' +
+          '<i data-lucide="clipboard-check" class="h-5 w-5" aria-hidden="true"></i>' +
+          '<span>' + escapeHtml(t(passed ? 'nextStepCheckpointReview' : 'nextStepCheckpoint')) + '</span>' +
+          '<i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i></button>' +
+        '<p class="mt-2 text-sm leading-relaxed text-slate-600">' + escapeHtml(t('nextStepCheckpointHint')) + '</p>';
+    } else {
+      const next = day + 1;
+      const unlocked = isDayUnlocked(next);
+      action =
+        '<button type="button" data-action="start-day" data-day="' + next + '" class="btn-3d mt-4 w-full text-base sm:w-auto"' +
+          (unlocked ? '' : ' disabled') + '>' +
+          '<i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i>' +
+          '<span>' + escapeHtml(t('nextStepContinue', { day: next })) + '</span></button>' +
+        '<p class="mt-2 text-sm leading-relaxed text-slate-600">' + escapeHtml(t('nextStepContinueHint', { day: next })) + '</p>';
+    }
+
+    els.cardNextStep.innerHTML =
+      '<div class="rounded-3xl border-2 border-brand-yellow/70 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">' +
+        '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
+          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('nextStepTitle')) + '</h3>' +
+          '<span class="inline-flex items-center gap-1.5 rounded-full bg-etf-green/10 px-3 py-1 text-xs font-extrabold text-emerald-700">' +
+            '<i data-lucide="check" class="h-3.5 w-3.5" aria-hidden="true"></i>' +
+            escapeHtml(t('nextStepDayDone', { day })) + '</span>' +
+        '</div>' +
+        '<p class="mt-1 text-xs font-bold uppercase tracking-wider text-slate-500">' + escapeHtml(progress) + '</p>' +
+        progressBar +
+        '<div class="mt-4 flex flex-wrap gap-2">' + Array.from({ length: PLAYABLE_DAYS }, (_, i) => dayChipHtml(i + 1)).join('') + '</div>' +
+        action +
+        '<button type="button" data-goto="screen_filter_and_timemachine" class="mt-3 inline-flex min-h-tap items-center gap-1.5 text-sm font-bold text-slate-500 underline decoration-dotted underline-offset-4 hover:text-brand-dark">' +
+          escapeHtml(t('nextStepReviewMap')) + '</button>' +
       '</div>';
     refreshIcons();
   }
@@ -2114,12 +2854,18 @@
     const dayNum = s ? s.current_day : 1;
     const totalDays = s ? s.total_program_days : 14;
     const title = leveled
-      ? t('levelBannerLeveled', { day: dayNum, total: totalDays, title: g.level_title })
+      ? t('levelBannerLeveled', { day: dayNum, total: totalDays, title: levelTitleFor(g.level, g.level_title) })
       : t('levelBannerDone', { day: dayNum, total: totalDays });
     const start = clamp(Number(turn.confidence_start) || 0, 0, 100);
     const score = clamp(Number(turn.confidence_score) || 0, start, 100);
     const missing = Math.max(0, LEVEL_FLOOR_XP[2] - g.xp);
     const bonus = state.microLessonBonusXp;
+    const streakMessage = dayNum >= PLAYABLE_DAYS
+      ? t(state.checkpoint.passed ? 'streakContinuous' : 'streakCheckpoint')
+      : t('streakNextDay', { day: dayNum + 1 });
+    const missingLine = g.level < 2 && !leveled
+      ? '<p class="mt-3 font-semibold text-white/85">' + t('missingXp', { xp: missing }) + '</p>'
+      : '';
     const pill = (text, extra) =>
       '<span class="inline-flex min-h-[32px] items-center gap-1.5 rounded-full px-3 py-1 text-xs font-extrabold sm:text-sm ' +
         (extra || 'bg-white/10 text-white') + '">' + text + '</span>';
@@ -2133,8 +2879,8 @@
           (bonus > 0 ? pill(escapeHtml(t('pillMicroXp', { xp: bonus })), 'bg-white/5 text-white/70') : '') +
           pill(escapeHtml(t('pillStreak', { days: g.streak_days, dayWord: pluralDays(g.streak_days) })), 'bg-streak-orange/20 text-orange-200') +
         '</div>' +
-        (leveled ? '' : '<p class="mt-3 font-semibold text-white/85">' + t('missingXp', { xp: missing }) + '</p>') +
-        '<p class="mt-2 text-sm font-bold text-orange-200">' + escapeHtml(t('streakStarted')) + '</p>' +
+        (leveled ? '' : missingLine) +
+        '<p class="mt-2 text-sm font-bold text-orange-200">' + escapeHtml(streakMessage) + '</p>' +
         '<div class="mt-5 grid grid-cols-1 gap-5 border-t border-white/10 pt-5 md:grid-cols-2 md:gap-8">' +
           '<div>' +
             '<p class="text-sm font-bold text-white/70">' + escapeHtml(t('readiness')) + '</p>' +
@@ -2199,19 +2945,22 @@
     if (out) out.innerHTML = selfCompareHtml();
   }
 
-  // Karta 1 — realne mikro-wyzwanie (złota ramka).
+  // Karta 1 — codzienne mini-wyzwanie bieżącego dnia (złota ramka, +50 XP per dzień).
   function renderChallengeCard(turn) {
     const c = turn.real_world_challenge;
     if (!c) {
       els.cardChallenge.innerHTML = '';
       return;
     }
-    const s = state.summary;
-    const action = s.challengeAccepted
+    const day = Number(turn.day) || currentDay();
+    const accepted = state.challenges.acceptedDays.has(day);
+    const reward = Number(state.challenges.rewards[day]) || 0;
+    const action = accepted
       ? '<p class="mt-4 inline-flex min-h-tap items-center gap-2 rounded-2xl bg-etf-green px-4 py-2 font-extrabold text-white" role="status">' +
-          escapeHtml(t('challengeAccepted')) + (s.challengeReward > 0 ? ' +' + s.challengeReward + NBSP + 'XP' : '') + '</p>'
-      : '<button type="button" data-action="accept-challenge" class="btn-3d mt-4 w-full sm:w-auto"' + (s.challengeBusy ? ' disabled' : '') + '>' +
-          (s.challengeBusy ? '<span class="fq-spinner"></span>' : '<i data-lucide="flame" class="h-5 w-5" aria-hidden="true"></i>') +
+          escapeHtml(t('challengeAccepted')) + (reward > 0 ? ' +' + reward + NBSP + 'XP' : '') + '</p>'
+      : '<button type="button" data-action="accept-challenge" data-day="' + day + '" class="btn-3d mt-4 w-full sm:w-auto"' +
+          (state.summary.challengeBusy ? ' disabled' : '') + '>' +
+          (state.summary.challengeBusy ? '<span class="fq-spinner"></span>' : '<i data-lucide="flame" class="h-5 w-5" aria-hidden="true"></i>') +
           '<span>' + escapeHtml(t('challengeAccept', { xp: c.reward_xp })) + '</span></button>';
     els.cardChallenge.innerHTML =
       '<div class="rounded-3xl border-2 border-brand-yellow bg-gradient-to-br from-brand-yellow/20 via-white to-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">' +
@@ -2226,16 +2975,17 @@
       '</div>';
   }
 
-  async function acceptChallenge() {
+  async function acceptChallenge(day) {
     const s = state.summary;
     const turn = summaryTurn();
-    if (!turn || !turn.real_world_challenge || s.challengeAccepted || s.challengeBusy) return;
+    const targetDay = Number(day) || (turn && Number(turn.day)) || currentDay();
+    if (!turn || !turn.real_world_challenge || s.challengeBusy || state.challenges.acceptedDays.has(targetDay)) return;
     const token = state.mission.token;
     s.challengeBusy = true;
     renderChallengeCard(turn);
     refreshIcons();
     try {
-      const res = await withSessionRecovery((sessionId) => api.acceptChallenge(sessionId));
+      const res = await withSessionRecovery((sessionId) => api.acceptChallenge(sessionId, targetDay));
       if (token !== state.mission.token) return;
       const g = turn.gamification;
       // Awans dzięki wyzwaniu: próg 100 XP (Poziom 2) albo 250 XP (Poziom 3).
@@ -2244,16 +2994,17 @@
         gamification: Object.assign({}, g, levelForXp(res.xp), { xp: res.xp, xp_gained: res.reward_xp }),
       });
       s.challengeBusy = false;
-      s.challengeAccepted = true;
       s.challengeReward = res.reward_xp;
+      state.challenges.acceptedDays.add(targetDay);
+      state.challenges.rewards[targetDay] = res.reward_xp;
       s.leaderboard = Array.isArray(res.leaderboard) ? res.leaderboard : s.leaderboard;
       if (crossed) s.leveledViaChallenge = true;
 
-      const turn = state.turn;
+      const currentTurn = state.turn;
       renderHeader();
-      renderLevelBanner(turn, { pop: crossed });
-      renderChallengeCard(turn);
-      renderLeaderboardCard(turn, { highlight: true });
+      renderLevelBanner(currentTurn, { pop: crossed });
+      renderChallengeCard(currentTurn);
+      renderLeaderboardCard(currentTurn, { highlight: true });
       refreshIcons();
       fireConfetti('micro');
     } catch (err) {
@@ -2283,7 +3034,7 @@
     els.cardChecklist.innerHTML =
       '<div class="' + CARD_CLASS + '">' +
         '<div class="flex flex-wrap items-baseline justify-between gap-2">' +
-          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('checklistTitle')) + '</h3>' +
+          '<h3 class="text-lg font-extrabold tracking-tight sm:text-xl">' + escapeHtml(t('checklistTitleDynamic', { day: Number(turn.day) || 1 })) + '</h3>' +
           '<span class="text-sm font-extrabold tabular-nums text-slate-500"><span data-check-count>' + done + '</span>/' + items.length + '</span>' +
         '</div>' +
         '<div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">' +
@@ -2385,7 +3136,7 @@
         '</div>' +
         '<p class="mt-3 text-[11px] leading-relaxed text-slate-500">' + escapeHtml(d.assumptions_text) + ' ' + escapeHtml(d.costs_note) + '</p>' +
         '<button type="button" data-action="open-bank-modal" class="btn-3d mt-5 w-full text-base">' +
-          '<span>' + escapeHtml(t('bankCta')) + '</span>' +
+          '<span>' + escapeHtml(t('bankCtaDynamic', { day: Number(turn.day) || 1 })) + '</span>' +
           '<i data-lucide="arrow-right" class="h-5 w-5 shrink-0" aria-hidden="true"></i></button>' +
       '</div>';
     syncBankGlow();
@@ -2658,8 +3409,18 @@
         completeLesson(target.dataset.lessonId);
       } else if (target.dataset.action === 'quick-reply') {
         answerWithQuickReply(target.dataset.replyId);
+      } else if (target.dataset.action === 'start-day') {
+        startDay(target.dataset.day);
       } else if (target.dataset.action === 'accept-challenge') {
-        acceptChallenge();
+        acceptChallenge(target.dataset.day);
+      } else if (target.dataset.action === 'open-checkpoint') {
+        showScreen(SCREENS.CHECKPOINT);
+      } else if (target.dataset.action === 'retry-checkpoint') {
+        retryCheckpoint();
+      } else if (target.dataset.action === 'demo-jump') {
+        demoJumpToDay(target.dataset.day);
+      } else if (target.dataset.action === 'demo-checkpoint') {
+        demoOpenCheckpoint();
       } else if (target.dataset.action === 'toggle-check') {
         toggleChecklistItem(target.dataset.checkId, target);
       } else if (target.dataset.action === 'challenge-friend') {
@@ -2679,13 +3440,28 @@
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeModal();
     });
-    // Radia poza ankietą: samoocena „po" (Ekran 4) i wybór opcji w modalu bankowym.
+    // Radia poza ankietą: samoocena „po", opcja w modalu bankowym i odpowiedzi Checkpointu.
     document.addEventListener('change', (event) => {
       const input = event.target;
       if (!input || input.type !== 'radio') return;
       if (input.name === 'self_confidence_after') setSelfAfter(input.value);
       else if (input.name === 'bank_option') state.summary.bankOption = input.value === 'b' ? 'b' : 'a';
+      else if (input.name.indexOf('cp_') === 0) {
+        const question = input.name.slice(3);
+        state.checkpoint.answers[question] = input.value;
+        if (state.checkpoint.result) {
+          // Zmiana odpowiedzi po wyniku = nowa próba (wynik przestaje być aktualny).
+          state.checkpoint.result = null;
+          els.cpResult.hidden = true;
+          els.cpResult.innerHTML = '';
+        }
+        const questions = checkpointQuestions();
+        renderCheckpointHead(questions.length);
+      }
     });
+    if (els.cpForm) {
+      els.cpForm.addEventListener('submit', submitCheckpoint);
+    }
     if (els.form) {
       els.form.addEventListener('input', onFormInput);
       els.form.addEventListener('submit', (event) => {
@@ -2767,7 +3543,16 @@
     sendMissionAnswer,
     withSessionRecovery,
     renderSummary,
+    renderRoadmap,
+    renderNextStepCard,
     acceptChallenge,
+    startDay,
+    demoJumpToDay,
+    demoOpenCheckpoint,
+    renderCheckpoint,
+    submitCheckpoint,
+    retryCheckpoint,
+    currentDay,
     openBankModal,
     addMicroLessonBonusXp,
     analyzeProfile,
