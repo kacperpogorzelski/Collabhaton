@@ -23,6 +23,12 @@ from backend.schemas import (
     Assumptions,
     ChallengeAcceptRequest,
     ChallengeAcceptResponse,
+    CheckpointSubmitRequest,
+    CheckpointSubmitResponse,
+    CoachExplainRequest,
+    CoachExplainResponse,
+    DayStartRequest,
+    DayStartResponse,
     DemoPersona,
     Language,
     MissionTurnRequest,
@@ -182,6 +188,8 @@ def analyze(req: OnboardingRequest, db: Session = Depends(get_db)):
         micro_lessons=content["micro_lessons"],
         projection_series=finance_math.generate_projection_series(advice.recommended_monthly),
         initial_mission_turn=turn,
+        checkpoint_questions=demo_data.get_checkpoint_questions(req.lang),
+        post_14_paths=demo_data.get_post_14_paths(req.lang),
     )
 
 
@@ -201,8 +209,11 @@ def mission_turn(req: MissionTurnRequest, db: Session = Depends(get_db)):
         req.user_message,
         _leaderboard_rows(db),
         quick_reply_id=req.quick_reply_id,
+        day=req.day,
     )
 
+    session.current_day = session_data.get("current_day", session.current_day)
+    session.completed_days = list(session_data.get("completed_days") or [])
     session.current_step = session_data["current_step"]
     session.confidence_score = session_data["confidence_score"]
     session.xp = session_data["xp"]
@@ -214,6 +225,40 @@ def mission_turn(req: MissionTurnRequest, db: Session = Depends(get_db)):
     return response
 
 
+def _session_data(session: MissionSession) -> dict:
+    cols = _columns(session)
+    data = {**cols, **finance_math.build_session_facts(cols)}
+    data["session_id"] = session.id
+    return data
+
+
+@app.post("/api/day/start", response_model=DayStartResponse)
+def day_start(req: DayStartRequest, db: Session = Depends(get_db)):
+    from backend import demo_data
+
+    session = _get_session_or_404(db, req.session_id)
+    if req.lang is not None:
+        session.lang = req.lang
+    data = _session_data(session)
+    turn, options = demo_data.get_initial_mission_turn(data, session.lang, req.day)
+    # tura startowa dnia pokazuje bieżący stan, nie stan z początku programu
+    turn.confidence_score = session.confidence_score
+    turn.gamification.streak_days = max(1, len(session.completed_days or []) + 1)
+
+    session.current_day = req.day
+    session.current_step = 1
+    session.mission_completed = False
+    session.current_options = list(options)
+    session.history = list(session.history or []) + [
+        {"role": "assistant", "content": turn.luna_message}
+    ]
+    db.commit()
+    content = demo_data.get_day_content(req.day, data, session.lang)
+    return DayStartResponse(
+        day=req.day, micro_lessons=content["micro_lessons"], initial_mission_turn=turn
+    )
+
+
 @app.post("/api/challenge/accept", response_model=ChallengeAcceptResponse)
 def challenge_accept(req: ChallengeAcceptRequest, db: Session = Depends(get_db)):
     from backend import demo_data
@@ -221,14 +266,69 @@ def challenge_accept(req: ChallengeAcceptRequest, db: Session = Depends(get_db))
     session = _get_session_or_404(db, req.session_id)
     if req.lang is not None:
         session.lang = req.lang
+    done = list(session.completed_challenges or [])
+    already = req.day in done or (req.day == 1 and session.challenge_accepted)
     reward = 0
-    if not session.challenge_accepted:
-        session.challenge_accepted = True
+    if not already:
+        done.append(req.day)
+        session.completed_challenges = sorted(done)  # nowa lista -> zmiana JSON wykryta
+        if req.day == 1:
+            session.challenge_accepted = True
         session.xp += 50
         reward = 50
+    elif req.day == 1 and 1 not in done:
+        session.completed_challenges = sorted(done + [1])
     db.commit()
     _, level_title, _ = demo_data.get_level_state(session.xp, session.lang)
     leaderboard = demo_data.build_leaderboard(
         _leaderboard_rows(db), session.xp, level_title, session.xp >= 100, session.lang
     )
     return ChallengeAcceptResponse(xp=session.xp, reward_xp=reward, leaderboard=leaderboard)
+
+
+@app.post("/api/checkpoint/submit", response_model=CheckpointSubmitResponse)
+def checkpoint_submit(req: CheckpointSubmitRequest, db: Session = Depends(get_db)):
+    from backend import demo_data
+
+    session = _get_session_or_404(db, req.session_id)
+    if req.lang is not None:
+        session.lang = req.lang
+    graded = demo_data.grade_checkpoint(req.answers, session.lang)
+    prev_level = demo_data.get_level_state(session.xp, session.lang)[0]
+    reward = 0
+    if graded["passed"] and not session.checkpoint_passed:
+        session.checkpoint_passed = True
+        reward = graded["reward_xp"]
+        session.xp += reward
+    db.commit()
+    level, level_title, _ = demo_data.get_level_state(session.xp, session.lang)
+    leaderboard = demo_data.build_leaderboard(
+        _leaderboard_rows(db), session.xp, level_title, level > prev_level, session.lang
+    )
+    return CheckpointSubmitResponse(
+        score_pct=graded["score_pct"],
+        passed=graded["passed"],
+        correct_count=graded["correct_count"],
+        total_questions=graded["total_questions"],
+        reward_xp=reward,
+        xp=session.xp,
+        leveled_up=level > prev_level,
+        badge_title=graded["badge_title"],
+        results=graded["results"],
+        leaderboard=leaderboard,
+    )
+
+
+@app.post("/api/coach/explain", response_model=CoachExplainResponse)
+def coach_explain(req: CoachExplainRequest, db: Session = Depends(get_db)):
+    from backend import luna_service
+
+    session = _get_session_or_404(db, req.session_id)
+    if req.lang is not None:
+        session.lang = req.lang
+        db.commit()
+    explain = getattr(luna_service, "explain_with_drill", None)
+    if explain is None:  # Issue #30 jeszcze nie zmergowany
+        raise HTTPException(status_code=501, detail="explain_with_drill niedostępne")
+    result = explain(_session_data(session), req.question, req.topic_hint, session.lang)
+    return CoachExplainResponse(**result)

@@ -114,6 +114,71 @@ def run_persona(client: TestClient, persona: dict) -> None:
     check(client.post("/api/mission/turn", json={
         "session_id": "nie-istnieje", "user_message": "x"}).status_code == 404,
         f"{pid}: nieznana sesja != 404")
+    run_days_2_to_4(client, pid, sid, 205)
+    run_checkpoint(client, pid, sid)
+    run_explain(client, pid, sid)
+
+
+def run_days_2_to_4(client: TestClient, pid: str, sid: str, xp: int) -> None:
+    print(f"[{pid}] Dni 2-4 + mini-challenges")
+    for day in (2, 3, 4):
+        r = client.post("/api/day/start", json={"session_id": sid, "day": day})
+        check(r.status_code == 200, f"{pid}: day/start {day} -> {r.status_code}")
+        d = r.json()
+        check(d["day"] == day and len(d["micro_lessons"]) > 0, f"{pid}: day/start {day} treść")
+        t0 = d["initial_mission_turn"]
+        check(t0["day"] == day and t0["step_number"] == 1 and t0["total_steps"] == 2,
+              f"{pid}: dzień {day} tura startowa")
+        check(t0["gamification"]["xp"] == xp, f"{pid}: dzień {day} start XP {t0['gamification']['xp']} != {xp}")
+        # invalid: 0 XP, 0 gotowości, zostaje na kroku, allow_retry
+        bad = turn(client, sid, "asdf")
+        check(bad["answer_quality"] == "invalid" and bad["allow_retry"] is True, f"{pid}: d{day} invalid")
+        check(bad["gamification"]["xp_gained"] == 0 and bad["confidence_delta"] == 0
+              and bad["step_number"] == 1 and not bad["trigger_confetti"], f"{pid}: d{day} invalid nagradza")
+        last = None
+        for _ in range(2):
+            sel = pick(sid, True)
+            last = turn(client, sid, "ok", sel)
+            check(last["day"] == day and last["answer_quality"] == "optimal", f"{pid}: d{day} optimal")
+        check(last["mission_completed"] is True and last["quick_replies"] == [], f"{pid}: d{day} niezakończony")
+        check(day in last["completed_days"], f"{pid}: d{day} brak w completed_days")
+        check(last["real_world_challenge"] is not None, f"{pid}: d{day} brak wyzwania")
+        xp = last["gamification"]["xp"]
+        a1 = client.post("/api/challenge/accept", json={"session_id": sid, "day": day}).json()
+        a2 = client.post("/api/challenge/accept", json={"session_id": sid, "day": day}).json()
+        check((a1["reward_xp"], a2["reward_xp"]) == (50, 0), f"{pid}: d{day} accept {a1['reward_xp']}/{a2['reward_xp']}")
+        check(a2["xp"] == xp + 50, f"{pid}: d{day} XP po wyzwaniu")
+        xp = a2["xp"]
+
+
+def run_checkpoint(client: TestClient, pid: str, sid: str) -> None:
+    print(f"[{pid}] Checkpoint #1")
+    from backend import demo_data
+    qs = demo_data.get_checkpoint_questions("en")
+    key = {q["id"]: q["correct_option_id"] for q in demo_data._CHECKPOINT_1_QUESTIONS_BY_LANG["en"]}
+    wrong = {q["id"]: next(o["id"] for o in q["options"] if o["id"] != key[q["id"]]) for q in qs}
+    r = client.post("/api/checkpoint/submit", json={"session_id": sid, "answers": wrong}).json()
+    check(r["passed"] is False and r["reward_xp"] == 0, f"{pid}: checkpoint wrong")
+    xp0 = r["xp"]
+    r1 = client.post("/api/checkpoint/submit", json={"session_id": sid, "answers": key}).json()
+    r2 = client.post("/api/checkpoint/submit", json={"session_id": sid, "answers": key}).json()
+    check(r1["passed"] and r1["score_pct"] == 100 and r1["reward_xp"] == 100, f"{pid}: checkpoint pass")
+    check(r1["xp"] == xp0 + 100 and r2["reward_xp"] == 0 and r2["xp"] == r1["xp"], f"{pid}: checkpoint idempotencja")
+    check(len(r1["results"]) == r1["total_questions"] and bool(r1["leaderboard"]), f"{pid}: checkpoint wyniki")
+
+
+def run_explain(client: TestClient, pid: str, sid: str) -> None:
+    r = client.post("/api/coach/explain", json={"session_id": sid, "question": "What is inflation?"})
+    if r.status_code == 501:
+        print(f"  SKIP: /api/coach/explain niedostępne (brak luna_service.explain_with_drill, Issue #30)")
+        return
+    check(r.status_code == 200, f"{pid}: explain {r.status_code}")
+    d = r.json()
+    check(len(d.get("drill_options", [])) == 3 and 0 <= d.get("correct_option_index", -1) <= 2,
+          f"{pid}: explain drill")
+    check(d.get("is_fallback") is True, f"{pid}: explain offline bez is_fallback")
+    check(client.post("/api/coach/explain", json={"session_id": "x", "question": "q"}).status_code == 404,
+          f"{pid}: explain nieznana sesja != 404")
 
 
 def run_edge_cases(client: TestClient, persona: dict) -> None:
@@ -148,6 +213,15 @@ def run_edge_cases(client: TestClient, persona: dict) -> None:
     r = client.post("/api/mission/turn", json={"session_id": pl["session_id"],
                     "user_message": "my own answer", "lang": "en"}).json()
     check(NEUTRAL_FALLBACK in (r["understanding_feedback"] or ""), "przełączenie lang na en nie działa")
+
+    print("[edge] invalid (Dzień 1)")
+    sid = analyze(client, persona)["session_id"]
+    bad = turn(client, sid, "asdf")
+    check(bad["answer_quality"] == "invalid" and bad["allow_retry"] is True, "invalid: quality/retry")
+    check(bad["gamification"]["xp"] == 20 and bad["confidence_score"] == 10 and bad["step_number"] == 1,
+          "invalid: zmienił XP/gotowość/krok")
+    good = turn(client, sid, "x", pick(sid, True))
+    check(good["answer_quality"] == "optimal" and good["allow_retry"] is False, "optimal po invalid")
 
     print("[edge] savings_first (free_cash=250, bez poduszki)")
     a = analyze(client, {**persona, "free_cash": 250, "has_emergency_fund": False})
