@@ -491,7 +491,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Co na start daje Ci większy spokój?",
         "luna_message": (
-            "Cześć! Jestem Cora, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+            "Cześć! Jestem Kita, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
             "Nie musisz zgadywać pojedynczych firm: szeroki ETF rozkłada pieniądze na setki spółek "
             "naraz. Co na start daje Ci większy spokój?"
         ),
@@ -533,7 +533,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Co jest największą zaletą takiego podejścia, gdy brakuje czasu?",
         "luna_message": (
-            "Cześć! Jestem Cora, Twój codzienny AI Coach — witaj w Dniu 1 z 14. {plan_sentence} "
+            "Cześć! Jestem Kita, Twój codzienny AI Coach — witaj w Dniu 1 z 14. {plan_sentence} "
             "Pasywny szeroki ETF działa w tle, bez codziennego śledzenia giełdy. Co jest jego "
             "największą zaletą, gdy brakuje czasu?"
         ),
@@ -573,7 +573,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Dlaczego nie trzymać całego kapitału wyłącznie na zwykłym koncie?",
         "luna_message": (
-            "Dzień dobry! Jestem Cora, Twój codzienny AI Coach — zaczynamy spokojny, 14-dniowy plan. "
+            "Dzień dobry! Jestem Kita, Twój codzienny AI Coach — zaczynamy spokojny, 14-dniowy plan. "
             "Inwestować można w każdym wieku, wystarczy dopasowany horyzont. {plan_sentence} "
             "Dlaczego lepiej nie trzymać całego kapitału wyłącznie na zwykłym koncie?"
         ),
@@ -618,7 +618,7 @@ STEP1_SAVINGS_FIRST: dict = {
     "badge": "Dzień 1 • Start ({emergency_savings_monthly} zł/mies. na poduszkę)",
     "step_question": "Od czego zaczynasz, gdy nie masz jeszcze poduszki?",
     "luna_message": (
-        "Cześć! Jestem Cora, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+        "Cześć! Jestem Kita, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
         "Zanim pieniądze trafią na rynek, warto mieć bezpieczną poduszkę na awarie. "
         "Od czego zaczynasz?"
     ),
@@ -661,7 +661,7 @@ STEP1_CONFIDENT: dict = {
     "badge": "Dzień 1 • Start ({recommended_monthly} zł/mies.)",
     "step_question": "Który koszt i nawyk naprawdę decydują o wyniku szerokiego ETF?",
     "luna_message": (
-        "Cześć! Jestem Cora, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+        "Cześć! Jestem Kita, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
         "Skoro czujesz się pewniej, wejdźmy głębiej: w długim horyzoncie liczą się koszty "
         "i prostota, a nie próba pobicia rynku. Który koszt i nawyk naprawdę decydują o wyniku?"
     ),
@@ -1452,7 +1452,7 @@ _POST_14_PATHS_BY_LANG: dict[str, list[dict]] = {
         },
         {
             "id": "checkins",
-            "title": "Miesięczne check-iny z Corą",
+            "title": "Miesięczne check-iny z Kitą",
             "description": (
                 "Krótka rozmowa o postępach, emocjach i ewentualnych korektach planu. "
                 "Pomaga utrzymać nawyk bez codziennego śledzenia giełdy."
@@ -1494,7 +1494,7 @@ _POST_14_PATHS_BY_LANG: dict[str, list[dict]] = {
         },
         {
             "id": "checkins",
-            "title": "Monthly AI Check-ins with Cora",
+            "title": "Monthly AI Check-ins with Kita",
             "description": (
                 "A short conversation about progress, emotions and any plan adjustments. "
                 "It keeps the habit alive without watching the market daily."
@@ -2228,7 +2228,7 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE_EN,
         "step_question": "What gives you more peace of mind at the start?",
         "luna_message": (
-            "Hi! I'm Cora, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} You "
+            "Hi! I'm Kita, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} You "
             "don't have to guess individual companies: a broad ETF spreads your money across "
             "hundreds of companies at once. What gives you more peace of mind at the start?"
         ),
@@ -2270,7 +2270,7 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE_EN,
         "step_question": "What is the biggest advantage of this approach when you are short on time?",
         "luna_message": (
-            "Hi! I'm Cora, your daily AI Coach — welcome to Day 1 of 14. {plan_sentence} A passive "
+            "Hi! I'm Kita, your daily AI Coach — welcome to Day 1 of 14. {plan_sentence} A passive "
             "broad ETF runs in the background, without tracking the market daily. What is its "
             "biggest advantage when you are short on time?"
         ),
@@ -2311,7 +2311,7 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE_EN,
         "step_question": "Why not keep all your capital in a regular account only?",
         "luna_message": (
-            "Good day! I'm Cora, your daily AI Coach — we're starting a calm 14-day plan. You can "
+            "Good day! I'm Kita, your daily AI Coach — we're starting a calm 14-day plan. You can "
             "invest at any age; you just need a matching horizon. {plan_sentence} Why is it better "
             "not to keep all your capital in a regular account only?"
         ),
@@ -2353,7 +2353,7 @@ STEP1_SAVINGS_FIRST_EN: dict = {
     "badge": "Day 1 • Start ({emergency_savings_monthly} PLN/mo to the buffer)",
     "step_question": "Where do you start when you do not have a buffer yet?",
     "luna_message": (
-        "Hi! I'm Cora, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} "
+        "Hi! I'm Kita, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} "
         "Before money goes to the market, it is worth having a safe buffer for surprises. "
         "Where do you start?"
     ),
@@ -2396,7 +2396,7 @@ STEP1_CONFIDENT_EN: dict = {
     "badge": "Day 1 • Start ({recommended_monthly} PLN/mo)",
     "step_question": "Which cost and habit really drive the long-term result of a broad ETF?",
     "luna_message": (
-        "Hi! I'm Cora, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} "
+        "Hi! I'm Kita, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} "
         "Since you feel more confident, let's go deeper: over a long horizon, costs and "
         "simplicity matter more than trying to beat the market. Which cost and habit really "
         "drive the result?"
@@ -3592,7 +3592,7 @@ def get_bank_draft(session_facts: dict, lang: Language | None = None) -> BankDra
 
 
 def get_final_message(session_facts: dict, lang: Language | None = None, day: int = 1) -> str:
-    """Finałowy komunikat Cory dla dnia; ``savings_first`` dopisek tylko w Dniu 1."""
+    """Finałowy komunikat Kity dla dnia; ``savings_first`` dopisek tylko w Dniu 1."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
     values = _format_values(facts, active)

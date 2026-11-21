@@ -5,16 +5,16 @@ niczego z CDN w runtime. Nie aktualizować bez uzgodnienia (przypięte wersje).
 
 | Plik | Wersja | Źródło (jednorazowe pobranie) |
 | :--- | :--- | :--- |
-| `tailwind.js` | Tailwind CSS Play CDN `3.4.17` | `https://cdn.tailwindcss.com/3.4.17` |
 | `chart.umd.min.js` | Chart.js `4.4.4` | `chart.js@4.4.4/dist/chart.umd.js` (oficjalny plik UMD, już zminifikowany) |
 | `confetti.browser.min.js` | canvas-confetti `1.9.3` | `canvas-confetti@1.9.3/dist/confetti.browser.js` (minifikacja jsDelivr) |
-| `lucide.min.js` | Lucide `0.460.0` | `lucide@0.460.0/dist/umd/lucide.min.js` |
-| `fonts/PlusJakartaSans-{400,500,600,700,800}.woff2` | Plus Jakarta Sans (Fontsource `5.2.5`) | podzbiór `latin` |
+| `fonts/BricolageGrotesque-{700,800}.woff2` | Bricolage Grotesque (Fontsource `5.2.8`) | podzbiór `latin` — nagłówki, liczniki XP, odznaki |
+| `fonts/BricolageGrotesque-{700,800}-latin-ext.woff2` | jw. | podzbiór `latin-ext` (polskie znaki) |
+| `fonts/PlusJakartaSans-{400,500,600,700,800}.woff2` | Plus Jakarta Sans (Fontsource `5.2.5`) | podzbiór `latin` — tekst UI |
 | `fonts/PlusJakartaSans-{400,500,600,700,800}-latin-ext.woff2` | jw. | podzbiór `latin-ext` (polskie znaki) |
-| `fonts/OFL.txt` | — | licencja SIL Open Font License 1.1 |
+| `fonts/OFL.txt` | — | licencja SIL Open Font License 1.1 (wymagana przy dystrybucji obu fontów — nie usuwać) |
 
-Pliki npm (`chart.umd.js`, `confetti.browser.js`, `lucide.min.js`) zweryfikowano sumą SHA-256
-z API jsDelivr dla danej wersji pakietu. `@font-face` znajduje się w `static/styles.css`.
+Pliki npm (`chart.umd.js`, `confetti.browser.js`) zweryfikowano sumą SHA-256 z API jsDelivr.
+`@font-face` znajduje się w `static/styles.css`.
 
-> Tailwind Play CDN wypisuje w konsoli ostrzeżenie „should not be used in production" —
-> to oczekiwane (zero build-toola to świadoma decyzja SSOT); skrypt nie wykonuje żądań sieciowych.
+> **UI overhaul (v13):** Tailwind Play i Lucide zostały usunięte — cały design system jest w
+> `static/styles.css`, a ikony (2-tone, obrys 2 px) i maskotka Cora (inline SVG) w `static/app.js`.
