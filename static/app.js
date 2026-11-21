@@ -204,7 +204,19 @@
 
       'lessons.title': '20-second lessons',
       'lessons.titleDay': 'Day {n} lessons',
-      'lessons.sub': 'Optional, up to +{n} XP',
+      'lessons.sub': 'Pass each mini-check to unlock the challenge, up to +{n} XP',
+      'lessons.progress': '{a} of {b} lessons passed',
+      'lessons.check': 'Quick check',
+      'lessons.right': 'Correct, lesson passed',
+      'lessons.wrong': 'Not quite. Have another look at the key point.',
+      'lessons.askKita': 'Ask Kita to explain',
+      'hub.gateLessons': 'Pass the lesson checks ({a}/{b}) & Kita check-in first',
+      'hub.gateCheckin': 'Kita check-in first',
+      'checkin.title': 'Kita check-in',
+      'checkin.q': 'Is this section clear, or would you like me to explain anything else before the challenge?',
+      'checkin.yes': 'Yes, explain something first',
+      'checkin.start': 'Everything is clear: start Day {n} challenge',
+      'checkin.done': 'Check-in done. Day {n} challenge unlocked.',
       'lessons.got': 'Got it (+{n} XP)',
       'lessons.done': 'Done, +{n} XP',
       'lessons.explain': 'Explain simpler',
@@ -571,7 +583,19 @@
 
       'lessons.title': 'Lekcje na 20 sekund',
       'lessons.titleDay': 'Lekcje Dnia {n}',
-      'lessons.sub': 'Opcjonalnie, do +{n} XP',
+      'lessons.sub': 'Zalicz każdy mini-check, by odblokować wyzwanie, do +{n} XP',
+      'lessons.progress': 'Zaliczone lekcje: {a} z {b}',
+      'lessons.check': 'Szybki sprawdzian',
+      'lessons.right': 'Dobrze, lekcja zaliczona',
+      'lessons.wrong': 'Jeszcze nie to. Spójrz jeszcze raz na najważniejszą myśl.',
+      'lessons.askKita': 'Poproś Kitę o wyjaśnienie',
+      'hub.gateLessons': 'Najpierw zalicz mini-checki lekcji ({a}/{b}) i check-in z Kitą',
+      'hub.gateCheckin': 'Najpierw check-in z Kitą',
+      'checkin.title': 'Check-in z Kitą',
+      'checkin.q': 'Czy ten dział jest zrozumiały, czy chciałbyś, żebym coś jeszcze wytłumaczyła przed zadaniem?',
+      'checkin.yes': 'Tak, wytłumacz coś jeszcze',
+      'checkin.start': 'Wszystko jasne: zacznij wyzwanie Dnia {n}',
+      'checkin.done': 'Check-in zaliczony. Wyzwanie Dnia {n} odblokowane.',
       'lessons.got': 'Rozumiem (+{n} XP)',
       'lessons.done': 'Zaliczone, +{n} XP',
       'lessons.explain': 'Wyjaśnij prościej',
@@ -1382,6 +1406,9 @@
     lessonsXp: 0,            // local XP from micro lessons (monotonic XP rule)
     practiceXp: 0,           // local XP from practice beats
     completedLessons: new Set(),
+    lessonChecks: {},        // lessonId -> { wrong: [option indices] } (mini-check attempts)
+    checkinDays: new Set(),  // days whose Kita check-in was confirmed
+    gateBypass: new Set(),   // days opened through the Demo shortcuts (no gating)
     dayLessons: [],
     log: [],                 // server actions to replay after a lost session
     restoring: null,
@@ -1817,6 +1844,9 @@
     state.lessonsXp = 0;
     state.practiceXp = 0;
     state.completedLessons = new Set();
+    state.lessonChecks = {};
+    state.checkinDays = new Set();
+    state.gateBypass = new Set();
     state.dayLessons = data.micro_lessons || [];
     state.log = [];
     state.tm = { year: null, point: null };
@@ -1897,9 +1927,24 @@
     return dayDone(4) ? 'active' : 'locked';
   }
 
+  // Issue #45: a day's mission opens only after its lesson mini-checks and the Kita check-in.
+  function lessonProgress() {
+    const ls = state.dayLessons || [];
+    return { done: ls.filter((l) => state.completedLessons.has(l.id)).length, total: ls.length };
+  }
+  function dayReady() {
+    if (state.gateBypass.has(state.day)) return true;
+    const p = lessonProgress();
+    return p.done >= p.total && state.checkinDays.has(state.day);
+  }
+  function gateLabel() {
+    const p = lessonProgress();
+    return p.done < p.total ? t('hub.gateLessons', { a: p.done, b: p.total }) : t('hub.gateCheckin');
+  }
   function hubPrimary() {
     if (!dayDone(state.day)) {
       const resuming = state.mission && state.mission.started;
+      if (!resuming && !dayReady()) return { label: gateLabel(), action: 'goto-lessons', locked: true };
       return { label: t(resuming ? 'hub.resumeMission' : 'hub.startMission', { n: state.day }), action: 'open-mission' };
     }
     if (state.day < PLAYABLE_DAYS) return { label: t('hub.nextDay', { n: state.day + 1 }), action: 'start-day', day: state.day + 1 };
@@ -1908,8 +1953,20 @@
   }
   function primaryButton(cls) {
     const p = hubPrimary();
-    return '<button type="button" class="btn btn--primary btn--lg ' + (cls || '') + '" data-action="' + p.action + '"' +
-      (p.day ? ' data-day="' + p.day + '"' : '') + '>' + escapeHtml(p.label) + icon('arrow-right') + '</button>';
+    return '<button type="button" class="btn btn--primary btn--lg js-primary ' + (cls || '') + '" data-action="' + p.action + '"' +
+      (p.day ? ' data-day="' + p.day + '"' : '') + (p.locked ? ' aria-disabled="true"' : '') + '>' +
+      escapeHtml(p.label) + icon(p.locked ? 'lock' : 'arrow-right') + '</button>';
+  }
+  function refreshPrimary() {
+    document.querySelectorAll('.js-primary').forEach((b) => {
+      const extra = b.classList.contains('btn--block') ? 'btn--block' : '';
+      b.outerHTML = primaryButton(extra);
+    });
+  }
+  function gateBlocked(btn) {
+    if (btn) replayClass(btn, 'shake');
+    toast(gateLabel(), 'info', 3400, { kita: true });
+    if (state.screen === SCREENS.HUB) showHubTab(3, { scroll: true });
   }
 
   function renderHub() {
@@ -2155,27 +2212,74 @@
     const lessons = state.dayLessons || [];
     const max = Math.min(MICRO_LESSON_BONUS_CAP, lessons.reduce((sum, l) => sum + (l.xp_reward || 0), 0));
     const title = state.day === 1 ? t('lessons.title') : t('lessons.titleDay', { n: state.day });
+    const p = lessonProgress();
+    const pct = p.total ? Math.round((p.done / p.total) * 100) : 100;
     els.cardLessons.innerHTML =
       '<div class="card__head"><h3 class="card__title">' + escapeHtml(title) + '</h3><span class="tiny muted">' + escapeHtml(t('lessons.sub', { n: max })) + '</span></div>' +
-      '<div class="lessons">' + lessons.map(lessonHTML).join('') + '</div>';
+      '<div class="lessons-progress"><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="' + p.total + '" aria-valuenow="' + p.done + '"><div class="progress__fill" style="width:' + pct + '%"></div></div>' +
+        '<span class="tiny strong">' + escapeHtml(t('lessons.progress', { a: p.done, b: p.total })) + '</span></div>' +
+      '<div class="lessons">' + lessons.map(lessonHTML).join('') + '</div>' + checkinHTML();
+    hydrateCora(els.cardLessons);
+  }
+  function hasCheck(l) {
+    return !!(l && l.check_question && Array.isArray(l.check_options) && l.check_options.length > 1 && l.correct_option_index != null);
+  }
+  function lessonCheckHTML(l, done) {
+    const wrong = (state.lessonChecks[l.id] && state.lessonChecks[l.id].wrong) || [];
+    const letters = ['A', 'B', 'C', 'D'];
+    const opts = l.check_options.map((txt, i) => {
+      const right = done && i === l.correct_option_index;
+      const bad = wrong.indexOf(i) >= 0;
+      return '<button type="button" class="lcheck__opt' + (right ? ' is-right' : '') + (bad ? ' is-wrong' : '') + '" data-action="lesson-pick" data-lesson-id="' + escapeHtml(l.id) + '" data-i="' + i + '"' +
+        (done || bad ? ' disabled' : '') + '><span class="lcheck__key">' + letters[i] + '</span><span>' + escapeHtml(txt) + '</span></button>';
+    }).join('');
+    const note = done
+      ? '<p class="lcheck__note lcheck__note--ok" role="status">' + icon('check', 'ic--sm') + '<span>' + escapeHtml(t('lessons.right')) + (l.check_explanation ? ': ' + escapeHtml(l.check_explanation) : '') + '</span></p>'
+      : wrong.length
+        ? '<div class="lcheck__note lcheck__note--bad" role="status"><p>' + icon('bulb', 'ic--sm') + '<span>' + escapeHtml(t('lessons.wrong')) + (l.check_explanation ? ' ' + escapeHtml(l.check_explanation) : '') + '</span></p>' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.askKita')) + '</button></div>'
+        : '';
+    return '<div class="lcheck"><p class="lcheck__q"><span class="chip chip--soft">' + escapeHtml(t('lessons.check')) + '</span> ' + escapeHtml(l.check_question) + '</p>' +
+      '<div class="lcheck__opts">' + opts + '</div>' + note + '</div>';
   }
   function lessonHTML(l) {
     const done = state.completedLessons.has(l.id);
+    const checked = hasCheck(l);
     return (
       '<article class="lesson' + (done ? ' lesson--done' : '') + '" data-lesson="' + escapeHtml(l.id) + '">' +
         '<div class="lesson__head"><h4 class="lesson__title">' + escapeHtml(l.title) + '</h4><span class="lesson__time">' + escapeHtml(t('lessons.sec', { n: l.duration_sec || 20 })) + '</span></div>' +
         '<p class="lesson__body">' + escapeHtml(l.summary) + '</p>' +
         '<p class="lesson__key">' + icon('bulb', 'ic--sm') + '<span>' + escapeHtml(l.key_takeaway) + '</span></p>' +
+        (checked ? lessonCheckHTML(l, done) : '') +
         '<div class="lesson__actions">' +
           (done
             ? '<span class="lesson__done">' + icon('check', 'ic--sm') + escapeHtml(t('lessons.done', { n: l.xp_reward })) + '</span>'
-            : '<button type="button" class="btn btn--green btn--sm" data-action="lesson" data-lesson-id="' + escapeHtml(l.id) + '">' + escapeHtml(t('lessons.got', { n: l.xp_reward })) + '</button>') +
-          '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.explain')) + '</button>' +
+            : checked ? '' : '<button type="button" class="btn btn--green btn--sm" data-action="lesson" data-lesson-id="' + escapeHtml(l.id) + '">' + escapeHtml(t('lessons.got', { n: l.xp_reward })) + '</button>') +
+          (checked && !done ? '' : '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.explain')) + '</button>') +
         '</div>' +
       '</article>'
     );
   }
-  function completeLesson(id, btn) {
+  // End-of-block check-in with Kita (Issue #45): shown once every lesson of the day is passed.
+  function checkinHTML() {
+    const p = lessonProgress();
+    if (p.done < p.total || !p.total) return '';
+    if (state.checkinDays.has(state.day) || state.gateBypass.has(state.day)) {
+      return '<p class="checkin-done chip chip--green">' + icon('check', 'ic--sm') + escapeHtml(t('checkin.done', { n: state.day })) + '</p>';
+    }
+    return (
+      '<div class="checkin" id="kita-checkin">' +
+        '<div class="cora checkin__kita" data-cora="coaching" aria-hidden="true"></div>' +
+        '<div class="checkin__body"><p class="checkin__title">' + escapeHtml(t('checkin.title')) + '</p>' +
+          '<div class="bubble bubble--left"><p>' + escapeHtml(t('checkin.q')) + '</p></div>' +
+          '<div class="checkin__actions">' +
+            '<button type="button" class="btn btn--ghost" data-action="checkin-explain">' + icon('help', 'ic--sm') + escapeHtml(t('checkin.yes')) + '</button>' +
+            '<button type="button" class="btn btn--primary" data-action="checkin-start">' + escapeHtml(t('checkin.start', { n: state.day })) + icon('arrow-right') + '</button>' +
+          '</div></div>' +
+      '</div>'
+    );
+  }
+  function completeLesson(id) {
     if (state.completedLessons.has(id)) return;
     const l = (state.dayLessons || []).find((x) => x.id === id);
     if (!l) return;
@@ -2183,11 +2287,44 @@
     const before = state.lessonsXp;
     state.lessonsXp = clamp(state.lessonsXp + (Number(l.xp_reward) || 0), 0, MICRO_LESSON_BONUS_CAP * PLAYABLE_DAYS);
     const gained = state.lessonsXp - before;
+    renderLessonsCard();
+    refreshPrimary();
     const card = els.cardLessons.querySelector('[data-lesson="' + CSS.escape(id) + '"]');
-    if (card) card.outerHTML = lessonHTML(l);
-    Sound.pop();
-    xpFloat(gained, btn || els.hudXpPill);
+    xpFloat(gained, card || els.hudXpPill);
     renderHud();
+  }
+  function pickLessonOption(id, i) {
+    if (state.completedLessons.has(id)) return;
+    const l = (state.dayLessons || []).find((x) => x.id === id);
+    if (!l || !hasCheck(l)) return;
+    if (i === Number(l.correct_option_index)) {
+      Sound.correct();
+      completeLesson(id);
+      return;
+    }
+    const rec = state.lessonChecks[id] || (state.lessonChecks[id] = { wrong: [] });
+    if (rec.wrong.indexOf(i) < 0) rec.wrong.push(i);
+    Sound.retry();
+    renderLessonsCard();
+    const card = els.cardLessons.querySelector('[data-lesson="' + CSS.escape(id) + '"]');
+    if (card) replayClass(card.querySelector('.lcheck'), 'shake');
+  }
+  function checkinExplain() {
+    openCora({ question: dayTitle(state.day) || t('hub.phase1.title') });
+  }
+  function checkinStart() {
+    const p = lessonProgress();
+    if (p.done < p.total) { gateBlocked(null); return; }
+    state.checkinDays.add(state.day);
+    Sound.pop();
+    renderLessonsCard();
+    refreshPrimary();
+    openMission();
+  }
+  function gotoLessons(btn) {
+    if (btn) replayClass(btn, 'shake');
+    showHubTab(3, { scroll: true });
+    if (els.cardLessons) replayClass(els.cardLessons, 'bump');
   }
 
   // Time machine: slider 1–20 years + what-if monthly amount, 3 KPIs in today's money,
@@ -2917,6 +3054,7 @@
       if (token !== state.token) return false;
       state.log.push({ kind: 'day', body: { day: n, lang: state.lang } });
       state.day = res.day || n;
+      if (o.demo) state.gateBypass.add(state.day);
       state.turn = res.initial_mission_turn;
       state.dayLessons = res.micro_lessons || [];
       state.hubTab = 3;   // a new day opens on its own lessons
@@ -2949,7 +3087,11 @@
     const d = Number(key);
     const st = nodeState(d);
     if (st === 'locked') { replayClass(btn, 'shake'); toast(t('hub.locked', { n: d - 1 }), 'info', 2600); return; }
-    if (st === 'active') { openMission(); return; }
+    if (st === 'active') {
+      if (!(state.mission && state.mission.started) && !dayDone(d) && !dayReady()) { gateBlocked(btn); return; }
+      openMission();
+      return;
+    }
     if (st === 'next') { startDay(d); return; }
     if (st === 'done' && d === state.day) openDone();
   }
@@ -3627,11 +3769,14 @@
     loadPersonas();
     // Nothing answered yet -> refresh server content in the new language (docs/01 §9).
     if (state.session && state.log.length === 0 && state.lastProfile && (state.screen === SCREENS.HUB)) {
-      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), year: state.tm.year };
+      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), checks: state.lessonChecks, checkin: new Set(state.checkinDays), bypass: new Set(state.gateBypass), year: state.tm.year };
       const data = await analyzeProfile(state.lastProfile, { stay: true, quick: true, stageId: state.stageId });
       if (data) {
         state.lessonsXp = keep.lessonsXp;
         state.completedLessons = keep.completedLessons;
+        state.lessonChecks = keep.checks;
+        state.checkinDays = keep.checkin;
+        state.gateBypass = keep.bypass;
         renderLessonsCard();
         renderHud({ animate: false });
         if (keep.year) updateTimeMachine(keep.year, { animate: false });
@@ -3694,6 +3839,10 @@
         case 'open-checkpoint': openCheckpoint(); break;
         case 'open-done': openDone(); break;
         case 'lesson': completeLesson(el.dataset.lessonId, el); break;
+        case 'lesson-pick': pickLessonOption(el.dataset.lessonId, Number(el.dataset.i)); break;
+        case 'checkin-explain': checkinExplain(); break;
+        case 'checkin-start': checkinStart(); break;
+        case 'goto-lessons': gotoLessons(el); break;
         case 'close-mission': closeMission(); break;
         case 'pick': pickAnswer(el.dataset.id, el); break;
         case 'check': check(); break;
