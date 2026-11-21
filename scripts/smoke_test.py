@@ -48,6 +48,17 @@ def pick(session_id: str, optimal: bool) -> str:
     raise RuntimeError("brak opcji o żądanej poprawności")
 
 
+def check_micro_lessons(pid: str, day: int, lessons: list[dict]) -> None:
+    check(len(lessons) > 0, f"{pid}: dzień {day} brak micro_lessons")
+    for lesson in lessons:
+        check(bool(lesson.get("check_question")), f"{pid}: d{day} lesson {lesson.get('id')} brak check_question")
+        options = lesson.get("check_options") or []
+        check(len(options) == 3, f"{pid}: d{day} lesson {lesson.get('id')} check_options != 3")
+        index = lesson.get("correct_option_index")
+        check(index in (0, 1, 2), f"{pid}: d{day} lesson {lesson.get('id')} wrong correct_option_index")
+        check(bool(lesson.get("check_explanation")), f"{pid}: d{day} lesson {lesson.get('id')} brak check_explanation")
+
+
 def analyze(client: TestClient, persona: dict, **extra) -> dict:
     body = {k: persona[k] for k in (
         "age", "net_income", "free_cash", "has_emergency_fund",
@@ -74,6 +85,7 @@ def run_persona(client: TestClient, persona: dict) -> None:
     check(start == 10, f"{pid}: gotowość startowa {start} != 10")
     check(a["initial_mission_turn"]["gamification"]["xp"] == 20, f"{pid}: XP startowe != 20")
     check(len(a["projection_series"]) == 20, f"{pid}: projekcja != 20 punktów")
+    check_micro_lessons(pid, 1, a.get("micro_lessons") or [])
     if a["safe_investment"]["plan_type"] == "savings_first":
         check(a["safe_investment"]["training_etf_monthly"] == 0, f"{pid}: savings_first z ETF")
 
@@ -126,6 +138,7 @@ def run_days_2_to_4(client: TestClient, pid: str, sid: str, xp: int) -> None:
         check(r.status_code == 200, f"{pid}: day/start {day} -> {r.status_code}")
         d = r.json()
         check(d["day"] == day and len(d["micro_lessons"]) > 0, f"{pid}: day/start {day} treść")
+        check_micro_lessons(pid, day, d.get("micro_lessons") or [])
         t0 = d["initial_mission_turn"]
         check(t0["day"] == day and t0["step_number"] == 1 and t0["total_steps"] == 2,
               f"{pid}: dzień {day} tura startowa")
@@ -168,6 +181,23 @@ def run_checkpoint(client: TestClient, pid: str, sid: str) -> None:
 
 
 def run_explain(client: TestClient, pid: str, sid: str) -> None:
+    for lang in ("en", "pl"):
+        r_no_session = client.post("/api/coach/explain", json={
+            "session_id": None,
+            "current_screen": "screen_onboarding",
+            "user_name": "Kacper",
+            "question": "Where is the simulator?",
+            "lang": lang,
+        })
+        check(r_no_session.status_code == 200, f"{pid}: explain bez session_id {lang} -> {r_no_session.status_code}")
+        d_no_session = r_no_session.json()
+        check(d_no_session.get("is_fallback") is True,
+              f"{pid}: explain bez session_id {lang} bez is_fallback")
+        check(len(d_no_session.get("drill_options", [])) == 3,
+              f"{pid}: explain bez session_id {lang} drill_options != 3")
+        check(0 <= d_no_session.get("correct_option_index", -1) <= 2,
+              f"{pid}: explain bez session_id {lang} zły indeks")
+
     r = client.post("/api/coach/explain", json={"session_id": sid, "question": "What is inflation?"})
     if r.status_code == 501:
         print(f"  SKIP: /api/coach/explain niedostępne (brak luna_service.explain_with_drill, Issue #30)")
