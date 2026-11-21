@@ -1386,7 +1386,7 @@
     if (id === SCREENS.FILTER && state.session) {
       // Powrót na mapę: odśwież fazy, ukończone dni i lekcje bieżącego dnia (bez resetu suwaka).
       renderRoadmap(state.session.roadmap_milestones, state.session.current_day, state.session.total_program_days);
-      renderLessons(state.session.micro_lessons);
+      renderSpeakly(state.session.speakly_filter, state.session.micro_lessons);
       syncFilterCta();
       refreshIcons();
     }
