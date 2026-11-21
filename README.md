@@ -1,10 +1,10 @@
-# Collabhaton
+﻿# Collabhaton
 
 ## Deploy
 
 1. **Fork / repo na GitHubie** i konto na [Render](https://render.com) (lub inna platforma obslugujaca Dockerfile).
 2. **New -> Blueprint** i wskaz repo; Render wczyta `render.yaml` (usluga `investly`, Docker, health check `/health`).
-3. **Zmienne srodowiskowe:** wpisz `OPENAI_API_KEY` (lub `DEEPSEEK_API_KEY`) albo zostaw `DEMO_OFFLINE=1`. Bez `DATABASE_URL` aplikacja dziala na wbudowanym SQLite w pamieci (stan znika po restarcie). Po deployu otworz adres uslugi.
+3. **Zmienne srodowiskowe:** wklej `DEEPSEEK_API_KEY` w panelu Render (klucz nigdy nie trafia do repo) albo ustaw `DEMO_OFFLINE=1`. Bez `DATABASE_URL` aplikacja dziala na wbudowanym SQLite w pamieci (stan znika po restarcie). Po deployu otworz adres uslugi.
 
 Lokalnie:
 
