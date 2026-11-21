@@ -13,7 +13,7 @@
        ?v= cache-busting: bump after every change to styles.css / app.js. -->
   <link rel="preload" href="/static/vendor/fonts/BricolageGrotesque-800.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-600.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/styles.css?v=15.0">
+  <link rel="stylesheet" href="/static/styles.css?v=16.0">
 </head>
 <body data-screen="screen_onboarding">
   <a href="#main" class="skip-link" data-i18n="a11y.skip">Skip to content</a>
@@ -57,6 +57,8 @@
         </div>
         <button type="button" class="tool-btn" data-action="reset"><span data-icon="reset"></span><span data-i18n="hud.reset">Reset / Profile</span></button>
         <button type="button" class="tool-btn tool-btn--judges" data-action="open-judges"><span data-icon="clipboard"></span><span data-i18n="hud.judges">For judges</span></button>
+        <!-- Demo ▾ — presenter controls, collapsed by default (Issue #44) -->
+        <button type="button" class="tool-btn tool-btn--demo" data-action="toggle-demo" aria-expanded="false" aria-controls="demo-pop"><span data-i18n="demo.toggle">Demo</span><span data-icon="chevron-down" data-icon-class="ic--sm"></span></button>
         <button type="button" class="icon-btn hud__menu-btn" data-action="toggle-menu" aria-expanded="false" aria-controls="hud-menu" data-i18n-aria="hud.menu" aria-label="More options"><span data-icon="menu"></span></button>
       </div>
     </div>
@@ -68,7 +70,9 @@
       </div>
       <button type="button" class="tool-btn" data-action="reset"><span data-icon="reset"></span><span data-i18n="hud.reset">Reset / Profile</span></button>
       <button type="button" class="tool-btn tool-btn--judges" data-action="open-judges"><span data-icon="clipboard"></span><span data-i18n="hud.judges">For judges</span></button>
+      <div class="demo-group" id="demo-menu-mobile"></div>
     </div>
+    <div class="hud__menu demo-pop" id="demo-pop" hidden></div>
   </header>
 
   <main id="main" tabindex="-1">
@@ -177,24 +181,40 @@
     <!-- ===================== Screen 2 — Quest Hub ===================== -->
     <section id="screen_filter_and_timemachine" class="screen wrap" aria-labelledby="t-hub" hidden>
       <h2 id="t-hub" class="sr-only" data-screen-title tabindex="-1" data-i18n="hub.srTitle">Your quest map</h2>
-      <div class="stagebar" id="stagebar" role="group" data-i18n-aria="hub.stagebar" aria-label="Life stage"></div>
       <div class="hub">
-        <div class="hub__col" id="hub-path-col"></div>
-        <div class="hub__col" id="hub-brief-col">
-          <div class="card" id="card-plan"></div>
-          <div class="card" id="card-skipped"></div>
-          <div class="card" id="card-lessons"></div>
+        <div class="hub__col hub__path" id="hub-path-col"></div>
+        <!-- Today's briefing: one calm step at a time (Issue #44) -->
+        <div class="hub__col hub__brief" id="hub-brief-col">
+          <div class="steps" role="tablist" id="hub-steps" data-i18n-aria="hub.steps" aria-label="Today's briefing"></div>
+          <div class="step-panel" id="hub-panel-1" role="tabpanel" aria-labelledby="hub-tab-1">
+            <div class="card" id="card-plan"></div>
+            <div class="card" id="card-skipped"></div>
+            <div class="step-nav" data-step-nav="1"></div>
+          </div>
+          <div class="step-panel" id="hub-panel-2" role="tabpanel" aria-labelledby="hub-tab-2" hidden>
           <div class="card" id="card-timemachine">
             <div class="card__head">
               <h3 class="card__title" data-i18n="tm.title">Time machine: cash vs a broad ETF</h3>
               <span class="chip chip--soft" id="tm-monthly"></span>
             </div>
             <p class="small muted" style="margin-top:4px" data-i18n="tm.sub">All values in today's money, so both lines compare fairly.</p>
-            <div class="range-wrap" style="margin-top:18px">
-              <span class="range-pill" id="tm-pill">15</span>
-              <label for="tm-years" class="sr-only" data-i18n="tm.slider">Years invested</label>
-              <input id="tm-years" type="range" min="1" max="20" step="1" value="15" class="range">
-              <div class="scale-legend" aria-hidden="true"><span id="tm-min">1</span><span id="tm-max">20</span></div>
+            <div class="tm-sliders">
+              <div class="range-wrap">
+                <span class="range-pill" id="tm-pill">15</span>
+                <label for="tm-years" class="small strong" data-i18n="tm.slider">Years invested</label>
+                <input id="tm-years" type="range" min="1" max="20" step="1" value="15" class="range">
+                <div class="scale-legend" aria-hidden="true"><span id="tm-min">1</span><span id="tm-max">20</span></div>
+              </div>
+              <div class="range-wrap whatif">
+                <span class="range-pill range-pill--yellow" id="tm-amount-pill">200</span>
+                <label for="tm-amount" class="small strong" data-i18n="tm.whatIf">What if I invest a different amount?</label>
+                <input id="tm-amount" type="range" min="50" max="5000" step="50" value="200" class="range">
+                <div class="scale-legend" aria-hidden="true"><span id="tm-amount-min">50</span><span id="tm-amount-max">5000</span></div>
+              </div>
+            </div>
+            <div class="whatif__bar">
+              <p class="tiny muted" id="tm-amount-note" aria-live="polite"></p>
+              <button type="button" class="btn btn--ghost btn--sm" data-action="tm-reset" id="tm-reset" hidden><span data-icon="reset" data-icon-class="ic--sm"></span><span data-i18n="tm.reset">Reset to my plan</span></button>
             </div>
             <div class="kpis">
               <div class="kpi kpi--cash">
@@ -225,7 +245,14 @@
               <p data-i18n="compliance.mifid">Finance Quest is strictly an educational and simulation tool.</p>
             </div>
           </div>
+            <div class="step-nav" data-step-nav="2"></div>
+          </div>
+          <div class="step-panel" id="hub-panel-3" role="tabpanel" aria-labelledby="hub-tab-3" hidden>
+            <div class="card" id="card-lessons"></div>
+            <div class="step-nav" data-step-nav="3"></div>
+          </div>
         </div>
+        <div class="hub__col hub__more" id="hub-more-col"></div>
       </div>
       <div class="mobile-cta" id="hub-mobile-cta"></div>
     </section>
@@ -341,6 +368,6 @@
 
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
-  <script src="/static/app.js?v=15.0"></script>
+  <script src="/static/app.js?v=16.0"></script>
 </body>
 </html>
