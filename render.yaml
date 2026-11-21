@@ -1,0 +1,21 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Render ustawia $PORT automatycznie (Dockerfile czyta ${PORT:-8000}).
+services:
+  - type: web
+    name: investly
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      # LLM (opcjonalnie). Bez klucza i z DEMO_OFFLINE=1 wolny tekst dostaje neutralny fallback.
+      - key: DEMO_OFFLINE
+        value: "1"
+      - key: OPENAI_API_KEY      # albo DEEPSEEK_API_KEY (+ OPENAI_BASE_URL, LUNA_MODEL=deepseek-chat)
+        sync: false
+      - key: LUNA_MODEL
+        value: gpt-4o-mini
+      - key: LUNA_TIMEOUT_SECONDS
+        value: "3.5"
+      # DATABASE_URL celowo NIE jest ustawione: bez zewnetrznego PostgreSQL aplikacja
+      # przelacza sie na wbudowany bezpiecznik SQLite w pamieci (stan znika po restarcie).
+      # Dla trwalej bazy dodaj DATABASE_URL=postgresql+psycopg2://user:pass@host:5432/db
