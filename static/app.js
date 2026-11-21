@@ -32,8 +32,11 @@
   const PLAYABLE_DAYS = 4;
   const LS_LANG = 'fq_lang';
   const LS_MUTED = 'fq_muted';
+  const LS_INTRO_SEEN = 'fq_intro_seen';
+  const LS_USER_NAME = 'fq_user_name';
 
   const SCREENS = Object.freeze({
+    BANK_ENTRY: 'screen_bank_entry',
     ONBOARDING: 'screen_onboarding',
     HUB: 'screen_filter_and_timemachine',
     MISSION: 'screen_mission_live',
@@ -73,6 +76,20 @@
       'a11y.skip': 'Skip to content',
       'brand.sub': 'by Commerzbank, 14-Day Confidence Sprint',
       'common.close': 'Close',
+      'entry.demo': 'DEMO · Commerzbank simulation',
+      'entry.account': 'Everyday account',
+      'entry.available': 'Available balance · sample data',
+      'entry.transaction1': 'Salary · sample',
+      'entry.transaction2': 'Rent · sample',
+      'entry.cta': 'Build your investment plan & start investing in 14 days',
+      'entry.note': 'Nothing is executed. This is a guided learning simulation.',
+      'entry.whyTitle': 'A calmer way to start',
+      'entry.whyText': 'Kita turns a big money decision into one small, clear step at a time.',
+      'intro.next': 'Next', 'intro.skip': 'Skip',
+      'intro.1.title': 'Inflation is quiet, but real.', 'intro.1.copy': 'A 0% account keeps the number the same while prices keep moving. Financial knowledge helps you protect what your money can buy.',
+      'intro.2.title': 'No big sums. No jargon.', 'intro.2.copy': 'Five minutes and one small habit are enough to start. Kita will keep the language human and the steps practical.',
+      'intro.3.title': 'More calm. More control.', 'intro.3.copy': 'Know what to do when a laptop breaks or markets dip. Confidence grows when the next step is clear.',
+      'name.badge': 'Meet Kita', 'name.title': 'What should I call you?', 'name.copy': 'A first name helps me make the journey feel like yours.', 'name.label': 'Your first name', 'name.placeholder': 'For example, Alex', 'name.skip': 'Skip for now', 'name.continue': 'Continue',
 
       'hud.home': 'Finance Quest home',
       'hud.day': 'Day',
@@ -438,6 +455,20 @@
       'a11y.skip': 'Przejdź do treści',
       'brand.sub': 'od Commerzbanku, 14-dniowy Sprint Pewności',
       'common.close': 'Zamknij',
+      'entry.demo': 'DEMO · symulacja Commerzbanku',
+      'entry.account': 'Konto codzienne',
+      'entry.available': 'Dostępne saldo · dane przykładowe',
+      'entry.transaction1': 'Wynagrodzenie · przykład',
+      'entry.transaction2': 'Czynsz · przykład',
+      'entry.cta': 'Stwórz swój plan inwestycyjny i zacznij inwestować w 14 dni',
+      'entry.note': 'Nic nie zostanie wykonane. To prowadzona symulacja edukacyjna.',
+      'entry.whyTitle': 'Spokojniejszy start',
+      'entry.whyText': 'Kita zamienia dużą decyzję finansową w jeden mały, jasny krok naraz.',
+      'intro.next': 'Dalej', 'intro.skip': 'Pomiń',
+      'intro.1.title': 'Inflacja działa po cichu, ale naprawdę.', 'intro.1.copy': 'Konto 0% trzyma tę samą liczbę, gdy ceny idą w górę. Wiedza finansowa pomaga chronić to, co możesz kupić za swoje pieniądze.',
+      'intro.2.title': 'Bez wielkich kwot i żargonu.', 'intro.2.copy': 'Wystarczy 5 minut i jeden prosty nawyk. Kita mówi po ludzku i prowadzi przez praktyczne kroki.',
+      'intro.3.title': 'Więcej spokoju. Więcej kontroli.', 'intro.3.copy': 'Wiesz, co zrobić przy awarii albo spadkach na rynku. Pewność rośnie, gdy kolejny krok jest jasny.',
+      'name.badge': 'Poznaj Kitę', 'name.title': 'Jak mam się do Ciebie zwracać?', 'name.copy': 'Imię pomoże mi dopasować tę podróż do Ciebie.', 'name.label': 'Twoje imię', 'name.placeholder': 'Na przykład Ania', 'name.skip': 'Pomiń na razie', 'name.continue': 'Dalej',
 
       'hud.home': 'Finance Quest, strona główna',
       'hud.day': 'Dzień',
@@ -1359,7 +1390,9 @@
   const LEVEL_FLOOR = Object.freeze({ 1: 0, 2: 100, 3: 250 });
 
   const state = Object.assign(state0, {
-    screen: SCREENS.ONBOARDING,
+    screen: SCREENS.BANK_ENTRY,
+    userName: storageGet(LS_USER_NAME) || '',
+    introIndex: 0,
     busy: false,
     personas: [],
     stageId: null,           // 'first' | 'home' | 'peak' | 'pre' | null (custom form)
@@ -1513,6 +1546,54 @@
     if (title) title.focus({ preventScroll: true });
     renderHud({ animate: false });
   }
+
+  const INTRO_SLIDES = [1, 2, 3];
+  function renderIntro() {
+    const i = state.introIndex;
+    const step = document.getElementById('intro-step');
+    const title = document.getElementById('intro-title');
+    const copy = document.getElementById('intro-copy');
+    const progress = document.getElementById('intro-progress');
+    const next = document.getElementById('intro-next');
+    if (!step || !title || !copy || !progress || !next) return;
+    step.textContent = i + '/3';
+    title.textContent = t('intro.' + i + '.title');
+    copy.textContent = t('intro.' + i + '.copy');
+    progress.style.width = (i / INTRO_SLIDES.length) * 100 + '%';
+    next.querySelector('[data-i18n]').textContent = i === 3 ? t('name.continue') : t('intro.next');
+    next.querySelector('[data-icon]')?.replaceWith(document.createRange().createContextualFragment(icon(i === 3 ? 'check' : 'arrow-right')));
+  }
+  function openNameModal() {
+    closeModal('modal_intro');
+    const input = document.getElementById('user-name');
+    if (input) input.value = state.userName || '';
+    openModal('modal_name');
+    hydrateIcons(document.getElementById('modal_name'));
+    setTimeout(() => { if (input) input.focus(); }, 60);
+  }
+  function beginJourney() {
+    if (storageGet(LS_INTRO_SEEN) === '1') openNameModal();
+    else { state.introIndex = 1; renderIntro(); openModal('modal_intro'); }
+  }
+  function finishName(value) {
+    state.userName = String(value || '').trim().slice(0, 40);
+    storageSet(LS_USER_NAME, state.userName);
+    storageSet(LS_INTRO_SEEN, '1');
+    closeModal('modal_name');
+    showScreen(SCREENS.ONBOARDING);
+    renderKitaWelcome();
+  }
+  function renderKitaWelcome() {
+    const bubble = document.querySelector('#screen_onboarding [data-i18n="onb.bubble"]');
+    if (bubble && state.userName) bubble.textContent = state.lang === 'pl' ? 'Cześć, ' + state.userName + '! Kliknij etap życia, który najbardziej do Ciebie pasuje.' : 'Hi, ' + state.userName + '! Tap the life stage that sounds most like you.';
+  }
+  function skipIntro() { storageSet(LS_INTRO_SEEN, '1'); openNameModal(); }
+  function nextIntro() {
+    if (state.introIndex >= 3) { skipIntro(); return; }
+    state.introIndex += 1;
+    renderIntro();
+  }
+  function closeEntryFlow() { finishName(state.userName); }
 
   // ------------------------------------------------------------------------
   // 10. Screen 1 — life stage cards & 6-question profile
@@ -1816,6 +1897,9 @@
     state.mission = null;
     state.summary = null;
     state.cp = null;
+    state.userName = '';
+    state.introIndex = 0;
+    try { window.localStorage.removeItem(LS_INTRO_SEEN); window.localStorage.removeItem(LS_USER_NAME); } catch (e) { /* ignore */ }
     closeModal();
     closeCora();
     closeDrawer();
@@ -1823,7 +1907,7 @@
     resetHudBaseline();
     renderStageCards();
     renderDemoMenus();
-    showScreen(SCREENS.ONBOARDING);
+    showScreen(SCREENS.BANK_ENTRY);
   }
 
   // ------------------------------------------------------------------------
@@ -3290,7 +3374,7 @@
     const leader = rows[0];
     const list = rows.map((r) => {
       const isMe = r.is_current_user === true;
-      const name = isMe ? String(r.name).replace(/\s*\((Level Up!|Awans!)\)\s*$/, '') : r.name;
+      const name = isMe ? (state.userName || String(r.name).replace(/\s*\((Level Up!|Awans!)\)\s*$/, '')) : r.name;
       return '<li class="' + (isMe ? 'is-me' : '') + '"' + (isMe ? ' data-me' : '') + '>' +
         '<span class="board__rank">' + escapeHtml(r.rank) + '</span>' +
         '<span><span class="board__name">' + escapeHtml(name) + (isMe && leveled ? ' <span class="chip chip--green" style="min-height:24px;padding:0 8px;font-size:.7rem">' + escapeHtml(t('board.levelUp')) + '</span>' : '') + '</span>' +
@@ -3569,7 +3653,7 @@
     let result = null;
     try {
       if (state.session) {
-        const res = await withSessionRecovery((sid) => api.explain({ session_id: sid, question: q, topic_hint: topicKey || null, lang: state.lang }));
+        const res = await withSessionRecovery((sid) => api.explain({ session_id: sid, question: q, topic_hint: topicKey || null, lang: state.lang, user_name: state.userName || null }));
         if (validExplain(res)) result = res;
       }
     } catch (err) {
@@ -3597,7 +3681,7 @@
     modalReturnFocus = document.activeElement;
     modal.hidden = false;
     document.body.classList.add('no-scroll');
-    const btn = modal.querySelector('.modal__head [data-action="close-modal"]');
+    const btn = modal.querySelector('.modal__head [data-action="close-modal"], [data-action="close-intro"], [data-action="close-name"], input, [data-action]');
     if (btn) btn.focus();
   }
   function closeModal(id) {
@@ -3665,6 +3749,7 @@
     document.querySelectorAll('[data-i18n-aria]').forEach((el) => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
     document.querySelectorAll('[data-i18n-title]').forEach((el) => el.setAttribute('title', t(el.dataset.i18nTitle)));
     document.querySelectorAll('[data-i18n-content]').forEach((el) => el.setAttribute('content', t(el.dataset.i18nContent)));
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder)));
     document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === state.lang)));
   }
 
@@ -3674,6 +3759,7 @@
     state.lang = lang;
     storageSet(LS_LANG, lang);
     applyStaticI18n();
+    renderKitaWelcome();
     renderSoundButton();
     renderStageCards();
     syncFormOutputs();
@@ -3708,7 +3794,7 @@
   }
 
   function goHome() {
-    if (!state.session) { showScreen(SCREENS.ONBOARDING); return; }
+    if (!state.session) { showScreen(SCREENS.BANK_ENTRY); return; }
     closeDrawer();
     renderHub();
     showScreen(SCREENS.HUB);
@@ -3729,6 +3815,12 @@
       if (el.dataset.stage) { selectStage(el.dataset.stage); return; }
       const a = el.dataset.action;
       switch (a) {
+        case 'start-entry': beginJourney(); break;
+        case 'next-intro': nextIntro(); break;
+        case 'skip-intro': skipIntro(); break;
+        case 'close-intro': skipIntro(); break;
+        case 'skip-name': finishName(''); break;
+        case 'close-name': closeEntryFlow(); break;
         case 'go-home': goHome(); break;
         case 'reset': resetToProfile(); break;
         case 'toggle-sound': Sound.setMuted(!Sound.isMuted()); renderSoundButton(); if (!Sound.isMuted()) Sound.pop(); break;
@@ -3826,6 +3918,12 @@
       }
     });
     document.addEventListener('submit', (e) => {
+      if (e.target.id === 'name-form') {
+        e.preventDefault();
+        const input = document.getElementById('user-name');
+        finishName(input ? input.value : '');
+        return;
+      }
       if (e.target.id === 'cora-form') {
         e.preventDefault();
         const input = document.getElementById('cora-input');
