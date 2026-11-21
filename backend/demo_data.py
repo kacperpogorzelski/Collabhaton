@@ -2698,6 +2698,8 @@ def _select_step_block(
 
 
 def _as_int(value: object, default: int) -> int:
+    if isinstance(value, bool):
+        return default
     try:
         return int(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
@@ -2848,7 +2850,8 @@ def get_initial_mission_turn(
     block = get_step_block(1, facts, active, active_day)
 
     session_id = facts.get("session_id") or facts.get("id") or "demo-session"
-    options = shuffle_options(block["options"], session_id, 1)
+    shuffle_seed = 1 if active_day == 1 else active_day * 10 + 1
+    options = shuffle_options(block["options"], session_id, shuffle_seed)
 
     confidence_start = _as_int(facts.get("confidence_start"), 10)
     xp = _as_int(facts.get("xp"), 20)
@@ -2861,9 +2864,9 @@ def get_initial_mission_turn(
     if "completed_days" in fields:
         extras["completed_days"] = sorted(
             {
-                _normalize_day(value)
+                _as_int(value, 0)
                 for value in (facts.get("completed_days") or [])
-                if _as_int(value, 0) > 0
+                if 1 <= _as_int(value, 0) <= MAX_DAY
             }
         )
 

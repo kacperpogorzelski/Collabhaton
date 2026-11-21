@@ -644,11 +644,13 @@ def apply_progress(
 
     session["confidence_score"] = prev_conf + confidence_delta
     session["xp"] = prev_xp + xp_gained
+    prev_level, _, _ = get_level_state(prev_xp)
+    new_level, _, _ = get_level_state(session["xp"])
 
     return {
         "confidence_delta": confidence_delta,
         "xp_gained": xp_gained,
-        "leveled_up": prev_xp < 100 <= session["xp"],
+        "leveled_up": new_level > prev_level,
         "trigger_confetti": quality == "optimal",
     }
 
