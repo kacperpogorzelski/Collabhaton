@@ -44,10 +44,10 @@
     CHECKPOINT: 'screen_checkpoint',
   });
 
-  // Quiet Mastery palette (mirrors the :root tokens in styles.css).
+  // "Petrol & Canary" palette (mirrors the :root tokens in styles.css).
   const C = Object.freeze({
-    ink: '#082933', ink3: '#5B6E75', paper: '#F7F6F2', paper2: '#EFEDE6', rule: '#D8D4C8',
-    yellow: '#FFCC00', green: '#12B76A', amber: '#C08A1E', coral: '#C9473F', sky: '#2F6F86',
+    ink: '#082933', ink3: '#334E58', paper: '#F4F1EA', paper2: '#ECE8DE', rule: '#D8D2C5',
+    yellow: '#FFCC00', green: '#10B981', amber: '#F97316', coral: '#EF4444', sky: '#0EA5E9',
   });
   const CALM_AGE = 45;   // "Innovations for all generations": larger text & calm UI from 45
 
@@ -175,7 +175,9 @@
       'hud.language': 'Language',
       'hud.reset': 'Reset / Profile',
       'hud.judges': 'For judges',
-      'hud.menu': 'More options',
+      'settings.title': 'Settings',
+      'settings.soundSub': 'Off by default',
+      'settings.calmSub': 'Automatic from age 45',
       'hud.soundOn': 'Sound is on',
       'hud.soundOff': 'Sound is off',
 
@@ -252,12 +254,51 @@
       'hub.after14.title': 'After Day 14: keep learning',
       'hub.after14.sub': 'The sprint gets you started. Short monthly sessions keep you going.',
       'hub.done': 'Done',
-      'hub.steps': "Today's briefing",
-      'hub.step1': 'Your plan',
-      'hub.step2': 'What-if simulator',
-      'hub.step3': 'Day {n} lessons',
-      'hub.next': 'Next',
-      'hub.back': 'Back',
+      'hub.phaseDone': '{a} of {b} done',
+      'hub.ctaLessons': 'Start with the Day {n} lessons ({a}/{b})',
+      'hub.ctaCheckin': 'Atlas check-in, then start Day {n}',
+
+      'quest.eyebrow': 'Daily quests',
+      'quest.title': 'Day {d} of 14',
+      'tool.railTitle': 'Your sprint',
+      'tool.back': 'Back to daily quests',
+      'tool.nextTo': 'Next: {title}',
+      'tool.quests.title': 'Daily quests',
+      'tool.quests.sub': 'Day {d} of 14 · {a} of {b} done',
+      'tool.plan.title': 'Your plan',
+      'tool.plan.split': 'Cushion {a} · ETF {b}',
+      'tool.plan.range': '{a}–{b} in a broad ETF',
+      'tool.plan.savings': 'Cushion {a} first',
+      'tool.sim.title': 'What-if simulator',
+      'tool.sim.sub': '{amount}/mo over {years}',
+      'tool.lessons.title': 'Day {n} lessons',
+      'tool.lessons.sub': '{a} of {b} passed',
+      'tool.lessons.ready': 'All passed, check-in done',
+      'tool.lessons.badge': 'Next',
+      'tool.roadmap.title': 'Full sprint & after Day 14',
+      'tool.roadmap.sub': 'Phases 2–3 and continuous learning',
+      'tool.ask.title': 'Ask Atlas',
+      'tool.ask.sub': 'Plain words and a real-life example',
+
+      // Short worries for the context pill on the Daily quests card
+      'worry.freeze_money': 'frozen money',
+      'worry.no_time': 'no time for markets',
+      'worry.lose_money': 'losing money',
+      'worry.too_late': 'too late to start',
+
+      // Day titles are owned by the UI so they always follow the EN | PL switch
+      'day.20+.1': 'Inflation, liquidity and getting started',
+      'day.20+.4': 'Simulator of your first -15% drop',
+      'day.20+.9': 'How to choose a low-cost, broad ETF?',
+      'day.20+.14': 'Your first investment',
+      'day.30-50.1': 'Inflation and investing in the background',
+      'day.30-50.4': 'Automation without watching charts',
+      'day.30-50.9': 'Sensible proportions for a family',
+      'day.30-50.14': 'Start of the automatic ETF plan',
+      'day.50+.1': 'An anti-inflation shield at any age',
+      'day.50+.4': 'Reacting calmly to volatility',
+      'day.50+.9': 'A simple capital-protection portfolio',
+      'day.50+.14': 'A confident start at Commerzbank',
       'hub.soon': 'Available in the full 14-day sprint. Complete Days 1–4 and Checkpoint #1 first.',
       'hub.pebble': 'Day {n}, part of the full 14-day sprint',
       'hub.checkpoint2Short': 'Checkpoint #2',
@@ -538,9 +579,7 @@
       'judges.jumpDay4': 'Jump to Day 4',
       'judges.openCp': 'Open Checkpoint #1',
       'judges.noMultiDay': "This server doesn't have Days 2–4 yet.",
-      'judges.demoHint': 'Sample life stages and presenter shortcuts live in Demo, top right.',
-      'demo.toggle': 'Demo',
-      'demo.title': 'Demo mode',
+      'judges.demoHint': 'Sample life stages and presenter shortcuts are in Settings (the gear, top right).',
       'demo.stages': 'Sample life stage',
       'demo.shortcuts': 'Presenter shortcuts',
       'demo.needProfile': 'Pick a life stage first.',
@@ -634,7 +673,9 @@
       'hud.language': 'Język',
       'hud.reset': 'Reset / Profil',
       'hud.judges': 'Dla jury',
-      'hud.menu': 'Więcej opcji',
+      'settings.title': 'Ustawienia',
+      'settings.soundSub': 'Domyślnie wyłączone',
+      'settings.calmSub': 'Automatycznie od 45. roku życia',
       'hud.soundOn': 'Dźwięk włączony',
       'hud.soundOff': 'Dźwięk wyłączony',
 
@@ -711,12 +752,51 @@
       'hub.after14.title': 'Po Dniu 14: ucz się dalej',
       'hub.after14.sub': 'Sprint daje start. Krótkie comiesięczne sesje utrzymują nawyk.',
       'hub.done': 'Zaliczone',
-      'hub.steps': 'Dzisiejszy plan',
-      'hub.step1': 'Twój plan',
-      'hub.step2': 'Symulator: co jeśli?',
-      'hub.step3': 'Lekcje Dnia {n}',
-      'hub.next': 'Dalej',
-      'hub.back': 'Wstecz',
+      'hub.phaseDone': '{a} z {b} ukończone',
+      'hub.ctaLessons': 'Zacznij od lekcji Dnia {n} ({a}/{b})',
+      'hub.ctaCheckin': 'Check-in z Atlasem, potem start Dnia {n}',
+
+      'quest.eyebrow': 'Zadania dnia',
+      'quest.title': 'Dzień {d} z 14',
+      'tool.railTitle': 'Twój sprint',
+      'tool.back': 'Wróć do zadań dnia',
+      'tool.nextTo': 'Dalej: {title}',
+      'tool.quests.title': 'Zadania dnia',
+      'tool.quests.sub': 'Dzień {d} z 14 · {a} z {b} ukończone',
+      'tool.plan.title': 'Twój plan',
+      'tool.plan.split': 'Poduszka {a} · ETF {b}',
+      'tool.plan.range': '{a}–{b} w szerokim ETF',
+      'tool.plan.savings': 'Najpierw poduszka {a}',
+      'tool.sim.title': 'Symulator: co jeśli?',
+      'tool.sim.sub': '{amount}/mies. przez {years}',
+      'tool.lessons.title': 'Lekcje Dnia {n}',
+      'tool.lessons.sub': 'Zaliczone: {a} z {b}',
+      'tool.lessons.ready': 'Wszystko zaliczone, check-in gotowy',
+      'tool.lessons.badge': 'Teraz',
+      'tool.roadmap.title': 'Cały sprint i po Dniu 14',
+      'tool.roadmap.sub': 'Fazy 2–3 i dalsza nauka',
+      'tool.ask.title': 'Zapytaj Atlasa',
+      'tool.ask.sub': 'Prosto i na przykładzie z życia',
+
+      // Krótkie obawy do pigułki kontekstu na karcie Zadań dnia
+      'worry.freeze_money': 'zamrożone pieniądze',
+      'worry.no_time': 'brak czasu na giełdę',
+      'worry.lose_money': 'strata pieniędzy',
+      'worry.too_late': 'za późno na start',
+
+      // Tytuły dni należą do UI, więc zawsze podążają za przełącznikiem EN | PL
+      'day.20+.1': 'Inflacja, płynność i start',
+      'day.20+.4': 'Symulator pierwszego spadku -15%',
+      'day.20+.9': 'Jak wybrać tani, szeroki ETF?',
+      'day.20+.14': 'Twoja pierwsza inwestycja',
+      'day.30-50.1': 'Inflacja i inwestowanie w tle',
+      'day.30-50.4': 'Automatyzacja bez patrzenia w wykresy',
+      'day.30-50.9': 'Bezpieczne proporcje dla rodziny',
+      'day.30-50.14': 'Start automatycznego planu ETF',
+      'day.50+.1': 'Tarcza antyinflacyjna w każdym wieku',
+      'day.50+.4': 'Spokojne reagowanie na wahania',
+      'day.50+.9': 'Prosty portfel ochrony kapitału',
+      'day.50+.14': 'Świadomy start w Commerzbanku',
       'hub.soon': 'Dostępne w pełnym 14-dniowym sprincie. Najpierw ukończ Dni 1–4 i Checkpoint #1.',
       'hub.pebble': 'Dzień {n}, część pełnego 14-dniowego sprintu',
       'hub.checkpoint2Short': 'Checkpoint #2',
@@ -997,9 +1077,7 @@
       'judges.jumpDay4': 'Skocz do Dnia 4',
       'judges.openCp': 'Otwórz Checkpoint #1',
       'judges.noMultiDay': 'Ten serwer nie ma jeszcze Dni 2–4.',
-      'judges.demoHint': 'Przykładowe etapy życia i skróty dla prowadzącego są w zakładce Demo, w prawym górnym rogu.',
-      'demo.toggle': 'Demo',
-      'demo.title': 'Tryb demo',
+      'judges.demoHint': 'Przykładowe etapy życia i skróty dla prowadzącego są w Ustawieniach (zębatka w prawym górnym rogu).',
       'demo.stages': 'Przykładowy etap życia',
       'demo.shortcuts': 'Skróty dla prowadzącego',
       'demo.needProfile': 'Najpierw wybierz etap życia.',
@@ -1291,6 +1369,8 @@
     pillars: '<path d="M4 20.25h16" ' + S + '/><path d="M6.5 20v-4.5M10 20v-7.5M13.5 20V9.5M17.5 20V5.5" ' + st(2.2) + '/>',
     'text-size': '<path d="M3.5 18.5 8 6.5l4.5 12M5.1 14.5h5.8M14 18.5l3-8 3 8M15 16h4" ' + S + '/>',
     filter: '<path d="M4 5.5h16l-6.25 7.25v5.5l-3.5 1.75v-7.25z" ' + S + '/>',
+    gear: '<circle cx="12" cy="12" r="6" ' + S + '/><circle cx="12" cy="12" r="2.4" ' + S + '/><path d="M12 2.75v2.6M12 18.65v2.6M2.75 12h2.6M18.65 12h2.6M5.46 5.46l1.84 1.84M16.7 16.7l1.84 1.84M5.46 18.54l1.84-1.84M16.7 7.3l1.84-1.84" ' + st(2.4) + '/>',
+    map: '<path d="M3.5 6.5 9 4l6 2.5 5.5-2.5v13.5L15 20l-6-2.5-5.5 2.5z" ' + S + '/><path d="M9 4v13.5M15 6.5V20" ' + S + '/>',
   };
   function icon(name, cls) {
     const inner = ICON_PATHS[name] || ICON_PATHS.bulb;
@@ -1669,7 +1749,7 @@
     summary: null,
     cp: null,
     cora: { busy: false, result: null, picked: null, question: '' },
-    hubTab: 1,               // Quest Hub briefing step: 1 plan · 2 what-if simulator · 3 lessons
+    hubView: 'quests',       // Quest Hub: 'quests' (default) or a rail tool: plan · sim · lessons · roadmap
     tmAmount: null,          // what-if monthly amount; null = the sample plan amount
     plantStageAtStart: 1,
     calm: false,             // "Larger text / Calm UI" (body.is-senior-friendly)
@@ -1771,10 +1851,11 @@
     state.calm = !!on;
     document.body.classList.toggle('is-senior-friendly', state.calm);
     document.documentElement.classList.toggle('is-senior-friendly', state.calm);
-    document.querySelectorAll('[data-action="toggle-calm"]').forEach((b) => b.setAttribute('aria-pressed', String(state.calm)));
+    document.querySelectorAll('[data-action="toggle-calm"]').forEach((b) => b.setAttribute('aria-checked', String(state.calm)));
     renderHud({ animate: false });
     if (state.session && state.screen === SCREENS.HUB) {
       renderGardenCard();
+      renderHubRail();
       syncAmountControls();
       updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false });
       if (tmChart) tmChart.resize();
@@ -1804,11 +1885,32 @@
     setTimeout(() => el.remove(), 1400);
   }
 
+  // Sound lives in Settings as a switch row (role="switch").
   function renderSoundButton() {
     const muted = Sound.isMuted();
-    els.hudSound.innerHTML = icon(muted ? 'soundOff' : 'soundOn');
-    els.hudSound.setAttribute('aria-pressed', String(!muted));
+    if (!els.hudSound) return;
+    const ico = els.hudSound.querySelector('[data-sound-icon]');
+    if (ico) ico.innerHTML = icon(muted ? 'soundOff' : 'soundOn');
+    els.hudSound.setAttribute('aria-checked', String(!muted));
     els.hudSound.title = muted ? t('hud.soundOff') : t('hud.soundOn');
+  }
+
+  // Settings popover behind the gear: language, sound, calm mode, reset, judges, demo.
+  function toggleSettings(force) {
+    if (!els.settingsPop) return;
+    const open = force != null ? !!force : els.settingsPop.hidden;
+    if (open) renderDemoMenus();
+    els.settingsPop.hidden = !open;
+    if (els.settingsBtn) els.settingsBtn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      const first = els.settingsPop.querySelector('.seg button[aria-pressed="true"]') || els.settingsPop.querySelector('button');
+      if (first) first.focus({ preventScroll: true });
+    }
+  }
+  function closeSettings(restoreFocus) {
+    if (!els.settingsPop || els.settingsPop.hidden) return;
+    toggleSettings(false);
+    if (restoreFocus && els.settingsBtn) els.settingsBtn.focus({ preventScroll: true });
   }
 
   // ------------------------------------------------------------------------
@@ -1824,7 +1926,7 @@
       if (active) replayClass(el, 'screen-enter');
     });
     document.body.dataset.screen = id;
-    closeMenu();
+    closeSettings();
     if (!opts || opts.scroll !== false) window.scrollTo(0, 0);
     const title = target.querySelector('[data-screen-title]');
     if (title) title.focus({ preventScroll: true });
@@ -1920,9 +2022,9 @@
       '</button>'
     ).join('');
     return (
-      '<p class="demo-title">' + escapeHtml(t('demo.stages')) + '</p>' +
+      '<p class="settings__label">' + escapeHtml(t('demo.stages')) + '</p>' +
       '<div class="demo-stages">' + stages + '</div>' +
-      '<p class="demo-title">' + escapeHtml(t('demo.shortcuts')) + '</p>' +
+      '<p class="settings__label">' + escapeHtml(t('demo.shortcuts')) + '</p>' +
       '<div class="demo-shortcuts">' +
         '<button type="button" class="tool-btn" data-action="demo-day4"' + (has ? '' : ' disabled') + '>' + icon('target', 'ic--sm') + escapeHtml(t('judges.jumpDay4')) + '</button>' +
         '<button type="button" class="tool-btn" data-action="demo-cp"' + (has ? '' : ' disabled') + '>' + icon('trophy', 'ic--sm') + escapeHtml(t('judges.openCp')) + '</button>' +
@@ -1931,16 +2033,8 @@
     );
   }
   function renderDemoMenus() {
-    if (els.demoPop) els.demoPop.innerHTML = '<p class="demo-head">' + escapeHtml(t('demo.title')) + '</p>' + demoGroupHTML();
-    if (els.demoMobile) els.demoMobile.innerHTML = demoGroupHTML();
+    if (els.settingsDemo) els.settingsDemo.innerHTML = demoGroupHTML();
   }
-  function toggleDemo(force) {
-    const open = force != null ? force : els.demoPop.hidden;
-    if (open) { closeMenu(); renderDemoMenus(); }
-    els.demoPop.hidden = !open;
-    document.querySelectorAll('[data-action="toggle-demo"]').forEach((b) => b.setAttribute('aria-expanded', String(open)));
-  }
-  function closeDemo() { if (els.demoPop && !els.demoPop.hidden) toggleDemo(false); }
 
   function setStageBusy(stageId, busy) {
     document.querySelectorAll('[data-stage]').forEach((btn) => {
@@ -2139,7 +2233,7 @@
     state.log = [];
     state.tm = { year: null, point: null };
     state.tmAmount = null;
-    state.hubTab = 1;
+    state.hubView = 'quests';
     state.mission = freshMissionState();
     state.plantStageAtStart = state.mission.plantStageAtStart;
     state.summary = freshSummary();
@@ -2154,8 +2248,7 @@
   function selectStage(stageId) {
     const stage = stageById(stageId);
     if (!stage || state.busy) return;
-    closeDemo();
-    closeMenu();
+    closeSettings();
     state.stageId = stageId;
     const profile = stageProfile(stage);
     fillForm(profile);
@@ -2200,7 +2293,7 @@
     closeModal();
     closeCora();
     closeDrawer();
-    closeDemo();
+    closeSettings();
     closeTermPop();
     state.calmManual = false;
     applyCalm(false);
@@ -2242,107 +2335,197 @@
     const p = lessonProgress();
     return p.done < p.total ? t('hub.gateLessons', { a: p.done, b: p.total }) : t('hub.gateCheckin');
   }
+  // The quest-card CTA is always an inviting next step: start the day or — while the lesson
+  // gate is still closed — open the lessons that unlock it (the gate itself stays enforced).
   function hubPrimary() {
     if (!dayDone(state.day)) {
       const resuming = state.mission && state.mission.started;
-      if (!resuming && !dayReady()) return { label: gateLabel(), action: 'goto-lessons', locked: true };
+      if (!resuming && !dayReady()) {
+        const p = lessonProgress();
+        return {
+          label: p.done < p.total ? t('hub.ctaLessons', { n: state.day, a: p.done, b: p.total }) : t('hub.ctaCheckin', { n: state.day }),
+          lockedLabel: gateLabel(), action: 'goto-lessons', gated: true,
+        };
+      }
       return { label: t(resuming ? 'hub.resumeMission' : 'hub.startMission', { n: state.day }), action: 'open-mission' };
     }
     if (state.day < PLAYABLE_DAYS) return { label: t('hub.nextDay', { n: state.day + 1 }), action: 'start-day', day: state.day + 1 };
     if (!state.checkpointPassed) return { label: t('hub.openCheckpoint'), action: 'open-checkpoint' };
     return { label: t('hub.reviewDay', { n: state.day }), action: 'open-done' };
   }
-  function primaryButton(cls) {
+  // variant 'lessons': inside the lessons tool a closed gate reads as a locked button with the
+  // exact condition, because the lessons are already on screen.
+  function primaryButton(cls, variant) {
     const p = hubPrimary();
+    const locked = p.gated && variant === 'lessons';
     return '<button type="button" class="btn btn--primary btn--lg js-primary ' + (cls || '') + '" data-action="' + p.action + '"' +
-      (p.day ? ' data-day="' + p.day + '"' : '') + (p.locked ? ' aria-disabled="true"' : '') + '>' +
-      escapeHtml(p.label) + icon(p.locked ? 'lock' : 'arrow-right') + '</button>';
+      (variant ? ' data-variant="' + variant + '"' : '') + (p.day ? ' data-day="' + p.day + '"' : '') + (locked ? ' aria-disabled="true"' : '') + '>' +
+      escapeHtml(locked ? p.lockedLabel : p.label) + icon(locked ? 'lock' : p.gated ? 'bulb' : 'arrow-right') + '</button>';
   }
   function refreshPrimary() {
     document.querySelectorAll('.js-primary').forEach((b) => {
       const extra = b.classList.contains('btn--block') ? 'btn--block' : '';
-      b.outerHTML = primaryButton(extra);
+      b.outerHTML = primaryButton(extra, b.dataset.variant);
     });
+    renderHubRail();
   }
   function gateBlocked(btn) {
     if (btn) replayClass(btn, 'attn');
     toast(gateLabel(), 'info', 3400, { guide: true });
-    if (state.screen === SCREENS.HUB) showHubTab(3, { scroll: true });
+    if (state.screen === SCREENS.HUB) openHubTool('lessons');
   }
 
   function renderHub() {
     if (!state.session) return;
     renderDemoMenus();
     renderPathColumn();
+    renderRoadmap();
     renderPlanCard();
     renderGardenCard();
     renderSkippedCard();
     renderLessonsCard();
     setupTimeMachine();
-    renderHubSteps();
+    renderHubTools();
     els.hubMobileCta.innerHTML = '<div class="wrap" style="padding:0">' + primaryButton('btn--block') + '</div>';
   }
 
-  // Today's briefing as three calm steps: plan -> what-if simulator -> lessons (Issue #44).
-  const HUB_STEPS = 3;
-  function hubStepLabel(n) {
-    return n === 1 ? t('hub.step1') : n === 2 ? t('hub.step2') : t('hub.step3', { n: state.day });
-  }
-  function renderHubSteps() {
-    const cur = clamp(state.hubTab || 1, 1, HUB_STEPS);
-    els.hubSteps.innerHTML = [1, 2, 3].map((n) =>
-      '<button type="button" class="step-tab" role="tab" id="hub-tab-' + n + '" aria-controls="hub-panel-' + n + '" aria-selected="' + (n === cur) + '"' +
-        (n === cur ? '' : ' tabindex="-1"') + ' data-action="hub-tab" data-tab="' + n + '">' +
-        '<span class="step-tab__n">' + n + '</span><span class="step-tab__label">' + escapeHtml(hubStepLabel(n)) + '</span></button>'
-    ).join('');
-    for (let n = 1; n <= HUB_STEPS; n++) {
-      const panel = document.getElementById('hub-panel-' + n);
-      if (panel) panel.hidden = n !== cur;
-      const nav = document.querySelector('[data-step-nav="' + n + '"]');
-      if (!nav) continue;
-      const back = n > 1
-        ? '<button type="button" class="btn btn--ghost" data-action="hub-tab" data-tab="' + (n - 1) + '" data-scroll="1">' + icon('arrow-right', 'ic--flip') + escapeHtml(t('hub.back')) + '</button>'
-        : '<span></span>';
-      const next = n < HUB_STEPS
-        ? '<button type="button" class="btn btn--primary" data-action="hub-tab" data-tab="' + (n + 1) + '" data-scroll="1">' +
-            escapeHtml(t('hub.next') + ': ' + hubStepLabel(n + 1)) + icon('arrow-right') + '</button>'
-        : primaryButton('');
-      nav.innerHTML = back + next;
+  // ---- Left tool rail: feature buttons whose content opens only on click ----
+  const HUB_TOOLS = [
+    { id: 'quests', icon: 'flag', tone: 'petrol' },
+    { id: 'plan', icon: 'wallet', tone: 'gold', panel: 1 },
+    { id: 'sim', icon: 'chart', tone: 'sky', panel: 2 },
+    { id: 'lessons', icon: 'bulb', tone: 'mint', panel: 3 },
+    { id: 'roadmap', icon: 'map', tone: 'apricot', panel: 4 },
+  ];
+  const TOOL_FLOW = ['plan', 'sim', 'lessons'];   // guided order inside the tool view
+  function hubTool(id) { return HUB_TOOLS.find((x) => x.id === id) || HUB_TOOLS[0]; }
+  function toolTitle(id) { return id === 'lessons' ? t('tool.lessons.title', { n: state.day }) : t('tool.' + id + '.title'); }
+  function phaseDoneCount() { return [1, 2, 3, 4].filter(dayDone).length; }
+  function toolSub(id) {
+    const s = state.session;
+    if (id === 'quests') return t('tool.quests.sub', { d: state.day, a: phaseDoneCount(), b: PLAYABLE_DAYS });
+    if (id === 'plan') {
+      const a = s.safe_investment || {};
+      if (a.plan_type === 'split') return t('tool.plan.split', { a: money(a.emergency_savings_monthly), b: money(a.training_etf_monthly) });
+      if (a.plan_type === 'invest') return t('tool.plan.range', { a: formatNumber(a.min_monthly), b: money(a.max_monthly) });
+      return t('tool.plan.savings', { a: money(a.emergency_savings_monthly) });
     }
+    if (id === 'sim') return t('tool.sim.sub', { amount: money(currentAmount()), years: years(state.tm.year || s.default_horizon_years) });
+    if (id === 'lessons') {
+      const p = lessonProgress();
+      const ready = p.total && p.done >= p.total && (state.checkinDays.has(state.day) || state.gateBypass.has(state.day));
+      return ready ? t('tool.lessons.ready') : t('tool.lessons.sub', { a: p.done, b: p.total });
+    }
+    if (id === 'roadmap') return t('tool.roadmap.sub');
+    return '';
   }
-  function showHubTab(n, opts) {
+  function lessonsAreNext() { return !dayDone(state.day) && !(state.mission && state.mission.started) && !dayReady(); }
+
+  function renderHubRail() {
+    if (!els.hubRail || !state.session) return;
+    const btn = (tool) => {
+      const cur = state.hubView === tool.id;
+      const next = tool.id === 'lessons' && lessonsAreNext();
+      const end = next ? '<span class="rail-btn__badge">' + escapeHtml(t('tool.lessons.badge')) + '</span>' : icon('arrow-right', 'ic--sm');
+      return '<button type="button" class="rail-btn rail-btn--' + tool.id + (next ? ' is-next' : '') + '" data-action="hub-tool" data-tool="' + tool.id + '"' +
+          ' aria-current="' + cur + '" aria-controls="' + (tool.panel ? 'hub-panel-' + tool.panel : 'hub-view-quests') + '">' +
+        '<span class="tile-ic tile-ic--' + tool.tone + '">' + icon(tool.icon) + '</span>' +
+        '<span class="rail-btn__copy"><span class="rail-btn__title">' + escapeHtml(toolTitle(tool.id)) + '</span>' +
+          '<span class="rail-btn__sub">' + escapeHtml(toolSub(tool.id)) + '</span></span>' +
+        '<span class="rail-btn__end">' + end + '</span></button>';
+    };
+    const ask = '<button type="button" class="rail-btn rail-btn--ask" data-action="open-cora">' +
+      '<span class="tile-ic">' + coraSVG() + '</span>' +
+      '<span class="rail-btn__copy"><span class="rail-btn__title">' + escapeHtml(t('tool.ask.title')) + '</span>' +
+        '<span class="rail-btn__sub">' + escapeHtml(t('tool.ask.sub')) + '</span></span>' +
+      '<span class="rail-btn__end">' + icon('arrow-right', 'ic--sm') + '</span></button>';
+    els.hubRail.innerHTML = '<p class="eyebrow rail__title">' + escapeHtml(t('tool.railTitle')) + '</p>' +
+      '<div class="rail__list">' + HUB_TOOLS.map(btn).join('') + '<div class="rail__sep" role="presentation"></div>' + ask + '</div>';
+  }
+
+  function renderHubTools() {
+    const tool = hubTool(state.hubView);
+    state.hubView = tool.id;
+    renderHubRail();
+    const inTool = tool.id !== 'quests';
+    if (els.hubViewQuests) els.hubViewQuests.hidden = inTool;
+    if (els.hubViewTool) els.hubViewTool.hidden = !inTool;
+    if (els.hubToolTitle) {
+      els.hubToolTitle.innerHTML = inTool
+        ? '<span class="tile-ic tile-ic--' + tool.tone + '">' + icon(tool.icon) + '</span><span>' + escapeHtml(toolTitle(tool.id)) + '</span>'
+        : '';
+    }
+    for (let n = 1; n <= 4; n++) {
+      const panel = document.getElementById('hub-panel-' + n);
+      if (panel) panel.hidden = !(inTool && tool.panel === n);
+    }
+    HUB_TOOLS.forEach((x) => {
+      if (!x.panel) return;
+      const nav = document.querySelector('[data-step-nav="' + x.panel + '"]');
+      if (!nav) return;
+      const i = TOOL_FLOW.indexOf(x.id);
+      const prevId = i > 0 ? TOOL_FLOW[i - 1] : 'quests';
+      const back = '<button type="button" class="btn btn--ghost" data-action="hub-tool" data-tool="' + prevId + '">' +
+        icon('arrow-right', 'ic--flip') + escapeHtml(prevId === 'quests' ? t('tool.back') : toolTitle(prevId)) + '</button>';
+      let next = '';
+      if (i >= 0 && i < TOOL_FLOW.length - 1) {
+        next = '<button type="button" class="btn btn--primary" data-action="hub-tool" data-tool="' + TOOL_FLOW[i + 1] + '">' +
+          escapeHtml(t('tool.nextTo', { title: toolTitle(TOOL_FLOW[i + 1]) })) + icon('arrow-right') + '</button>';
+      } else if (x.id === 'lessons') {
+        next = primaryButton('', 'lessons');
+      }
+      nav.innerHTML = back + next;
+    });
+  }
+
+  // Switch the main column between Daily quests and a tool, with a clear way back.
+  function openHubTool(id, opts) {
     const o = opts || {};
-    state.hubTab = clamp(Number(n) || 1, 1, HUB_STEPS);
-    renderHubSteps();
-    if (state.hubTab === 2) {
+    if (!state.session) return;
+    state.hubView = hubTool(id).id;
+    closeTermPop();
+    renderHubTools();
+    if (state.hubView === 'sim') {
       // The chart and slider pills live in a panel that was hidden: re-measure once visible.
       syncAmountControls();
       updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false });
       if (tmChart) tmChart.resize();
     }
-    if (o.scroll) {
-      const top = els.hubSteps.getBoundingClientRect().top + window.scrollY - 90;
-      if (window.scrollY > top) window.scrollTo({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    // Scroll to the hub's top edge: on phones that keeps the tool pill bar in view.
+    const hubEl = els.hubMain && els.hubMain.closest('.hub');
+    if (o.scroll !== false && hubEl) {
+      const hud = document.getElementById('hud');
+      const top = hubEl.getBoundingClientRect().top + window.scrollY - ((hud ? hud.offsetHeight : 70) + 12);
+      if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     }
+    // Mobile pill bar: keep the active pill visible.
+    const cur = els.hubRail && els.hubRail.querySelector('[aria-current="true"]');
+    const list = cur && cur.parentElement;
+    if (cur && list && list.scrollWidth > list.clientWidth) list.scrollTo({ left: Math.max(0, cur.offsetLeft - 16), behavior: 'auto' });
     if (o.focus) {
-      const tab = document.getElementById('hub-tab-' + state.hubTab);
-      if (tab) tab.focus({ preventScroll: true });
+      const target = state.hubView === 'quests' ? document.querySelector('#hub-path-col .quest__title') : els.hubToolTitle;
+      if (target) target.focus({ preventScroll: true });
     }
   }
+  // Older call sites (gates, shortcuts) still speak in briefing steps 1–3.
+  function showHubTab(n, opts) { openHubTool(TOOL_FLOW[clamp(Number(n) || 1, 1, TOOL_FLOW.length) - 1], opts); }
 
   function milestoneFor(day) {
     return (state.session.roadmap_milestones || []).find((m) => m.day === day) || null;
   }
+  // Day titles come from the UI dictionary (per age group), so the Daily quests card never
+  // mixes the session's language with the EN | PL switch. The backend title is a fallback only.
   function dayTitle(d) {
-    const m = milestoneFor(d);
-    if (m && m.title) return m.title;
     if (d === 2) return t('hub.day2Title');
     if (d === 3) return t('hub.day3Title');
-    return '';
+    const key = 'day.' + (state.session && state.session.age_group) + '.' + d;
+    if (I18N.en[key] != null) return t(key);
+    const m = milestoneFor(d);
+    return m && m.title ? m.title : '';
   }
 
-  // Phase 1 as a calm vertical timeline (Days 1–4 + Checkpoint #1). Each row is one button
-  // with the node's state: done · active (today) · next · locked.
+  // Daily quests — the hero of the hub: profile context, a petrol phase banner with progress,
+  // the Days 1–4 + Checkpoint #1 timeline and one wide CTA.
   function renderPathColumn() {
     const s = state.session;
     const nodes = [1, 2, 3, 4].map((d) => ({ key: String(d), day: d, st: nodeState(d) }));
@@ -2350,7 +2533,7 @@
     const resuming = state.mission && state.mission.started;
     const rows = nodes.map((n) => {
       const isCp = n.key === 'cp';
-      const ico = n.st === 'done' ? 'check' : n.st === 'locked' ? 'lock' : isCp ? 'trophy' : DAY_ICONS[n.day];
+      const ico = n.st === 'done' ? 'check' : isCp ? 'flag' : n.st === 'locked' ? 'lock' : DAY_ICONS[n.day];
       const dayLabel = isCp ? t('hub.checkpoint') : t('hub.day', { n: n.day });
       const sub = isCp ? t('hub.checkpointSub') : dayTitle(n.day);
       const lockedHint = n.st === 'locked' ? (isCp ? t('hub.lockedCp') : t('hub.locked', { n: n.day - 1 })) : '';
@@ -2366,59 +2549,73 @@
             '<span class="tl__marker">' + icon(ico) + '</span>' +
             '<span class="tl__body"><span class="tl__day">' + escapeHtml(dayLabel) + '</span>' +
               (sub ? '<span class="tl__title">' + escapeHtml(sub) + '</span>' : '') +
-              (lockedHint ? '<span class="tl__hint">' + escapeHtml(lockedHint) + '</span>' : '') + '</span>' +
+              (lockedHint ? '<span class="tl__hint">' + icon('lock', 'ic--sm') + escapeHtml(lockedHint) + '</span>' : '') + '</span>' +
             tag +
           '</button>' +
         '</li>'
       );
     }).join('');
 
-    // Phases 2–3: day markers. Tapping one explains, with Atlas, that it belongs to the full
-    // sprint — no call to a mission backend that does not exist yet.
-    const m9 = milestoneFor(9);
-    const m14 = milestoneFor(14);
-    const phaseCard = (num, from, to, range, title, milestone, endIcon, endLabel) => {
+    const done = phaseDoneCount();
+    const pct = Math.round((done / PLAYABLE_DAYS) * 100);
+    const horizon = state.lang === 'pl' ? years(s.default_horizon_years) : s.default_horizon_years;
+    els.hubPathCol.innerHTML =
+      '<div class="card quest">' +
+        '<div class="quest__head">' +
+          '<div><p class="eyebrow">' + escapeHtml(t('quest.eyebrow')) + '</p>' +
+            '<h3 class="quest__title" tabindex="-1">' + escapeHtml(t('quest.title', { d: state.day })) + '</h3></div>' +
+          '<span class="chip chip--sky">' + icon('clock', 'ic--sm') + escapeHtml(t('hub.perDay')) + '</span>' +
+        '</div>' +
+        '<div class="learner">' +
+          '<span class="chip chip--ink">' + icon('user', 'ic--sm') + escapeHtml(t('group.' + s.age_group)) + '</span>' +
+          '<span class="chip chip--horizon">' + icon('hourglass', 'ic--sm') + escapeHtml(t('hub.horizon', { n: horizon })) + '</span>' +
+          '<span class="chip chip--worry">' + icon('info', 'ic--sm') + escapeHtml(t('hub.worry', { x: t('worry.' + s.main_concern) })) + '</span>' +
+        '</div>' +
+        '<div class="phase-banner">' +
+          '<span class="phase-banner__num">1</span>' +
+          '<div><p class="phase-banner__meta">' + escapeHtml(t('hub.phase', { n: 1 }) + ' · ' + t('hub.phase1.range')) + '</p>' +
+            '<p class="phase-banner__title">' + escapeHtml(t('hub.phase1.title')) + '</p></div>' +
+          '<div class="phase-banner__progress">' +
+            '<span class="phase-banner__count">' + escapeHtml(t('hub.phaseDone', { a: done, b: PLAYABLE_DAYS })) + '</span>' +
+            '<div class="phase-banner__bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + PLAYABLE_DAYS + '" aria-valuenow="' + done + '" aria-label="' + escapeHtml(t('hub.phaseDone', { a: done, b: PLAYABLE_DAYS })) + '">' +
+              '<span style="width:' + pct + '%"></span></div>' +
+          '</div>' +
+        '</div>' +
+        '<ol class="timeline" data-group="' + escapeHtml(s.age_group) + '">' + rows + '</ol>' +
+        '<div class="hub-cta-desktop">' + primaryButton('btn--block') + '</div>' +
+      '</div>';
+  }
+
+  // Full sprint (Phases 2–3) + After Day 14 — opened from the rail. Day pebbles explain, with
+  // Atlas, that they belong to the full sprint (no call to a mission backend that does not exist).
+  function renderRoadmap() {
+    const phaseCard = (num, from, to, range, title, milestoneDay, endIcon, endLabel) => {
       let pebbles = '';
       for (let d = from; d <= to; d++) {
         pebbles += '<button type="button" class="pebble" data-action="soon-day" data-day="' + d + '" aria-label="' + escapeHtml(t('hub.pebble', { n: d })) + '">' +
           '<span class="pebble__n">' + d + '</span></button>';
       }
       pebbles += '<button type="button" class="pebble pebble--goal" data-action="soon-day" data-day="' + to + '" aria-label="' + escapeHtml(endLabel) + '" title="' + escapeHtml(endLabel) + '">' + icon(endIcon) + '</button>';
+      const milestone = dayTitle(milestoneDay);
       return (
         '<div class="phase-card phase-card--' + num + '">' +
           '<div class="phase-card__head"><span class="phase__num">' + num + '</span>' +
-            '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: num }) + ', ' + t(range) + ', ' + t('hub.perDay')) + '</p>' +
+            '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: num }) + ' · ' + t(range) + ' · ' + t('hub.perDay')) + '</p>' +
             '<p class="phase__title">' + escapeHtml(t(title)) + '</p>' +
-            (milestone ? '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(milestone.title) + '</p>' : '') + '</div></div>' +
+            (milestone ? '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(milestone) + '</p>' : '') + '</div></div>' +
           '<div class="pebbles">' + pebbles + '</div>' +
         '</div>'
       );
     };
-
     const after = after14Paths().map((p) =>
-      '<div class="after14__tile">' + icon(p.icon || 'chat') + '<h4 style="margin-top:8px">' + escapeHtml(p.title) + '</h4><p>' + escapeHtml(p.cadence || '') + '</p></div>'
+      '<div class="after14__tile"><span class="tile-ic">' + icon(p.icon || 'chat') + '</span><h4>' + escapeHtml(p.title) + '</h4>' +
+        '<p>' + escapeHtml(p.description || '') + '</p><p class="after14__cad">' + escapeHtml(p.cadence || '') + '</p></div>'
     ).join('');
-
-    els.hubPathCol.innerHTML =
-      '<div class="card">' +
-        '<div class="learner">' +
-          '<span class="chip chip--ink">' + icon('user', 'ic--sm') + escapeHtml(s.persona_label) + '</span>' +
-          '<span class="chip">' + icon('hourglass', 'ic--sm') + escapeHtml(t('hub.horizon', { n: state.lang === 'pl' ? years(s.default_horizon_years) : s.default_horizon_years })) + '</span>' +
-          '<span class="chip chip--soft">' + escapeHtml(t('hub.worry', { x: t('concern.' + s.main_concern) })) + '</span>' +
-        '</div>' +
-        '<div class="phase" style="margin-top:16px">' +
-          '<span class="phase__num">1</span>' +
-          '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: 1 }) + ', ' + t('hub.phase1.range') + ', ' + t('hub.perDay')) + '</p>' +
-          '<p class="phase__title">' + escapeHtml(t('hub.phase1.title')) + '</p></div>' +
-        '</div>' +
-        '<ol class="timeline" data-group="' + escapeHtml(s.age_group) + '">' + rows + '</ol>' +
-        '<div class="hub-cta-desktop" style="margin-top:12px">' + primaryButton('btn--block') + '</div>' +
-      '</div>';
     els.hubMoreCol.innerHTML =
-      phaseCard(2, 5, 9, 'hub.phase2.range', 'hub.phase2.title', m9, 'trophy', t('hub.checkpoint2Short')) +
-      phaseCard(3, 10, 14, 'hub.phase3.range', 'hub.phase3.title', m14, 'flag', t('hub.finaleShort')) +
-      '<div class="card after14 after14--spotlight">' +
-        '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3>' + icon('sunset', 'ic--lg') + '</div>' +
+      phaseCard(2, 5, 9, 'hub.phase2.range', 'hub.phase2.title', 9, 'trophy', t('hub.checkpoint2Short')) +
+      phaseCard(3, 10, 14, 'hub.phase3.range', 'hub.phase3.title', 14, 'flag', t('hub.finaleShort')) +
+      '<div class="card after14">' +
+        '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3><span class="tile-ic tile-ic--apricot">' + icon('sunset') + '</span></div>' +
         '<p class="small" style="color:var(--ink-2);margin-top:4px">' + escapeHtml(t('hub.after14.sub')) + '</p>' +
         '<div class="after14__grid">' + after + '</div></div>';
   }
@@ -2429,13 +2626,10 @@
     toast(t('hub.soon'), 'info', 3800, { guide: true });
   }
 
+  // After Day 14 paths always come from the UI dictionary (same ids as the backend's
+  // post_14_paths), so they follow the EN | PL switch even mid-session.
   function after14Paths() {
-    const server = (state.turn && state.turn.post_14_paths) || (state.session && state.session.post_14_paths) || [];
-    const local = blocks().after14;
-    if (Array.isArray(server) && server.length) {
-      return server.map((p, i) => Object.assign({ icon: (local.find((l) => l.id === p.id) || local[i % local.length] || {}).icon }, p));
-    }
-    return local;
+    return blocks().after14;
   }
 
   function renderPlanCard() {
@@ -2641,9 +2835,9 @@
     refreshPrimary();
     openMission();
   }
-  function gotoLessons(btn) {
-    if (btn) replayClass(btn, 'attn');
-    showHubTab(3, { scroll: true });
+  // The gated CTA is an invitation, not an error: it opens the lessons that unlock the day.
+  function gotoLessons() {
+    openHubTool('lessons', { focus: true });
     if (els.cardLessons) replayClass(els.cardLessons, 'flash');
   }
 
@@ -2750,6 +2944,7 @@
     state.tm = { year: y, point: p };
     renderChart(series, y);
     renderCostOfWaiting(series);
+    if (state.screen === SCREENS.HUB) renderHubRail();   // keep the rail's "amount · years" in sync
   }
   // Cost of Waiting (calm 45+ mode): purchasing power lost on 0% vs a broad ETF, in PLN, over
   // this generation's own horizon (e.g. 56y: 7 years). Same series as the chart.
@@ -3458,7 +3653,7 @@
       if (o.demo) state.gateBypass.add(state.day);
       state.turn = res.initial_mission_turn;
       state.dayLessons = res.micro_lessons || [];
-      state.hubTab = 3;   // a new day opens on its own lessons
+      state.hubView = 'quests';   // a new day opens on Daily quests; its lessons are one click away
       state.mission = freshMissionState();
       state.summary = freshSummary();
       // Jumping ahead in Demo Mode: the skipped days count as done on the map.
@@ -3506,6 +3701,14 @@
     if (xp >= LEVEL_FLOOR[2]) return { level: 2, level_title: t('level.2'), next_level_xp: 250 };
     return { level: 1, level_title: t('level.1'), next_level_xp: 100 };
   }
+  // Milestone titles arrive in the session's language (and seeded friends are stored in PL):
+  // show them in the current UI language instead.
+  const LEVEL_BY_TITLE = {};
+  [1, 2, 3].forEach((n) => ['en', 'pl'].forEach((l) => { LEVEL_BY_TITLE[I18N[l]['level.' + n].toLowerCase()] = n; }));
+  function levelTitle(title, level) {
+    const n = Number(level) || LEVEL_BY_TITLE[String(title || '').trim().toLowerCase()];
+    return n >= 1 && n <= 3 ? t('level.' + n) : String(title || '');
+  }
 
   function renderDone(opts) {
     const tt = state.turn;
@@ -3545,8 +3748,8 @@
     ).join('');
 
     const milestone = leveled
-      ? '<div class="badge-art' + (animate ? ' badge-pop' : '') + '" style="width:56px;margin-top:14px" title="' + escapeHtml(t('done.badgeLabel') + ': ' + gs.level_title) + '">' + badgeSVG(gs.level) + '</div>' +
-        '<span class="levelup">' + icon('pillars', 'ic--sm') + escapeHtml(t('done.levelUp', { title: gs.level_title })) + '</span>'
+      ? '<div class="badge-art' + (animate ? ' badge-pop' : '') + '" style="width:56px;margin-top:14px" title="' + escapeHtml(t('done.badgeLabel') + ': ' + levelTitle(gs.level_title, gs.level)) + '">' + badgeSVG(gs.level) + '</div>' +
+        '<span class="levelup">' + icon('pillars', 'ic--sm') + escapeHtml(t('done.levelUp', { title: levelTitle(gs.level_title, gs.level) })) + '</span>'
       : nextFloor != null && displayedXp() < nextFloor
         ? '<span class="levelup levelup--quiet xp-detail">' + escapeHtml(t('done.toNext', { n: nextFloor - displayedXp() })) + '</span>'
         : '';
@@ -3798,7 +4001,7 @@
       return '<li class="' + (isMe ? 'is-me' : '') + '"' + (isMe ? ' data-me' : '') + '>' +
         '<span class="board__rank">' + escapeHtml(r.rank) + '</span>' +
         '<span><span class="board__name">' + escapeHtml(name) + (isMe && leveled ? ' <span class="chip chip--green" style="min-height:24px;padding:0 8px;font-size:.7rem">' + escapeHtml(t('board.levelUp')) + '</span>' : '') + '</span>' +
-          '<span class="board__lvl">' + escapeHtml(r.level_title) + '</span></span>' +
+          '<span class="board__lvl">' + escapeHtml(levelTitle(r.level_title)) + '</span></span>' +
         '<span class="board__streak" title="' + escapeHtml(t('hud.streakTitle')) + '">' + icon('calendar-check', 'ic--sm') + escapeHtml(r.streak_days) + '</span>' +
         '<span class="board__xp">' + escapeHtml(formatNumber(r.xp)) + ' XP</span></li>';
     }).join('');
@@ -4170,15 +4373,9 @@
     ).join('');
     els.judgesContent.innerHTML =
       '<div class="judges">' + sections + '</div>' +
-      '<p class="disclaimer" style="margin-top:16px">' + icon('menu') + '<span>' + escapeHtml(t('judges.demoHint')) + '</span></p>' +
+      '<p class="disclaimer" style="margin-top:16px">' + icon('gear') + '<span>' + escapeHtml(t('judges.demoHint')) + '</span></p>' +
       '<p class="disclaimer" style="margin-top:8px">' + icon('info') + '<span>' + escapeHtml(t('ai.disclaimer')) + '</span></p>';
   }
-  function toggleMenu(force) {
-    const open = force != null ? force : els.hudMenu.hidden;
-    els.hudMenu.hidden = !open;
-    document.querySelectorAll('[data-action="toggle-menu"]').forEach((b) => b.setAttribute('aria-expanded', String(open)));
-  }
-  function closeMenu() { if (els.hudMenu && !els.hudMenu.hidden) toggleMenu(false); }
 
   function toast(message, tone, ms, opts) {
     const el = document.createElement('div');
@@ -4222,7 +4419,7 @@
 
   async function setLang(lang) {
     if (lang !== 'en' && lang !== 'pl') return;
-    if (lang === state.lang) { closeMenu(); return; }
+    if (lang === state.lang) return;
     state.lang = lang;
     storageSet(LS_LANG, lang);
     closeTermPop();
@@ -4237,7 +4434,7 @@
     loadPersonas();
     // Nothing answered yet -> refresh server content in the new language (docs/01 §9).
     if (state.session && state.log.length === 0 && state.lastProfile && (state.screen === SCREENS.HUB)) {
-      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), checks: state.lessonChecks, checkin: new Set(state.checkinDays), bypass: new Set(state.gateBypass), year: state.tm.year };
+      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), checks: state.lessonChecks, checkin: new Set(state.checkinDays), bypass: new Set(state.gateBypass), year: state.tm.year, view: state.hubView };
       const data = await analyzeProfile(state.lastProfile, { stay: true, quick: true, stageId: state.stageId });
       if (data) {
         state.lessonsXp = keep.lessonsXp;
@@ -4248,7 +4445,15 @@
         renderLessonsCard();
         renderHud({ animate: false });
         if (keep.year) updateTimeMachine(keep.year, { animate: false });
+        openHubTool(keep.view, { scroll: false });
       }
+      return;
+    }
+    // Later in the sprint: re-fetch today's lessons in the new language while the day has not
+    // started yet (day/start is then side-effect free), so the lesson tool does not mix languages.
+    if (state.session && state.screen === SCREENS.HUB && !dayDone(state.day) && !(state.mission && state.mission.started)) {
+      renderHub();
+      refreshDayContent();
       return;
     }
     if (state.session) {
@@ -4259,6 +4464,24 @@
       if (state.screen === SCREENS.CHECKPOINT) renderCheckpoint();
     }
     if (!els.coraSheet.hidden) renderCoraBody();
+  }
+
+  async function refreshDayContent() {
+    const token = state.token;
+    const day = state.day;
+    const lang = state.lang;
+    try {
+      const res = await withSessionRecovery((sid) => api.dayStart({ session_id: sid, day, lang }));
+      if (token !== state.token || day !== state.day || lang !== state.lang || (state.mission && state.mission.started)) return;
+      state.log.push({ kind: 'day', body: { day, lang } });
+      state.turn = res.initial_mission_turn || state.turn;
+      if (Array.isArray(res.micro_lessons) && res.micro_lessons.length) state.dayLessons = res.micro_lessons;
+      state.mission = freshMissionState();
+      renderHub();
+      renderHud({ animate: false });
+    } catch (err) {
+      console.info('[Finance Quest] Could not refresh day content in the new language (' + err.message + ').');
+    }
   }
 
   function goHome() {
@@ -4275,12 +4498,11 @@
     });
 
     document.addEventListener('click', (e) => {
-      if (els.hudMenu && !els.hudMenu.hidden && !e.target.closest('#hud-menu, [data-action="toggle-menu"]')) toggleMenu(false);
-      if (els.demoPop && !els.demoPop.hidden && !e.target.closest('#demo-pop, [data-action="toggle-demo"]')) toggleDemo(false);
+      if (els.settingsPop && !els.settingsPop.hidden && !e.target.closest('#settings-pop, [data-action="toggle-settings"]')) closeSettings();
       if (els.termPop && !els.termPop.hidden && !e.target.closest('#term-pop, [data-action="define"]')) closeTermPop();
       const el = e.target.closest('[data-action], [data-stage], [data-lang]');
       if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true' && el.dataset.action !== 'node') return;
-      if (el.dataset.lang) { setLang(el.dataset.lang); closeMenu(); return; }
+      if (el.dataset.lang) { setLang(el.dataset.lang); return; }
       if (el.dataset.stage) { selectStage(el.dataset.stage); return; }
       const a = el.dataset.action;
       switch (a) {
@@ -4293,14 +4515,13 @@
         case 'go-home': goHome(); break;
         case 'reset': resetToProfile(); break;
         case 'toggle-sound': Sound.setMuted(!Sound.isMuted()); renderSoundButton(); if (!Sound.isMuted()) Sound.pop(); break;
-        case 'toggle-calm': closeMenu(); toggleCalm(); break;
+        case 'toggle-calm': toggleCalm(); break;
         case 'define': e.preventDefault(); openTermPop(el.dataset.term, el); break;
         case 'term-ask': askAboutTerm(el.dataset.term); break;
         case 'term-close': closeTermPop(true); break;
-        case 'toggle-menu': closeDemo(); renderDemoMenus(); toggleMenu(); break;
-        case 'toggle-demo': toggleDemo(); break;
-        case 'open-judges': closeMenu(); closeDemo(); renderJudges(); openModal('modal_judges'); break;
-        case 'hub-tab': showHubTab(el.dataset.tab, { scroll: el.dataset.scroll === '1', focus: el.classList.contains('step-tab') }); break;
+        case 'toggle-settings': toggleSettings(); break;
+        case 'open-judges': closeSettings(); renderJudges(); openModal('modal_judges'); break;
+        case 'hub-tool': closeSettings(); openHubTool(el.dataset.tool, { focus: true }); break;
         case 'done-tab': showDoneTab(el.dataset.tab); break;
         case 'soon-day': onSoonDay(el); break;
         case 'tm-reset': state.tmAmount = null; syncAmountControls(); updateTimeMachine(state.tm.year || state.session.default_horizon_years); break;
@@ -4344,8 +4565,8 @@
         case 'cora-topic': askCora(t('cora.topic.' + el.dataset.topic), el.dataset.topic); break;
         case 'cora-drill': pickDrill(Number(el.dataset.i)); break;
         case 'cora-reset': state.cora.result = null; state.cora.picked = null; state.cora.question = ''; renderCoraBody(); break;
-        case 'demo-day4': closeModal(); closeDemo(); closeMenu(); startDay(4, { demo: true }); break;
-        case 'demo-cp': closeModal(); closeDemo(); closeMenu(); openCheckpoint(); break;
+        case 'demo-day4': closeModal(); closeSettings(); startDay(4, { demo: true }); break;
+        case 'demo-cp': closeModal(); closeSettings(); openCheckpoint(); break;
         default: break;
       }
     });
@@ -4355,7 +4576,7 @@
         if (els.termPop && !els.termPop.hidden) closeTermPop(true);
         else if (!els.coraSheet.hidden) closeCora();
         else if (document.querySelector('.modal:not([hidden])')) closeModal();
-        else { closeMenu(); closeDemo(); }
+        else closeSettings(true);
       }
       // Arrow keys move between the step tabs (WAI-ARIA tabs pattern).
       if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.target && e.target.classList && e.target.classList.contains('step-tab')) {
@@ -4429,7 +4650,9 @@
     els.tmCow = $('tm-cow');
     els.termPop = $('term-pop');
     els.hudSound = $('hud-sound');
-    els.hudMenu = $('hud-menu');
+    els.settingsPop = $('settings-pop');
+    els.settingsBtn = $('hud-settings-btn');
+    els.settingsDemo = $('settings-demo');
     els.stageGrid = $('stage-grid');
     els.tailorBody = $('tailor-body');
     els.form = $('onboarding-form');
@@ -4442,11 +4665,13 @@
     els.fFreeOut = $('f-free-out');
     els.fFreeHint = $('f-free-hint');
     els.ctaOnboarding = $('cta-onboarding');
-    els.demoPop = $('demo-pop');
-    els.demoMobile = $('demo-menu-mobile');
     els.hubPathCol = $('hub-path-col');
     els.hubMoreCol = $('hub-more-col');
-    els.hubSteps = $('hub-steps');
+    els.hubRail = $('hub-rail');
+    els.hubMain = $('hub-main');
+    els.hubViewQuests = $('hub-view-quests');
+    els.hubViewTool = $('hub-view-tool');
+    els.hubToolTitle = $('hub-tool-title');
     els.tmAmount = $('tm-amount');
     els.tmAmountPill = $('tm-amount-pill');
     els.tmAmountMin = $('tm-amount-min');
