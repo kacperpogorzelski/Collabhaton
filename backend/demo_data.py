@@ -1808,17 +1808,6 @@ EXPLAIN_TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "cash",
         "gotowk",
     ),
-    "etf": (
-        "etf",
-        "fund",
-        "fundusz",
-        "index",
-        "indeks",
-        "oplat",
-        "prowizj",
-        "broker",
-        "makler",
-    ),
     "emergency_fund": (
         "buffer",
         "cushion",
@@ -1830,6 +1819,17 @@ EXPLAIN_TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
         "liquid",
         "plynnos",
         "laptop",
+    ),
+    "etf": (
+        "etf",
+        "fund",
+        "fundusz",
+        "index",
+        "indeks",
+        "oplat",
+        "prowizj",
+        "broker",
+        "makler",
     ),
     "volatility": (
         "crash",
@@ -1866,8 +1866,8 @@ _PL_DIACRITICS: dict[int, int] = str.maketrans("ąćęłńóśźż", "acelnoszz"
 # nie łapało „strategii”, „dip” nie łapało „diploma”, „0%” nie łapało „-20%”).
 _TOPIC_PATTERNS: dict[str, re.Pattern[str]] = {
     "inflation": re.compile(r"(?<![\d-])0\s?%"),
-    "etf": re.compile(r"(?<![a-z])(?:ter|fee)(?![a-z])"),
-    "volatility": re.compile(r"(?<![a-z])dip(?![a-z])|(?<![a-z])strat(?!eg)"),
+    "etf": re.compile(r"(?<![a-z])(?:ter|fees?)(?![a-z])"),
+    "volatility": re.compile(r"(?<![a-z])dip(?![a-z])|(?<![a-z])strat(?!eg)|-\s?\d+\s?%"),
 }
 
 
