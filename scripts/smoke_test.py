@@ -74,6 +74,10 @@ def run_persona(client: TestClient, persona: dict) -> None:
     check(start == 10, f"{pid}: gotowość startowa {start} != 10")
     check(a["initial_mission_turn"]["gamification"]["xp"] == 20, f"{pid}: XP startowe != 20")
     check(len(a["projection_series"]) == 20, f"{pid}: projekcja != 20 punktów")
+    for ml in a["micro_lessons"]:
+        check(bool(ml.get("check_question")) and len(ml.get("check_options") or []) == 3
+              and ml.get("correct_option_index") in (0, 1, 2) and bool(ml.get("check_explanation")),
+              f"{pid}: lekcja {ml['id']} bez mini-checka")
     if a["safe_investment"]["plan_type"] == "savings_first":
         check(a["safe_investment"]["training_etf_monthly"] == 0, f"{pid}: savings_first z ETF")
 
@@ -126,6 +130,8 @@ def run_days_2_to_4(client: TestClient, pid: str, sid: str, xp: int) -> None:
         check(r.status_code == 200, f"{pid}: day/start {day} -> {r.status_code}")
         d = r.json()
         check(d["day"] == day and len(d["micro_lessons"]) > 0, f"{pid}: day/start {day} treść")
+        check(all(ml.get("check_question") and ml.get("correct_option_index") in (0, 1, 2)
+                  for ml in d["micro_lessons"]), f"{pid}: day/start {day} lekcje bez mini-checka")
         t0 = d["initial_mission_turn"]
         check(t0["day"] == day and t0["step_number"] == 1 and t0["total_steps"] == 2,
               f"{pid}: dzień {day} tura startowa")

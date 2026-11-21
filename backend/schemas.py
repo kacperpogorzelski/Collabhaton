@@ -79,6 +79,10 @@ class MicroLessonCard(BaseModel):
     summary: str
     key_takeaway: str
     xp_reward: int = 15
+    check_question: Optional[str] = None
+    check_options: list[str] = Field(default_factory=list)
+    correct_option_index: Optional[int] = Field(default=None, ge=0, le=2)
+    check_explanation: Optional[str] = None
 
 
 class SpeaklyFilter(BaseModel):
