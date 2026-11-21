@@ -13,9 +13,9 @@
        ?v= cache-busting: bump after every change to styles.css / app.js. -->
   <link rel="preload" href="/static/vendor/fonts/BricolageGrotesque-800.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-600.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/styles.css?v=17.0">
+  <link rel="stylesheet" href="/static/styles.css?v=19.0">
 </head>
-<body data-screen="screen_onboarding">
+<body data-screen="screen_bank_entry">
   <a href="#main" class="skip-link" data-i18n="a11y.skip">Skip to content</a>
 
   <!-- ===================== PLAYER HUD (docs/01 §6) ===================== -->
@@ -76,8 +76,33 @@
   </header>
 
   <main id="main" tabindex="-1">
+    <!-- ===================== Screen 0 — Commerzbank demo entry ===================== -->
+    <section id="screen_bank_entry" class="screen wrap" aria-labelledby="t-bank-entry">
+      <div class="bank-entry">
+        <div class="bank-entry__eyebrow"><span data-icon="landmark"></span><span data-i18n="entry.demo">DEMO · Commerzbank simulation</span></div>
+        <div class="bank-entry__head">
+          <div>
+            <p class="small muted" data-i18n="entry.account">Everyday account</p>
+            <h1 id="t-bank-entry" class="display bank-entry__balance">8,450.00 PLN</h1>
+            <p class="small muted" data-i18n="entry.available">Available balance · sample data</p>
+          </div>
+          <span class="bank-entry__mark" aria-hidden="true"><span data-icon="brand"></span></span>
+        </div>
+        <div class="bank-entry__transactions" aria-label="Recent sample transactions">
+          <div><span><span class="bank-entry__dot bank-entry__dot--green"></span><span data-i18n="entry.transaction1">Salary · sample</span></span><b>+6,000 PLN</b></div>
+          <div><span><span class="bank-entry__dot bank-entry__dot--coral"></span><span data-i18n="entry.transaction2">Rent · sample</span></span><b>−2,100 PLN</b></div>
+        </div>
+        <button type="button" class="btn btn--primary btn--lg btn--block" data-action="start-entry"><span data-icon="arrow-right"></span><span data-i18n="entry.cta">Build your investment plan &amp; start investing in 14 days</span></button>
+        <p class="tiny muted bank-entry__note" data-i18n="entry.note">Nothing is executed. This is a guided learning simulation.</p>
+      </div>
+      <div class="bank-entry__why">
+        <div class="cora" data-cora="idle"></div>
+        <div><h2 class="h2" data-i18n="entry.whyTitle">A calmer way to start</h2><p class="lead" data-i18n="entry.whyText">Kita turns a big money decision into one small, clear step at a time.</p></div>
+      </div>
+    </section>
+
     <!-- ===================== Screen 1 — life stage / profile ===================== -->
-    <section id="screen_onboarding" class="screen wrap" aria-labelledby="t-onboarding">
+    <section id="screen_onboarding" class="screen wrap" aria-labelledby="t-onboarding" hidden>
       <div class="intro">
         <div>
           <h1 id="t-onboarding" class="h1" data-screen-title tabindex="-1" data-i18n="onb.title">Build investing confidence in 14 days.</h1>
@@ -315,6 +340,27 @@
     </section>
   </main>
 
+  <!-- First-visit financial literacy intro -->
+  <div id="modal_intro" class="modal modal--center" role="dialog" aria-modal="true" aria-labelledby="intro-title" hidden>
+    <div class="scrim" data-action="close-intro"></div>
+    <div class="modal__panel intro-modal">
+      <div class="intro-modal__top"><span class="chip chip--yellow" id="intro-step">1/3</span><button type="button" class="icon-btn" data-action="close-intro" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button></div>
+      <div class="intro-modal__scene"><div class="cora" data-cora="coaching"></div><div class="bubble bubble--left"><p class="h3" id="intro-title"></p><p class="small" id="intro-copy" style="margin-top:8px"></p></div></div>
+      <div class="intro-modal__progress"><span id="intro-progress"></span></div>
+      <div class="intro-modal__actions"><button type="button" class="btn btn--ghost" data-action="skip-intro" data-i18n="intro.skip">Skip</button><button type="button" class="btn btn--primary" data-action="next-intro" id="intro-next"><span data-i18n="intro.next">Next</span><span data-icon="arrow-right"></span></button></div>
+    </div>
+  </div>
+
+  <!-- Kita name welcome -->
+  <div id="modal_name" class="modal modal--center" role="dialog" aria-modal="true" aria-labelledby="name-title" hidden>
+    <div class="scrim" data-action="close-name"></div>
+    <div class="modal__panel name-modal">
+      <div class="intro-modal__top"><span class="chip chip--sky" data-i18n="name.badge">Meet Kita</span><button type="button" class="icon-btn" data-action="close-name" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button></div>
+      <div class="name-modal__scene"><div class="cora" data-cora="celebrating"></div><div class="bubble bubble--left"><h2 id="name-title" class="h2" data-i18n="name.title">What should I call you?</h2><p class="small" data-i18n="name.copy">A first name helps me make the journey feel like yours.</p></div></div>
+      <form id="name-form" class="name-modal__form"><label for="user-name" class="small strong" data-i18n="name.label">Your first name</label><input id="user-name" class="input" maxlength="40" autocomplete="given-name" data-i18n-placeholder="name.placeholder" placeholder="For example, Alex"><div class="name-modal__actions"><button type="button" class="btn btn--ghost" data-action="skip-name" data-i18n="name.skip">Skip for now</button><button type="submit" class="btn btn--primary"><span data-i18n="name.continue">Continue</span><span data-icon="arrow-right"></span></button></div></form>
+    </div>
+  </div>
+
   <!-- Ask Kita dock (docs/01 §5) -->
   <button type="button" class="cora-dock" id="cora-dock" data-action="open-cora" data-i18n-aria="cora.ask" aria-label="Ask Kita">
     <span class="cora-dock__face" data-cora-face></span>
@@ -369,6 +415,6 @@
 
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
-  <script src="/static/app.js?v=17.0"></script>
+  <script src="/static/app.js?v=19.0"></script>
 </body>
 </html>

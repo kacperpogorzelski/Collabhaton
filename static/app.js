@@ -32,8 +32,11 @@
   const PLAYABLE_DAYS = 4;
   const LS_LANG = 'fq_lang';
   const LS_MUTED = 'fq_muted';
+  const LS_INTRO_SEEN = 'fq_intro_seen';
+  const LS_USER_NAME = 'fq_user_name';
 
   const SCREENS = Object.freeze({
+    BANK_ENTRY: 'screen_bank_entry',
     ONBOARDING: 'screen_onboarding',
     HUB: 'screen_filter_and_timemachine',
     MISSION: 'screen_mission_live',
@@ -126,6 +129,20 @@
       'a11y.skip': 'Skip to content',
       'brand.sub': 'by Commerzbank, 14-Day Confidence Sprint',
       'common.close': 'Close',
+      'entry.demo': 'DEMO · Commerzbank simulation',
+      'entry.account': 'Everyday account',
+      'entry.available': 'Available balance · sample data',
+      'entry.transaction1': 'Salary · sample',
+      'entry.transaction2': 'Rent · sample',
+      'entry.cta': 'Build your investment plan & start investing in 14 days',
+      'entry.note': 'Nothing is executed. This is a guided learning simulation.',
+      'entry.whyTitle': 'A calmer way to start',
+      'entry.whyText': 'Kita turns a big money decision into one small, clear step at a time.',
+      'intro.next': 'Next', 'intro.skip': 'Skip',
+      'intro.1.title': 'Inflation is quiet, but real.', 'intro.1.copy': 'A 0% account keeps the number the same while prices keep moving. Financial knowledge helps you protect what your money can buy.',
+      'intro.2.title': 'No big sums. No jargon.', 'intro.2.copy': 'Five minutes and one small habit are enough to start. Kita will keep the language human and the steps practical.',
+      'intro.3.title': 'More calm. More control.', 'intro.3.copy': 'Know what to do when a laptop breaks or markets dip. Confidence grows when the next step is clear.',
+      'name.badge': 'Meet Kita', 'name.title': 'What should I call you?', 'name.copy': 'A first name helps me make the journey feel like yours.', 'name.label': 'Your first name', 'name.placeholder': 'For example, Alex', 'name.skip': 'Skip for now', 'name.continue': 'Continue',
 
       'hud.home': 'Finance Quest home',
       'hud.day': 'Day',
@@ -260,7 +277,19 @@
 
       'lessons.title': '20-second lessons',
       'lessons.titleDay': 'Day {n} lessons',
-      'lessons.sub': 'Optional, up to +{n} XP',
+      'lessons.sub': 'Pass each mini-check to unlock the challenge, up to +{n} XP',
+      'lessons.progress': '{a} of {b} lessons passed',
+      'lessons.check': 'Quick check',
+      'lessons.right': 'Correct, lesson passed',
+      'lessons.wrong': 'Not quite. Have another look at the key point.',
+      'lessons.askKita': 'Ask Kita to explain',
+      'hub.gateLessons': 'Pass the lesson checks ({a}/{b}) & Kita check-in first',
+      'hub.gateCheckin': 'Kita check-in first',
+      'checkin.title': 'Kita check-in',
+      'checkin.q': 'Is this section clear, or would you like me to explain anything else before the challenge?',
+      'checkin.yes': 'Yes, explain something first',
+      'checkin.start': 'Everything is clear: start Day {n} challenge',
+      'checkin.done': 'Check-in done. Day {n} challenge unlocked.',
       'lessons.got': 'Got it (+{n} XP)',
       'lessons.done': 'Done, +{n} XP',
       'lessons.explain': 'Explain simpler',
@@ -499,6 +528,20 @@
       'a11y.skip': 'Przejdź do treści',
       'brand.sub': 'od Commerzbanku, 14-dniowy Sprint Pewności',
       'common.close': 'Zamknij',
+      'entry.demo': 'DEMO · symulacja Commerzbanku',
+      'entry.account': 'Konto codzienne',
+      'entry.available': 'Dostępne saldo · dane przykładowe',
+      'entry.transaction1': 'Wynagrodzenie · przykład',
+      'entry.transaction2': 'Czynsz · przykład',
+      'entry.cta': 'Stwórz swój plan inwestycyjny i zacznij inwestować w 14 dni',
+      'entry.note': 'Nic nie zostanie wykonane. To prowadzona symulacja edukacyjna.',
+      'entry.whyTitle': 'Spokojniejszy start',
+      'entry.whyText': 'Kita zamienia dużą decyzję finansową w jeden mały, jasny krok naraz.',
+      'intro.next': 'Dalej', 'intro.skip': 'Pomiń',
+      'intro.1.title': 'Inflacja działa po cichu, ale naprawdę.', 'intro.1.copy': 'Konto 0% trzyma tę samą liczbę, gdy ceny idą w górę. Wiedza finansowa pomaga chronić to, co możesz kupić za swoje pieniądze.',
+      'intro.2.title': 'Bez wielkich kwot i żargonu.', 'intro.2.copy': 'Wystarczy 5 minut i jeden prosty nawyk. Kita mówi po ludzku i prowadzi przez praktyczne kroki.',
+      'intro.3.title': 'Więcej spokoju. Więcej kontroli.', 'intro.3.copy': 'Wiesz, co zrobić przy awarii albo spadkach na rynku. Pewność rośnie, gdy kolejny krok jest jasny.',
+      'name.badge': 'Poznaj Kitę', 'name.title': 'Jak mam się do Ciebie zwracać?', 'name.copy': 'Imię pomoże mi dopasować tę podróż do Ciebie.', 'name.label': 'Twoje imię', 'name.placeholder': 'Na przykład Ania', 'name.skip': 'Pomiń na razie', 'name.continue': 'Dalej',
 
       'hud.home': 'Finance Quest, strona główna',
       'hud.day': 'Dzień',
@@ -633,7 +676,19 @@
 
       'lessons.title': 'Lekcje na 20 sekund',
       'lessons.titleDay': 'Lekcje Dnia {n}',
-      'lessons.sub': 'Opcjonalnie, do +{n} XP',
+      'lessons.sub': 'Zalicz każdy mini-check, by odblokować wyzwanie, do +{n} XP',
+      'lessons.progress': 'Zaliczone lekcje: {a} z {b}',
+      'lessons.check': 'Szybki sprawdzian',
+      'lessons.right': 'Dobrze, lekcja zaliczona',
+      'lessons.wrong': 'Jeszcze nie to. Spójrz jeszcze raz na najważniejszą myśl.',
+      'lessons.askKita': 'Poproś Kitę o wyjaśnienie',
+      'hub.gateLessons': 'Najpierw zalicz mini-checki lekcji ({a}/{b}) i check-in z Kitą',
+      'hub.gateCheckin': 'Najpierw check-in z Kitą',
+      'checkin.title': 'Check-in z Kitą',
+      'checkin.q': 'Czy ten dział jest zrozumiały, czy chciałbyś, żebym coś jeszcze wytłumaczyła przed zadaniem?',
+      'checkin.yes': 'Tak, wytłumacz coś jeszcze',
+      'checkin.start': 'Wszystko jasne: zacznij wyzwanie Dnia {n}',
+      'checkin.done': 'Check-in zaliczony. Wyzwanie Dnia {n} odblokowane.',
       'lessons.got': 'Rozumiem (+{n} XP)',
       'lessons.done': 'Zaliczone, +{n} XP',
       'lessons.explain': 'Wyjaśnij prościej',
@@ -1428,7 +1483,9 @@
   const LEVEL_FLOOR = Object.freeze({ 1: 0, 2: 100, 3: 250 });
 
   const state = Object.assign(state0, {
-    screen: SCREENS.ONBOARDING,
+    screen: SCREENS.BANK_ENTRY,
+    userName: storageGet(LS_USER_NAME) || '',
+    introIndex: 0,
     busy: false,
     personas: [],
     stageId: null,           // 'first' | 'home' | 'peak' | 'pre' | null (custom form)
@@ -1442,6 +1499,9 @@
     lessonsXp: 0,            // local XP from micro lessons (monotonic XP rule)
     practiceXp: 0,           // local XP from practice beats
     completedLessons: new Set(),
+    lessonChecks: {},        // lessonId -> { wrong: [option indices] } (mini-check attempts)
+    checkinDays: new Set(),  // days whose Kita check-in was confirmed
+    gateBypass: new Set(),   // days opened through the Demo shortcuts (no gating)
     dayLessons: [],
     log: [],                 // server actions to replay after a lost session
     restoring: null,
@@ -1580,6 +1640,54 @@
     if (title) title.focus({ preventScroll: true });
     renderHud({ animate: false });
   }
+
+  const INTRO_SLIDES = [1, 2, 3];
+  function renderIntro() {
+    const i = state.introIndex;
+    const step = document.getElementById('intro-step');
+    const title = document.getElementById('intro-title');
+    const copy = document.getElementById('intro-copy');
+    const progress = document.getElementById('intro-progress');
+    const next = document.getElementById('intro-next');
+    if (!step || !title || !copy || !progress || !next) return;
+    step.textContent = i + '/3';
+    title.textContent = t('intro.' + i + '.title');
+    copy.textContent = t('intro.' + i + '.copy');
+    progress.style.width = (i / INTRO_SLIDES.length) * 100 + '%';
+    next.querySelector('[data-i18n]').textContent = i === 3 ? t('name.continue') : t('intro.next');
+    next.querySelector('[data-icon]')?.replaceWith(document.createRange().createContextualFragment(icon(i === 3 ? 'check' : 'arrow-right')));
+  }
+  function openNameModal() {
+    closeModal('modal_intro');
+    const input = document.getElementById('user-name');
+    if (input) input.value = state.userName || '';
+    openModal('modal_name');
+    hydrateIcons(document.getElementById('modal_name'));
+    setTimeout(() => { if (input) input.focus(); }, 60);
+  }
+  function beginJourney() {
+    if (storageGet(LS_INTRO_SEEN) === '1') openNameModal();
+    else { state.introIndex = 1; renderIntro(); openModal('modal_intro'); }
+  }
+  function finishName(value) {
+    state.userName = String(value || '').trim().slice(0, 40);
+    storageSet(LS_USER_NAME, state.userName);
+    storageSet(LS_INTRO_SEEN, '1');
+    closeModal('modal_name');
+    showScreen(SCREENS.ONBOARDING);
+    renderKitaWelcome();
+  }
+  function renderKitaWelcome() {
+    const bubble = document.querySelector('#screen_onboarding [data-i18n="onb.bubble"]');
+    if (bubble && state.userName) bubble.textContent = state.lang === 'pl' ? 'Cześć, ' + state.userName + '! Kliknij etap życia, który najbardziej do Ciebie pasuje.' : 'Hi, ' + state.userName + '! Tap the life stage that sounds most like you.';
+  }
+  function skipIntro() { storageSet(LS_INTRO_SEEN, '1'); openNameModal(); }
+  function nextIntro() {
+    if (state.introIndex >= 3) { skipIntro(); return; }
+    state.introIndex += 1;
+    renderIntro();
+  }
+  function closeEntryFlow() { finishName(state.userName); }
 
   // ------------------------------------------------------------------------
   // 10. Screen 1 — life stage cards & 6-question profile
@@ -1831,6 +1939,9 @@
     state.lessonsXp = 0;
     state.practiceXp = 0;
     state.completedLessons = new Set();
+    state.lessonChecks = {};
+    state.checkinDays = new Set();
+    state.gateBypass = new Set();
     state.dayLessons = data.micro_lessons || [];
     state.log = [];
     state.tm = { year: null, point: null };
@@ -1883,6 +1994,9 @@
     state.plantStageAtStart = 1;
     state.summary = null;
     state.cp = null;
+    state.userName = '';
+    state.introIndex = 0;
+    try { window.localStorage.removeItem(LS_INTRO_SEEN); window.localStorage.removeItem(LS_USER_NAME); } catch (e) { /* ignore */ }
     closeModal();
     closeCora();
     closeDrawer();
@@ -1890,7 +2004,7 @@
     resetHudBaseline();
     renderStageCards();
     renderDemoMenus();
-    showScreen(SCREENS.ONBOARDING);
+    showScreen(SCREENS.BANK_ENTRY);
   }
 
   // ------------------------------------------------------------------------
@@ -1910,9 +2024,24 @@
     return dayDone(4) ? 'active' : 'locked';
   }
 
+  // Issue #45: a day's mission opens only after its lesson mini-checks and the Kita check-in.
+  function lessonProgress() {
+    const ls = state.dayLessons || [];
+    return { done: ls.filter((l) => state.completedLessons.has(l.id)).length, total: ls.length };
+  }
+  function dayReady() {
+    if (state.gateBypass.has(state.day)) return true;
+    const p = lessonProgress();
+    return p.done >= p.total && state.checkinDays.has(state.day);
+  }
+  function gateLabel() {
+    const p = lessonProgress();
+    return p.done < p.total ? t('hub.gateLessons', { a: p.done, b: p.total }) : t('hub.gateCheckin');
+  }
   function hubPrimary() {
     if (!dayDone(state.day)) {
       const resuming = state.mission && state.mission.started;
+      if (!resuming && !dayReady()) return { label: gateLabel(), action: 'goto-lessons', locked: true };
       return { label: t(resuming ? 'hub.resumeMission' : 'hub.startMission', { n: state.day }), action: 'open-mission' };
     }
     if (state.day < PLAYABLE_DAYS) return { label: t('hub.nextDay', { n: state.day + 1 }), action: 'start-day', day: state.day + 1 };
@@ -1921,8 +2050,20 @@
   }
   function primaryButton(cls) {
     const p = hubPrimary();
-    return '<button type="button" class="btn btn--primary btn--lg ' + (cls || '') + '" data-action="' + p.action + '"' +
-      (p.day ? ' data-day="' + p.day + '"' : '') + '>' + escapeHtml(p.label) + icon('arrow-right') + '</button>';
+    return '<button type="button" class="btn btn--primary btn--lg js-primary ' + (cls || '') + '" data-action="' + p.action + '"' +
+      (p.day ? ' data-day="' + p.day + '"' : '') + (p.locked ? ' aria-disabled="true"' : '') + '>' +
+      escapeHtml(p.label) + icon(p.locked ? 'lock' : 'arrow-right') + '</button>';
+  }
+  function refreshPrimary() {
+    document.querySelectorAll('.js-primary').forEach((b) => {
+      const extra = b.classList.contains('btn--block') ? 'btn--block' : '';
+      b.outerHTML = primaryButton(extra);
+    });
+  }
+  function gateBlocked(btn) {
+    if (btn) replayClass(btn, 'shake');
+    toast(gateLabel(), 'info', 3400, { kita: true });
+    if (state.screen === SCREENS.HUB) showHubTab(3, { scroll: true });
   }
 
   function renderHub() {
@@ -2197,27 +2338,74 @@
     const lessons = state.dayLessons || [];
     const max = Math.min(MICRO_LESSON_BONUS_CAP, lessons.reduce((sum, l) => sum + (l.xp_reward || 0), 0));
     const title = state.day === 1 ? t('lessons.title') : t('lessons.titleDay', { n: state.day });
+    const p = lessonProgress();
+    const pct = p.total ? Math.round((p.done / p.total) * 100) : 100;
     els.cardLessons.innerHTML =
       '<div class="card__head"><h3 class="card__title">' + escapeHtml(title) + '</h3><span class="tiny muted">' + escapeHtml(t('lessons.sub', { n: max })) + '</span></div>' +
-      '<div class="lessons">' + lessons.map(lessonHTML).join('') + '</div>';
+      '<div class="lessons-progress"><div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="' + p.total + '" aria-valuenow="' + p.done + '"><div class="progress__fill" style="width:' + pct + '%"></div></div>' +
+        '<span class="tiny strong">' + escapeHtml(t('lessons.progress', { a: p.done, b: p.total })) + '</span></div>' +
+      '<div class="lessons">' + lessons.map(lessonHTML).join('') + '</div>' + checkinHTML();
+    hydrateCora(els.cardLessons);
+  }
+  function hasCheck(l) {
+    return !!(l && l.check_question && Array.isArray(l.check_options) && l.check_options.length > 1 && l.correct_option_index != null);
+  }
+  function lessonCheckHTML(l, done) {
+    const wrong = (state.lessonChecks[l.id] && state.lessonChecks[l.id].wrong) || [];
+    const letters = ['A', 'B', 'C', 'D'];
+    const opts = l.check_options.map((txt, i) => {
+      const right = done && i === l.correct_option_index;
+      const bad = wrong.indexOf(i) >= 0;
+      return '<button type="button" class="lcheck__opt' + (right ? ' is-right' : '') + (bad ? ' is-wrong' : '') + '" data-action="lesson-pick" data-lesson-id="' + escapeHtml(l.id) + '" data-i="' + i + '"' +
+        (done || bad ? ' disabled' : '') + '><span class="lcheck__key">' + letters[i] + '</span><span>' + escapeHtml(txt) + '</span></button>';
+    }).join('');
+    const note = done
+      ? '<p class="lcheck__note lcheck__note--ok" role="status">' + icon('check', 'ic--sm') + '<span>' + escapeHtml(t('lessons.right')) + (l.check_explanation ? ': ' + escapeHtml(l.check_explanation) : '') + '</span></p>'
+      : wrong.length
+        ? '<div class="lcheck__note lcheck__note--bad" role="status"><p>' + icon('bulb', 'ic--sm') + '<span>' + escapeHtml(t('lessons.wrong')) + (l.check_explanation ? ' ' + escapeHtml(l.check_explanation) : '') + '</span></p>' +
+            '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.askKita')) + '</button></div>'
+        : '';
+    return '<div class="lcheck"><p class="lcheck__q"><span class="chip chip--soft">' + escapeHtml(t('lessons.check')) + '</span> ' + escapeHtml(l.check_question) + '</p>' +
+      '<div class="lcheck__opts">' + opts + '</div>' + note + '</div>';
   }
   function lessonHTML(l) {
     const done = state.completedLessons.has(l.id);
+    const checked = hasCheck(l);
     return (
       '<article class="lesson' + (done ? ' lesson--done' : '') + '" data-lesson="' + escapeHtml(l.id) + '">' +
         '<div class="lesson__head"><h4 class="lesson__title">' + escapeHtml(l.title) + '</h4><span class="lesson__time">' + escapeHtml(t('lessons.sec', { n: l.duration_sec || 20 })) + '</span></div>' +
         '<p class="lesson__body">' + escapeHtml(l.summary) + '</p>' +
         '<p class="lesson__key">' + icon('bulb', 'ic--sm') + '<span>' + escapeHtml(l.key_takeaway) + '</span></p>' +
+        (checked ? lessonCheckHTML(l, done) : '') +
         '<div class="lesson__actions">' +
           (done
             ? '<span class="lesson__done">' + icon('check', 'ic--sm') + escapeHtml(t('lessons.done', { n: l.xp_reward })) + '</span>'
-            : '<button type="button" class="btn btn--green btn--sm" data-action="lesson" data-lesson-id="' + escapeHtml(l.id) + '">' + escapeHtml(t('lessons.got', { n: l.xp_reward })) + '</button>') +
-          '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.explain')) + '</button>' +
+            : checked ? '' : '<button type="button" class="btn btn--green btn--sm" data-action="lesson" data-lesson-id="' + escapeHtml(l.id) + '">' + escapeHtml(t('lessons.got', { n: l.xp_reward })) + '</button>') +
+          (checked && !done ? '' : '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.explain')) + '</button>') +
         '</div>' +
       '</article>'
     );
   }
-  function completeLesson(id, btn) {
+  // End-of-block check-in with Kita (Issue #45): shown once every lesson of the day is passed.
+  function checkinHTML() {
+    const p = lessonProgress();
+    if (p.done < p.total || !p.total) return '';
+    if (state.checkinDays.has(state.day) || state.gateBypass.has(state.day)) {
+      return '<p class="checkin-done chip chip--green">' + icon('check', 'ic--sm') + escapeHtml(t('checkin.done', { n: state.day })) + '</p>';
+    }
+    return (
+      '<div class="checkin" id="kita-checkin">' +
+        '<div class="cora checkin__kita" data-cora="coaching" aria-hidden="true"></div>' +
+        '<div class="checkin__body"><p class="checkin__title">' + escapeHtml(t('checkin.title')) + '</p>' +
+          '<div class="bubble bubble--left"><p>' + escapeHtml(t('checkin.q')) + '</p></div>' +
+          '<div class="checkin__actions">' +
+            '<button type="button" class="btn btn--ghost" data-action="checkin-explain">' + icon('help', 'ic--sm') + escapeHtml(t('checkin.yes')) + '</button>' +
+            '<button type="button" class="btn btn--primary" data-action="checkin-start">' + escapeHtml(t('checkin.start', { n: state.day })) + icon('arrow-right') + '</button>' +
+          '</div></div>' +
+      '</div>'
+    );
+  }
+  function completeLesson(id) {
     if (state.completedLessons.has(id)) return;
     const l = (state.dayLessons || []).find((x) => x.id === id);
     if (!l) return;
@@ -2226,13 +2414,46 @@
     const before = state.lessonsXp;
     state.lessonsXp = clamp(state.lessonsXp + (Number(l.xp_reward) || 0), 0, MICRO_LESSON_BONUS_CAP * PLAYABLE_DAYS);
     const gained = state.lessonsXp - before;
+    renderLessonsCard();
+    refreshPrimary();
     const card = els.cardLessons.querySelector('[data-lesson="' + CSS.escape(id) + '"]');
-    if (card) card.outerHTML = lessonHTML(l);
-    Sound.pop();
-    xpFloat(gained, btn || els.hudXpPill);
+    xpFloat(gained, card || els.hudXpPill);
     renderHud();
     const stageAfter = plantState(displayedXp(), state.checkpointPassed).stage;
     renderGardenCard({ grow: stageAfter > stageBefore });
+  }
+  function pickLessonOption(id, i) {
+    if (state.completedLessons.has(id)) return;
+    const l = (state.dayLessons || []).find((x) => x.id === id);
+    if (!l || !hasCheck(l)) return;
+    if (i === Number(l.correct_option_index)) {
+      Sound.correct();
+      completeLesson(id);
+      return;
+    }
+    const rec = state.lessonChecks[id] || (state.lessonChecks[id] = { wrong: [] });
+    if (rec.wrong.indexOf(i) < 0) rec.wrong.push(i);
+    Sound.retry();
+    renderLessonsCard();
+    const card = els.cardLessons.querySelector('[data-lesson="' + CSS.escape(id) + '"]');
+    if (card) replayClass(card.querySelector('.lcheck'), 'shake');
+  }
+  function checkinExplain() {
+    openCora({ question: dayTitle(state.day) || t('hub.phase1.title') });
+  }
+  function checkinStart() {
+    const p = lessonProgress();
+    if (p.done < p.total) { gateBlocked(null); return; }
+    state.checkinDays.add(state.day);
+    Sound.pop();
+    renderLessonsCard();
+    refreshPrimary();
+    openMission();
+  }
+  function gotoLessons(btn) {
+    if (btn) replayClass(btn, 'shake');
+    showHubTab(3, { scroll: true });
+    if (els.cardLessons) replayClass(els.cardLessons, 'bump');
   }
 
   // Time machine: slider 1–20 years + what-if monthly amount, 3 KPIs in today's money,
@@ -2962,6 +3183,7 @@
       if (token !== state.token) return false;
       state.log.push({ kind: 'day', body: { day: n, lang: state.lang } });
       state.day = res.day || n;
+      if (o.demo) state.gateBypass.add(state.day);
       state.turn = res.initial_mission_turn;
       state.dayLessons = res.micro_lessons || [];
       state.hubTab = 3;   // a new day opens on its own lessons
@@ -2994,7 +3216,11 @@
     const d = Number(key);
     const st = nodeState(d);
     if (st === 'locked') { replayClass(btn, 'shake'); toast(t('hub.locked', { n: d - 1 }), 'info', 2600); return; }
-    if (st === 'active') { openMission(); return; }
+    if (st === 'active') {
+      if (!(state.mission && state.mission.started) && !dayDone(d) && !dayReady()) { gateBlocked(btn); return; }
+      openMission();
+      return;
+    }
     if (st === 'next') { startDay(d); return; }
     if (st === 'done' && d === state.day) openDone();
   }
@@ -3301,7 +3527,7 @@
     const leader = rows[0];
     const list = rows.map((r) => {
       const isMe = r.is_current_user === true;
-      const name = isMe ? String(r.name).replace(/\s*\((Level Up!|Awans!)\)\s*$/, '') : r.name;
+      const name = isMe ? (state.userName || String(r.name).replace(/\s*\((Level Up!|Awans!)\)\s*$/, '')) : r.name;
       return '<li class="' + (isMe ? 'is-me' : '') + '"' + (isMe ? ' data-me' : '') + '>' +
         '<span class="board__rank">' + escapeHtml(r.rank) + '</span>' +
         '<span><span class="board__name">' + escapeHtml(name) + (isMe && leveled ? ' <span class="chip chip--green" style="min-height:24px;padding:0 8px;font-size:.7rem">' + escapeHtml(t('board.levelUp')) + '</span>' : '') + '</span>' +
@@ -3583,7 +3809,7 @@
     let result = null;
     try {
       if (state.session) {
-        const res = await withSessionRecovery((sid) => api.explain({ session_id: sid, question: q, topic_hint: topicKey || null, lang: state.lang }));
+        const res = await withSessionRecovery((sid) => api.explain({ session_id: sid, question: q, topic_hint: topicKey || null, lang: state.lang, user_name: state.userName || null }));
         if (validExplain(res)) result = res;
       }
     } catch (err) {
@@ -3611,7 +3837,7 @@
     modalReturnFocus = document.activeElement;
     modal.hidden = false;
     document.body.classList.add('no-scroll');
-    const btn = modal.querySelector('.modal__head [data-action="close-modal"]');
+    const btn = modal.querySelector('.modal__head [data-action="close-modal"], [data-action="close-intro"], [data-action="close-name"], input, [data-action]');
     if (btn) btn.focus();
   }
   function closeModal(id) {
@@ -3679,6 +3905,7 @@
     document.querySelectorAll('[data-i18n-aria]').forEach((el) => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
     document.querySelectorAll('[data-i18n-title]').forEach((el) => el.setAttribute('title', t(el.dataset.i18nTitle)));
     document.querySelectorAll('[data-i18n-content]').forEach((el) => el.setAttribute('content', t(el.dataset.i18nContent)));
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder)));
     document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === state.lang)));
   }
 
@@ -3688,6 +3915,7 @@
     state.lang = lang;
     storageSet(LS_LANG, lang);
     applyStaticI18n();
+    renderKitaWelcome();
     renderSoundButton();
     renderStageCards();
     syncFormOutputs();
@@ -3697,11 +3925,14 @@
     loadPersonas();
     // Nothing answered yet -> refresh server content in the new language (docs/01 §9).
     if (state.session && state.log.length === 0 && state.lastProfile && (state.screen === SCREENS.HUB)) {
-      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), year: state.tm.year };
+      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), checks: state.lessonChecks, checkin: new Set(state.checkinDays), bypass: new Set(state.gateBypass), year: state.tm.year };
       const data = await analyzeProfile(state.lastProfile, { stay: true, quick: true, stageId: state.stageId });
       if (data) {
         state.lessonsXp = keep.lessonsXp;
         state.completedLessons = keep.completedLessons;
+        state.lessonChecks = keep.checks;
+        state.checkinDays = keep.checkin;
+        state.gateBypass = keep.bypass;
         renderLessonsCard();
         renderHud({ animate: false });
         if (keep.year) updateTimeMachine(keep.year, { animate: false });
@@ -3719,7 +3950,7 @@
   }
 
   function goHome() {
-    if (!state.session) { showScreen(SCREENS.ONBOARDING); return; }
+    if (!state.session) { showScreen(SCREENS.BANK_ENTRY); return; }
     closeDrawer();
     renderHub();
     showScreen(SCREENS.HUB);
@@ -3740,6 +3971,12 @@
       if (el.dataset.stage) { selectStage(el.dataset.stage); return; }
       const a = el.dataset.action;
       switch (a) {
+        case 'start-entry': beginJourney(); break;
+        case 'next-intro': nextIntro(); break;
+        case 'skip-intro': skipIntro(); break;
+        case 'close-intro': skipIntro(); break;
+        case 'skip-name': finishName(''); break;
+        case 'close-name': closeEntryFlow(); break;
         case 'go-home': goHome(); break;
         case 'reset': resetToProfile(); break;
         case 'toggle-sound': Sound.setMuted(!Sound.isMuted()); renderSoundButton(); if (!Sound.isMuted()) Sound.pop(); break;
@@ -3758,6 +3995,10 @@
         case 'open-checkpoint': openCheckpoint(); break;
         case 'open-done': openDone(); break;
         case 'lesson': completeLesson(el.dataset.lessonId, el); break;
+        case 'lesson-pick': pickLessonOption(el.dataset.lessonId, Number(el.dataset.i)); break;
+        case 'checkin-explain': checkinExplain(); break;
+        case 'checkin-start': checkinStart(); break;
+        case 'goto-lessons': gotoLessons(el); break;
         case 'close-mission': closeMission(); break;
         case 'pick': pickAnswer(el.dataset.id, el); break;
         case 'check': check(); break;
@@ -3833,6 +4074,12 @@
       }
     });
     document.addEventListener('submit', (e) => {
+      if (e.target.id === 'name-form') {
+        e.preventDefault();
+        const input = document.getElementById('user-name');
+        finishName(input ? input.value : '');
+        return;
+      }
       if (e.target.id === 'cora-form') {
         e.preventDefault();
         const input = document.getElementById('cora-input');
