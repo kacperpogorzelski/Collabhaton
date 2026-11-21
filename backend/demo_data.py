@@ -1,5 +1,5 @@
-"""Dane demo Finance Quest (SSOT v3) — persony, filtr Speakly, mapa 14 dni,
-mikro-lekcje, bloki kroków misji Dnia 1, wyzwania, checklista i szkic bankowy.
+"""Dane demo Investly (SSOT v3) — persony, filtr Speakly, mapa 14 dni,
+mikro-lekcje, bloki kroków misji Etapu 1, wyzwania, checklista i szkic bankowy.
 
 Wszystkie funkcje są synchroniczne (``def``) i nie importują SQLAlchemy.
 Treści pochodzą 1:1 z ``docs/03_LUNA_INTEGRATION_AND_PROMPTS.md`` §6–§9;
@@ -213,13 +213,14 @@ SPEAKLY_FILTER_BY_GROUP: dict[AgeGroup, SpeaklyFilter] = {
 }
 
 # --------------------------------------------------------------------------- #
-# Mapa 14 dni — 14-Day Confidence Sprint w 3 czytelnych fazach
+# Mapa 14 dni — 14-Stage Investing Journey w 3 czytelnych fazach
 # --------------------------------------------------------------------------- #
 
-PHASE_1: str = "Faza 1: Dni 1–4 · Fundamenty i pierwszy krok"
-PHASE_2: str = "Faza 2: Dni 5–9 · Ryzyko, bezpieczeństwo i emocje"
-PHASE_3: str = "Faza 3: Dni 10–14 · Twój prawdziwy plan"
-DURATION_HINT: str = "~5 min/day"
+PHASE_1: str = "Faza 1: Etapy 1–4 · Fundamenty i pierwszy krok"
+PHASE_2: str = "Faza 2: Etapy 5–9 · Ryzyko, bezpieczeństwo i emocje"
+PHASE_3: str = "Faza 3: Etapy 10–14 · Twój prawdziwy plan"
+DURATION_HINT: str = "~5 min / etap"
+DURATION_HINT_EN: str = "~5 min / stage"
 
 
 def _roadmap_milestone(
@@ -240,14 +241,14 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             1,
             "Inflacja, płynność i start",
-            "Dziś: 5 min • Przełamanie mitu zamrożonej kasy",
+            "5 min / etap • Przełamanie mitu zamrożonej kasy",
             PHASE_1,
             "active",
         ),
         _roadmap_milestone(
             4,
             "Symulator pierwszego spadku -15%",
-            "Po Dniu 4: Checkpoint #1 — szybki test wiedzy",
+            "Po Etapie 4: Checkpoint #1 — szybki test wiedzy",
             PHASE_1,
         ),
         _roadmap_milestone(
@@ -259,7 +260,7 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             14,
             "Twoja pierwsza inwestycja",
-            "Finał sprintu • Uruchomienie planu w Commerzbanku",
+            "Finał ścieżki • Uruchomienie planu w Collabothonu",
             PHASE_3,
         ),
     ],
@@ -267,14 +268,14 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             1,
             "Inflacja i inwestowanie w tle",
-            "Dziś: 5 min • Poduszka osobno, nadwyżki osobno",
+            "5 min / etap • Poduszka osobno, nadwyżki osobno",
             PHASE_1,
             "active",
         ),
         _roadmap_milestone(
             4,
             "Automatyzacja bez patrzenia w wykresy",
-            "Po Dniu 4: Checkpoint #1 — koszty i pierwsze zlecenie",
+            "Po Etapie 4: Checkpoint #1 — koszty i pierwsze zlecenie",
             PHASE_1,
         ),
         _roadmap_milestone(
@@ -286,7 +287,7 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             14,
             "Start automatycznego planu ETF",
-            "Finał sprintu • Konfiguracja w Commerzbanku",
+            "Finał ścieżki • Konfiguracja w Collabothonu",
             PHASE_3,
         ),
     ],
@@ -294,14 +295,14 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             1,
             "Tarcza antyinflacyjna w każdym wieku",
-            "Dziś: 5 min • Dlaczego gotówka na koncie traci",
+            "5 min / etap • Dlaczego gotówka na koncie traci",
             PHASE_1,
             "active",
         ),
         _roadmap_milestone(
             4,
             "Spokojne reagowanie na wahania",
-            "Po Dniu 4: Checkpoint #1 — spokój i horyzont",
+            "Po Etapie 4: Checkpoint #1 — spokój i horyzont",
             PHASE_1,
         ),
         _roadmap_milestone(
@@ -312,15 +313,15 @@ ROADMAP_BY_GROUP: dict[AgeGroup, list[RoadmapMilestone]] = {
         ),
         _roadmap_milestone(
             14,
-            "Świadomy start w Commerzbanku",
-            "Finał sprintu • Bezstresowe uruchomienie planu",
+            "Świadomy start w Collabothonu",
+            "Finał ścieżki • Bezstresowe uruchomienie planu",
             PHASE_3,
         ),
     ],
 }
 
 # --------------------------------------------------------------------------- #
-# 3 mikro-lekcje Dnia 1 na grupę (20 s, +15 XP)
+# 3 mikro-lekcje Etapu 1 na grupę (20 s, +15 XP)
 # --------------------------------------------------------------------------- #
 
 MICRO_LESSONS_BY_GROUP: dict[AgeGroup, list[MicroLessonCard]] = {
@@ -453,39 +454,40 @@ PLAN_SENTENCE: dict[str, str] = {
 }
 
 FINAL_MESSAGE: str = (
-    "Dzień 1 z 14 zaliczony! Przewijamy {horizon_years} lat: wpłaty na koncie 0% byłyby warte "
+    "Etap 1 z 14 zaliczony! Przewijamy {horizon_years} lat: wpłaty na koncie 0% byłyby warte "
     "realnie ok. {cash_real_value} zł, a w szerokim ETF historycznie ok. {etf_real_value} zł "
-    "(założenia edukacyjne). Zrób dziś małe wyzwanie i wróć jutro po Dzień 2."
+    "(założenia edukacyjne). Zrób dziś małe wyzwanie, a do Etapu 2 możesz przejść od razu albo "
+    "wrócić w dowolnym momencie."
 )
 
 FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX: str = (
     "Pamiętaj: najpierw poduszka — ETF to przykład na później."
 )
 
-FINAL_BADGE: str = "Dzień 1 ukończony • Cel: {horizon_years} lat"
+FINAL_BADGE: str = "Etap 1 ukończony • Cel: {horizon_years} lat"
 
-# Finały Dni 2–4 (PL) — bez nowych liczb i bez obietnic zysku.
+# Finały Etapy 2–4 (PL) — bez nowych liczb i bez obietnic zysku.
 FINAL_MESSAGE_BY_DAY: dict[int, str] = {
     1: FINAL_MESSAGE,
     2: (
-        "Dzień 2 z 14 zaliczony! Wiesz już, na co patrzeć w tabeli opłat i po co jest tryb demo. "
-        "Jutro w Dniu 3 ustawimy pierwsze zlecenie stałe."
+        "Etap 2 z 14 zaliczony! Wiesz już, na co patrzeć w tabeli opłat i po co jest tryb demo. "
+        "Jutro w Etapie 3 ustawimy pierwsze zlecenie stałe."
     ),
     3: (
-        "Dzień 3 z 14 zaliczony! Stałe zlecenie i symboliczny test 10 zł to fundament "
-        "regularności. Jutro w Dniu 4 zobaczysz pierwsze mikro-zlecenie na szeroki ETF."
+        "Etap 3 z 14 zaliczony! Stałe zlecenie i symboliczny test 10 zł to fundament "
+        "regularności. Jutro w Etapie 4 zobaczysz pierwsze mikro-zlecenie na szeroki ETF."
     ),
     4: (
-        "Dzień 4 z 14 zaliczony! Fundamenty i praktyka pierwszego zlecenia masz za sobą. "
-        "Czas na Checkpoint #1 — krótki test wiedzy z Dni 1–4."
+        "Etap 4 z 14 zaliczony! Fundamenty i praktyka pierwszego zlecenia masz za sobą. "
+        "Czas na Checkpoint #1 — krótki test wiedzy z Etapy 1–4."
     ),
 }
 
 FINAL_BADGE_BY_DAY: dict[int, str] = {
     1: FINAL_BADGE,
-    2: "Dzień 2 ukończony • Opłaty sprawdzone",
-    3: "Dzień 3 ukończony • Test 10 zł",
-    4: "Dzień 4 ukończony • Gotowość na Checkpoint #1",
+    2: "Etap 2 ukończony • Opłaty sprawdzone",
+    3: "Etap 3 ukończony • Test 10 zł",
+    4: "Etap 4 ukończony • Gotowość na Checkpoint #1",
 }
 
 ASSUMPTIONS_TEXT: str = (
@@ -498,20 +500,20 @@ COSTS_NOTE: str = (
     "Wyniki z przeszłości nie gwarantują przyszłych."
 )
 
-INSTRUMENT_CATEGORY: str = "Szeroki globalny fundusz ETF (przykład edukacyjny na Dzień 14)"
+INSTRUMENT_CATEGORY: str = "Szeroki globalny fundusz ETF (przykład edukacyjny na Etap 14)"
 
 # --------------------------------------------------------------------------- #
 # Bloki kroków misji (dokładnie jedna opcja z is_optimal=True w każdym bloku)
 # --------------------------------------------------------------------------- #
 
-STEP1_BADGE: str = "Dzień 1 • Start ({recommended_monthly} zł/mies.)"
+STEP1_BADGE: str = "Etap 1 • Start ({recommended_monthly} zł/mies.)"
 
 STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
     "20+": {
         "badge": STEP1_BADGE,
         "step_question": "Co na start daje Ci większy spokój?",
         "luna_message": (
-            "Cześć! Jestem Kita, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+            "Cześć! Jestem Atlas, Twój codzienny AI Coach — zaczynamy Etap 1 z 14! {plan_sentence} "
             "Nie musisz zgadywać pojedynczych firm: szeroki ETF rozkłada pieniądze na setki spółek "
             "naraz. Co na start daje Ci większy spokój?"
         ),
@@ -553,7 +555,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Co jest największą zaletą takiego podejścia, gdy brakuje czasu?",
         "luna_message": (
-            "Cześć! Jestem Kita, Twój codzienny AI Coach — witaj w Dniu 1 z 14. {plan_sentence} "
+            "Cześć! Jestem Atlas, Twój codzienny AI Coach — witaj w Etapie 1 z 14. {plan_sentence} "
             "Pasywny szeroki ETF działa w tle, bez codziennego śledzenia giełdy. Co jest jego "
             "największą zaletą, gdy brakuje czasu?"
         ),
@@ -593,7 +595,7 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE,
         "step_question": "Dlaczego nie trzymać całego kapitału wyłącznie na zwykłym koncie?",
         "luna_message": (
-            "Dzień dobry! Jestem Kita, Twój codzienny AI Coach — zaczynamy spokojny, 14-dniowy plan. "
+            "Dzień dobry! Jestem Atlas, Twój codzienny AI Coach — zaczynamy spokojny, 14-etapową ścieżkę. "
             "Inwestować można w każdym wieku, wystarczy dopasowany horyzont. {plan_sentence} "
             "Dlaczego lepiej nie trzymać całego kapitału wyłącznie na zwykłym koncie?"
         ),
@@ -635,10 +637,10 @@ STEP1_BY_AGE_GROUP: dict[AgeGroup, dict] = {
 # pogłębia pytanie o koszty i prostotę szerokiego ETF. Persony demo (2/5) oraz
 # brak pola w faktach zachowują dotychczasowy blok wg ``age_group``.
 STEP1_SAVINGS_FIRST: dict = {
-    "badge": "Dzień 1 • Start ({emergency_savings_monthly} zł/mies. na poduszkę)",
+    "badge": "Etap 1 • Start ({emergency_savings_monthly} zł/mies. na poduszkę)",
     "step_question": "Od czego zaczynasz, gdy nie masz jeszcze poduszki?",
     "luna_message": (
-        "Cześć! Jestem Kita, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+        "Cześć! Jestem Atlas, Twój codzienny AI Coach — zaczynamy Etap 1 z 14! {plan_sentence} "
         "Zanim pieniądze trafią na rynek, warto mieć bezpieczną poduszkę na awarie. "
         "Od czego zaczynasz?"
     ),
@@ -678,10 +680,10 @@ STEP1_SAVINGS_FIRST: dict = {
 }
 
 STEP1_CONFIDENT: dict = {
-    "badge": "Dzień 1 • Start ({recommended_monthly} zł/mies.)",
+    "badge": "Etap 1 • Start ({recommended_monthly} zł/mies.)",
     "step_question": "Który koszt i nawyk naprawdę decydują o wyniku szerokiego ETF?",
     "luna_message": (
-        "Cześć! Jestem Kita, Twój codzienny AI Coach — zaczynamy Dzień 1 z 14! {plan_sentence} "
+        "Cześć! Jestem Atlas, Twój codzienny AI Coach — zaczynamy Etap 1 z 14! {plan_sentence} "
         "Skoro czujesz się pewniej, wejdźmy głębiej: w długim horyzoncie liczą się koszty "
         "i prostota, a nie próba pobicia rynku. Który koszt i nawyk naprawdę decydują o wyniku?"
     ),
@@ -926,15 +928,15 @@ STEP3: dict = {
 }
 
 # --------------------------------------------------------------------------- #
-# Dni 2–4 (PL): 2 kroki decyzyjne + 2 mikro-lekcje każdego dnia (docs/03 §2)
+# Etapy 2–4 (PL): 2 kroki decyzyjne + 2 mikro-lekcje każdego dnia (docs/03 §2)
 # --------------------------------------------------------------------------- #
 
 DAY2_STEPS: dict[int, dict] = {
     1: {
-        "badge": "Dzień 2 • Konto i opłaty",
+        "badge": "Etap 2 • Konto i opłaty",
         "step_question": "Co warto sprawdzić w tabeli opłat, zanim otworzysz konto maklerskie?",
         "luna_message": (
-            "Dzień 2 z 14 — czas na praktykę. {plan_sentence} Zanim otworzysz konto maklerskie, "
+            "Etap 2 z 14 — czas na praktykę. {plan_sentence} Zanim otworzysz konto maklerskie, "
             "zajrzyj do tabeli opłat. Co warto sprawdzić?"
         ),
         "optimal_criterion": (
@@ -972,10 +974,10 @@ DAY2_STEPS: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Dzień 2 • Pułapka opłat",
+        "badge": "Etap 2 • Pułapka opłat",
         "step_question": "Znajomy składa po 20 małych zleceń miesięcznie, żeby łapać okazje. Co jest rozsądniejsze?",
         "luna_message": (
-            "Dzień 2 z 14 — koszty i dywersyfikacja. {plan_sentence} Znajomy mówi, że składa po 20 "
+            "Etap 2 z 14 — koszty i dywersyfikacja. {plan_sentence} Znajomy mówi, że składa po 20 "
             "małych zleceń miesięcznie, żeby łapać okazje. Co jest rozsądniejsze?"
         ),
         "optimal_criterion": (
@@ -1016,10 +1018,10 @@ DAY2_STEPS: dict[int, dict] = {
 
 DAY3_STEPS: dict[int, dict] = {
     1: {
-        "badge": "Dzień 3 • Zlecenie stałe",
+        "badge": "Etap 3 • Zlecenie stałe",
         "step_question": "Co daje stałe zlecenie ustawione raz?",
         "luna_message": (
-            "Dzień 3 z 14 — automatyzacja. {plan_sentence} Stałe zlecenie ustawiasz raz, a bank "
+            "Etap 3 z 14 — automatyzacja. {plan_sentence} Stałe zlecenie ustawiasz raz, a bank "
             "realizuje je regularnie. Co dzięki temu zyskujesz?"
         ),
         "optimal_criterion": (
@@ -1056,10 +1058,10 @@ DAY3_STEPS: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Dzień 3 • Gorący typ",
+        "badge": "Etap 3 • Gorący typ",
         "step_question": "Znajomy wysyła „gorący typ” na jedną spółkę. Co robisz ze swoim stałym planem?",
         "luna_message": (
-            "Dzień 3 z 14 — emocje i gorące typy. {plan_sentence} Znajomy wysyła „gorący typ”: "
+            "Etap 3 z 14 — emocje i gorące typy. {plan_sentence} Znajomy wysyła „gorący typ”: "
             "jedna spółka ma „na pewno” podwoić wartość. Co robisz ze swoim stałym planem?"
         ),
         "optimal_criterion": (
@@ -1100,10 +1102,10 @@ DAY3_STEPS: dict[int, dict] = {
 
 DAY4_STEPS: dict[int, dict] = {
     1: {
-        "badge": "Dzień 4 • Pierwsze mikro-zlecenie",
+        "badge": "Etap 4 • Pierwsze mikro-zlecenie",
         "step_question": "Jak w praktyce wygląda pierwsze mikro-zlecenie na szeroki ETF?",
         "luna_message": (
-            "Dzień 4 z 14 — praktyka i przygotowanie do Checkpoint #1. {plan_sentence} "
+            "Etap 4 z 14 — praktyka i przygotowanie do Checkpoint #1. {plan_sentence} "
             "Jak wygląda Twoje pierwsze mikro-zlecenie na szeroki globalny ETF?"
         ),
         "optimal_criterion": (
@@ -1141,10 +1143,10 @@ DAY4_STEPS: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Dzień 4 • Plan pod kontrolą",
+        "badge": "Etap 4 • Plan pod kontrolą",
         "step_question": "Po miesiącu psuje się pralka, a ETF urósł z 20% do 28% portfela. Co robisz?",
         "luna_message": (
-            "Dzień 4 z 14 — utrzymanie prostego planu przed Checkpoint #1. {plan_sentence} Po "
+            "Etap 4 z 14 — utrzymanie prostego planu przed Checkpoint #1. {plan_sentence} Po "
             "miesiącu psuje się pralka, a udział ETF w portfelu urósł z 20% do 28%. Co robisz?"
         ),
         "optimal_criterion": (
@@ -1267,174 +1269,193 @@ MICRO_LESSONS_BY_DAY: dict[int, list[MicroLessonCard]] = {
 }
 
 # --------------------------------------------------------------------------- #
-# Mini-checki mikro-lekcji Dni 1–4 (1 pytanie, 3 opcje, jeden poprawny indeks)
+# Mini-checki mikro-lekcji Etapy 1–4 (1 pytanie, 3 opcje, jeden poprawny indeks)
 # --------------------------------------------------------------------------- #
 
 MICRO_LESSON_CHECKS: dict[str, dict] = {
-    # --- Dzień 1 ---
+    # --- Etap 1 ---
     "ml_20_1": {
-        "check_question": "Ile realnie traci 10 000 zł na koncie 0% po roku przy inflacji 3,5%?",
+        "check_question": "Dlaczego trzymanie całych oszczędności na koncie 0% przez lata bywa ryzykowne?",
         "check_options": [
-            "Ok. 350 zł siły nabywczej",
-            "Ok. 3 500 zł siły nabywczej",
-            "Nic — saldo się nie zmienia",
+            "Bo rosnące ceny sprawiają, że za tę samą kwotę kupujesz coraz mniej",
+            "Bo bank co roku automatycznie zmniejsza liczbę złotych na koncie",
+            "Bo pieniądze na koncie bieżącym są prawnie zamrożone",
         ],
         "correct_option_index": 0,
         "check_explanation": (
-            "3,5% z 10 000 zł to ok. 350 zł. Saldo stoi, ale kupujesz za nie mniej."
+            "Inflacja nie obniża nominalnego salda na ekranie, ale stopniowo zmniejsza realną siłę nabywczą gotówki."
         ),
     },
     "ml_20_2": {
-        "check_question": "W 6. miesiącu psuje się laptop. Co robisz z poduszką 6 000 zł?",
+        "check_question": "Jaka jest główna rola poduszki finansowej, zanim zaczniesz inwestować?",
         "check_options": [
-            "Sprzedaję cały ETF, żeby mieć pewność",
-            "Płacę z poduszki, a ETF zostaje i pracuje dalej",
-            "Biorę kredyt, bo poduszki nie ruszam nigdy",
+            "Zapewnić gwarantowany wysoki zwrot bez żadnego ryzyka",
+            "Pokrywać nagłe wydatki, żeby nie sprzedawać ETF-u w złym momencie",
+            "Zastąpić konto maklerskie przy zakupie pojedynczych akcji",
         ],
         "correct_option_index": 1,
         "check_explanation": (
-            "Poduszka jest właśnie na awarie. ETF nie jest zamrożony, ale nie musi być ruszany."
+            "Osobna poduszka chroni Twój plan długoterminowy — nagła awaria nie zmusza Cię do wyjścia z rynku."
         ),
     },
     "ml_20_3": {
-        "check_question": "Co daje 200 zł/mies. przez 15 lat przy założeniu 5,7% netto?",
+        "check_question": "Co jest najważniejsze przy starcie od małych, regularnych kwot?",
         "check_options": [
-            "36 000 zł wpłat i gwarancję 100 000 zł",
-            "36 000 zł wpłat i dokładnie 36 000 zł wartości",
-            "36 000 zł wpłat i historycznie ok. 56 700 zł nominalnie (edukacyjnie)",
+            "Idealne wyczucie dołka i szczytu na giełdzie",
+            "Pożyczenie większego kapitału na szybki zysk",
+            "Długi horyzont i konsekwencja, mimo że nie ma gwarancji zysku",
         ],
         "correct_option_index": 2,
         "check_explanation": (
-            "200 zł × 180 miesięcy = 36 000 zł wpłat; przy 5,7% netto ok. 56 700 zł nominalnie, "
-            "bez żadnej gwarancji."
+            "Regularność i czas dają efekt skali bez potrzeby zgadywania rynku — przy zachowaniu świadomości ryzyka."
         ),
     },
     "ml_30_1": {
-        "check_question": "Ile siły nabywczej traci 20 000 zł na koncie 0% w rok przy 3,5% inflacji?",
+        "check_question": "Czym różni się wartość nominalna od realnej siły nabywczej?",
         "check_options": [
-            "Ok. 700 zł",
-            "Ok. 70 zł",
-            "Zero, bo saldo się nie zmienia",
-        ],
-        "correct_option_index": 0,
-        "check_explanation": "3,5% z 20 000 zł to ok. 700 zł mniej siły nabywczej rocznie.",
-    },
-    "ml_30_2": {
-        "check_question": "Ile wpłacisz w rok ze stałym zleceniem 200 zł/mies.?",
-        "check_options": [
-            "200 zł",
-            "2 400 zł — bez patrzenia w wykresy",
-            "24 000 zł",
-        ],
-        "correct_option_index": 1,
-        "check_explanation": "200 zł × 12 miesięcy = 2 400 zł, a decyzję podejmujesz tylko raz.",
-    },
-    "ml_30_3": {
-        "check_question": "Wydatki to 2 500 zł/mies. Jak duża jest poduszka na 3 miesiące?",
-        "check_options": [
-            "2 500 zł",
-            "25 000 zł",
-            "7 500 zł",
-        ],
-        "correct_option_index": 2,
-        "check_explanation": "2 500 zł × 3 = 7 500 zł. Dopiero nadwyżki powyżej idą na rynek.",
-    },
-    "ml_50_1": {
-        "check_question": "Ile wpłat daje 1 200 zł/mies. przez 7 lat?",
-        "check_options": [
-            "100 800 zł",
-            "14 400 zł",
-            "840 000 zł",
-        ],
-        "correct_option_index": 0,
-        "check_explanation": "1 200 zł × 84 miesiące = 100 800 zł wpłat w 7-letnim horyzoncie.",
-    },
-    "ml_50_2": {
-        "check_question": "Ile siły nabywczej traci 50 000 zł na koncie 0% w rok przy 3,5%?",
-        "check_options": [
-            "Ok. 175 zł",
-            "Ok. 1 750 zł",
-            "Nic — to duża kwota, więc strata nie występuje",
-        ],
-        "correct_option_index": 1,
-        "check_explanation": "3,5% z 50 000 zł to ok. 1 750 zł rocznie mniej siły nabywczej.",
-    },
-    "ml_50_3": {
-        "check_question": "Ile wynosi roczny koszt TER 0,20% od 10 000 zł?",
-        "check_options": [
-            "200 zł",
-            "2 000 zł",
-            "20 zł",
-        ],
-        "correct_option_index": 2,
-        "check_explanation": "0,20% z 10 000 zł to 20 zł rocznie — jawny i przewidywalny koszt.",
-    },
-    # --- Dzień 2 ---
-    "ml_d2_1": {
-        "check_question": "Po co korzystać z trybu demo?",
-        "check_options": [
-            "Aby przećwiczyć zlecenia bez realnego ryzyka",
-            "Aby mieć gwarantowany zysk",
-            "Aby uniknąć wszystkich opłat",
+            "Realna siła nabywcza uwzględnia wzrost cen i mówi, ile faktycznie kupisz",
+            "To dokładnie to samo pojęcie używane zamiennie",
+            "Wartość realna zawsze rośnie szybciej niż inflacja",
         ],
         "correct_option_index": 0,
         "check_explanation": (
-            "Tryb demo to trening procesu za 0 zł ryzyka — nie obietnica zysku i nie brak opłat."
+            "Saldo nominalne może stać w miejscu, podczas gdy realna siła nabywcza spada wraz ze wzrostem cen."
+        ),
+    },
+    "ml_30_2": {
+        "check_question": "Dlaczego stałe zlecenie w tle pomaga początkującym inwestorom?",
+        "check_options": [
+            "Ponieważ znosi wszystkie opłaty maklerskie",
+            "Ponieważ zdejmuje konieczność comiesięcznej decyzji i ogranicza emocje",
+            "Ponieważ gwarantuje dodatni wynik każdego miesiąca",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "Automatyzacja sprawia, że nie musisz codziennie śledzić wykresów ani ulegać wahaniom nastroju."
+        ),
+    },
+    "ml_30_3": {
+        "check_question": "Dlaczego na rynek warto kierować tylko nadwyżki ponad poduszkę finansową?",
+        "check_options": [
+            "Ponieważ ETF-y nie mogą być sprzedane przez pierwsze 3 lata",
+            "Ponieważ bank pobiera karę za wypłatę z ETF-u",
+            "Żeby chwilowy spadek portfela nie zmusił Cię do sprzedaży przy nagłym rachunku",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": (
+            "Rozdzielenie bufora od inwestycji daje spokój psychiczny — nie reagujesz paniką na przejściowe wahania."
+        ),
+    },
+    "ml_50_1": {
+        "check_question": "Co w grupie 50+ ma większe znaczenie przy kilkuletnim horyzoncie?",
+        "check_options": [
+            "Spokojne dopasowanie proporcji i oddzielenie poduszki od części rynkowej",
+            "Włożenie całych oszczędności w jedną popularną spółkę, żeby nadrobić czas",
+            "Codzienne sprawdzanie notowań i szybkie zmiany strategii",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "Przy krótszym horyzoncie liczy się równowaga, ochrona poduszki i brak nerwowych decyzji."
+        ),
+    },
+    "ml_50_2": {
+        "check_question": "Dlaczego inflacja bywa bardziej odczuwalna przy większym zgromadzonym kapitale?",
+        "check_options": [
+            "Bo konta oszczędnościowe są dostępne tylko dla młodych osób",
+            "Bo spadek siły nabywczej dotyczy całej niepracującej gotówki naraz",
+            "Bo gotówka powyżej pewnej kwoty traci ważność",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "Im większa kwota leży bez żadnej ochrony przed wzrostem cen, tym większa część jej siły nabywczej topnieje."
+        ),
+    },
+    "ml_50_3": {
+        "check_question": "Dlaczego szeroki ETF jest zwykle prostszym i bezpieczniejszym wyborem niż jedna spółka?",
+        "check_options": [
+            "Bo szeroki ETF nigdy nie spada na wartości",
+            "Bo gwarantuje stałą dywidendę co tydzień",
+            "Bo rozkłada kapitał na setki firm i ma jawny, niski koszt roczny (TER)",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": (
+            "Dywersyfikacja ogranicza wpływ kłopotów pojedynczej firmy, a niskie TER zostawia więcej wyniku po Twojej stronie."
+        ),
+    },
+    # --- Etap 2 ---
+    "ml_d2_1": {
+        "check_question": "Po co korzystać z trybu demo przed pierwszym prawdziwym zleceniem?",
+        "check_options": [
+            "Aby spokojnie przećwiczyć obsługę konta i składanie zleceń bez ryzyka",
+            "Aby zablokować gwarantowany zysk na przyszłość",
+            "Aby na stałe uniknąć podatków i opłat giełdowych",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "Tryb demo pozwala poznać kroki techniczne za 0 zł ryzyka — zanim użyjesz realnych środków."
         ),
     },
     "ml_d2_2": {
-        "check_question": "TER 0,20% od 10 000 zł plus 12 zleceń po 3 zł to rocznie razem:",
+        "check_question": "Dlaczego przy wyborze funduszu warto patrzeć na pełną tabelę opłat (TER i prowizje)?",
         "check_options": [
-            "Ok. 6 zł",
-            "Ok. 56 zł",
-            "Ok. 560 zł",
-        ],
-        "correct_option_index": 1,
-        "check_explanation": "20 zł TER + 36 zł za zlecenia = ok. 56 zł rocznie.",
-    },
-    # --- Dzień 3 ---
-    "ml_d3_1": {
-        "check_question": "Ile wpłat daje stałe zlecenie 100 zł/mies. w ciągu roku?",
-        "check_options": [
-            "100 zł",
-            "12 000 zł",
-            "1 200 zł bez 12 decyzji",
-        ],
-        "correct_option_index": 2,
-        "check_explanation": "100 zł × 12 = 1 200 zł, a decyzję podejmujesz raz, nie co miesiąc.",
-    },
-    "ml_d3_2": {
-        "check_question": "Przy opłacie 3 zł za zlecenie przelew 10 zł to koszt:",
-        "check_options": [
-            "Ok. 30% kwoty",
-            "Ok. 3% kwoty",
-            "Zero, bo kwota jest mała",
-        ],
-        "correct_option_index": 0,
-        "check_explanation": "3 zł z 10 zł to 30% — dlatego test jest symboliczny i pokazuje koszty.",
-    },
-    # --- Dzień 4 ---
-    "ml_d4_1": {
-        "check_question": "Jak wygląda rozsądne pierwsze mikro-zlecenie?",
-        "check_options": [
-            "Cała kwota w jedną spółkę z gorącego tipu",
-            "50–100 zł w szeroki globalny ETF",
-            "Pożyczona kwota z dźwignią",
+            "Bo darmowe otwarcie konta zawsze oznacza brak jakichkolwiek opłat w przyszłości",
+            "Bo nawet pozornie niewielkie koszty roczne i prowizje kumulują się w czasie",
+            "Bo wyższa opłata roczna gwarantuje wyższy zysk funduszu",
         ],
         "correct_option_index": 1,
         "check_explanation": (
-            "Mała kwota w szeroki ETF daje setki firm w środku, bez typowania i bez dźwigni."
+            "TER oraz prowizje od zleceń obniżają wynik niezależnie od koniunktury — niższe koszty zostawiają więcej u Ciebie."
+        ),
+    },
+    # --- Etap 3 ---
+    "ml_d3_1": {
+        "check_question": "Jaka jest największa zaleta ustawienia stałego zlecenia zamiast ręcznych wpłat?",
+        "check_options": [
+            "Bank podwaja każdą automatyczną wpłatę",
+            "Zlecenie stałe kupuje zawsze dokładnie na najniższym dołku",
+            "Podejmujesz jedną spokojną decyzję i unikasz szukania idealnego momentu",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": (
+            "Regularność w tle eliminuje odkładanie decyzji na później i chroni przed działaniem pod wpływem emocji."
+        ),
+    },
+    "ml_d3_2": {
+        "check_question": "Dlaczego stała opłata kwotowa za zlecenie najbardziej obciąża bardzo małe, częste wpłaty?",
+        "check_options": [
+            "Bo prowizja zabiera nieproporcjonalnie dużą część małej kwoty od razu na starcie",
+            "Bo małe zlecenia są obciążone dodatkowym podatkiem karnym",
+            "Bo prowizja dotyczy wyłącznie pierwszych trzech miesięcy",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "Symboliczny test uczy procesu, ale przy realnych wpłatach warto dopasować ich częstotliwość do stałej prowizji."
+        ),
+    },
+    # --- Etap 4 ---
+    "ml_d4_1": {
+        "check_question": "Jak wygląda rozsądne pierwsze mikro-zlecenie początkującego inwestora?",
+        "check_options": [
+            "Cały wolny kapitał w jedną spółkę poleconą w internecie",
+            "Mała, przemyślana kwota w szeroki globalny ETF zamiast typowania zwycięzców",
+            "Inwestycja za pożyczone pieniądze z dźwignią finansową",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "Mała kwota w szeroki ETF daje dywersyfikację na setki firm od pierwszego dnia — bez zgadywania i bez dźwigni."
         ),
     },
     "ml_d4_2": {
-        "check_question": "Próg 75% w Checkpoint #1 z 4 pytań oznacza:",
+        "check_question": "Reklama w sieci obiecuje „gwarantowane 20% zysku co miesiąc bez ryzyka”. Co to oznacza?",
         "check_options": [
-            "3 poprawne odpowiedzi",
-            "2 poprawne odpowiedzi",
-            "Wszystkie 4 odpowiedzi",
+            "Okazję inwestycyjną, w którą trzeba wpłacić natychmiast",
+            "Standardową ofertę bezpiecznych obligacji skarbowych",
+            "Wyraźny sygnał ostrzegawczy potencjalnego oszustwa — na rynku nie ma gwarancji wysokiego zysku",
         ],
-        "correct_option_index": 0,
-        "check_explanation": "75% z 4 pytań to 3 poprawne odpowiedzi — wystarczy rozumieć mechanizmy.",
+        "correct_option_index": 2,
+        "check_explanation": (
+            "Obietnica wysokiego, gwarantowanego zysku bez ryzyka i presja czasu to klasyczne czerwone flagi scamu."
+        ),
     },
 }
 
@@ -1480,7 +1501,7 @@ _apply_lesson_checks(
 )
 
 # --------------------------------------------------------------------------- #
-# Checkpoint #1 (po Dniu 4) — 4 pytania ABCD, próg 75%, +100 XP (docs/03 §6D)
+# Checkpoint #1 (po Etapie 4) — 4 pytania ABCD, próg 75%, +100 XP (docs/03 §6D)
 # --------------------------------------------------------------------------- #
 
 _CHECKPOINT_1_QUESTIONS_BY_LANG: dict[str, list[dict]] = {
@@ -1649,7 +1670,7 @@ CHECKPOINT_1_QUESTIONS: list[dict] = _public_checkpoint_questions("pl")
 CHECKPOINT_1_QUESTIONS_EN: list[dict] = _public_checkpoint_questions("en")
 
 # --------------------------------------------------------------------------- #
-# After Day 14 — Continuous Learning (docs/03 §10, docs/01 §2)
+# After Stage 14 — Continuous Learning (docs/03 §10, docs/01 §2)
 # --------------------------------------------------------------------------- #
 
 _POST_14_PATHS_BY_LANG: dict[str, list[dict]] = {
@@ -1686,7 +1707,7 @@ _POST_14_PATHS_BY_LANG: dict[str, list[dict]] = {
         },
         {
             "id": "checkins",
-            "title": "Miesięczne check-iny z Kitą",
+            "title": "Miesięczne check-iny z Atlasem",
             "description": (
                 "Krótka rozmowa o postępach, emocjach i ewentualnych korektach planu. "
                 "Pomaga utrzymać nawyk bez codziennego śledzenia giełdy."
@@ -1728,7 +1749,7 @@ _POST_14_PATHS_BY_LANG: dict[str, list[dict]] = {
         },
         {
             "id": "checkins",
-            "title": "Monthly AI Check-ins with Kita",
+            "title": "Monthly AI Check-ins with Atlas",
             "description": (
                 "A short conversation about progress, emotions and any plan adjustments. "
                 "It keeps the habit alive without watching the market daily."
@@ -1748,27 +1769,27 @@ POST_14_PATHS_EN: list[dict] = [dict(path) for path in _POST_14_PATHS_BY_LANG["e
 # --------------------------------------------------------------------------- #
 
 EXPLAIN_FALLBACKS: dict[str, dict] = {
-    # Nawigacja po aplikacji (Kita jako przewodnik po ekranach).
+    # Nawigacja po aplikacji (Atlas jako przewodnik po ekranach).
     "navigation": {
         "simple_explanation": (
-            "Wszystko jest w jednej aplikacji: ankieta to krok pierwszy, mapa sprintu z mikro-lekcjami "
-            "i Wehikułem Czasu to krok drugi, symulacja decyzji z Kitą to trzeci, a podsumowanie dnia, "
+            "Wszystko jest w jednej aplikacji: ankieta to krok pierwszy, mapa ścieżki z mikro-lekcjami "
+            "i Wehikułem Czasu to krok drugi, symulacja decyzji z Atlasem to trzeci, a podsumowanie etapu, "
             "wyzwanie i ranking to czwarty."
         ),
         "real_life_example": (
             "To jak plan podróży na jednej mapie: najpierw ustalasz cel (ankieta), potem widzisz trasę "
-            "(mapa sprintu), ćwiczysz kolejny krok (symulacja), a na końcu odhaczasz dzień i widzisz, "
+            "(mapa ścieżki), ćwiczysz kolejny krok (symulacja), a na końcu odhaczasz etap i widzisz, "
             "ile już przeszedłeś."
         ),
         "drill_question": "Gdzie znajdziesz wykres porównujący gotówkę i szeroki ETF (Wehikuł Czasu)?",
         "drill_options": [
-            "Na mapie sprintu, w karcie Wehikuł Czasu",
+            "Na mapie journeyu, w karcie Wehikuł Czasu",
             "W ankiecie, przy pytaniu o wiek",
             "W rankingu znajomych",
         ],
         "correct_option_index": 0,
         "drill_feedback": (
-            "Tak — wykres jest na mapie sprintu, tuż pod mikro-lekcjami, razem z suwakiem lat."
+            "Tak — wykres jest na mapie journeyu, tuż pod mikro-lekcjami, razem z suwakiem lat."
         ),
         "is_fallback": True,
     },
@@ -1912,7 +1933,7 @@ EXPLAIN_FALLBACKS: dict[str, dict] = {
     },
     "general": {
         "simple_explanation": (
-            "Finance Quest opiera się na trzech filarach: inflacja realnie zjada gotówkę, "
+            "Investly opiera się na trzech filarach: inflacja realnie zjada gotówkę, "
             "poduszka chroni codzienny budżet, a szeroki ETF w długim horyzoncie pomaga "
             "pieniądzom pracować."
         ),
@@ -1920,7 +1941,7 @@ EXPLAIN_FALLBACKS: dict[str, dict] = {
             "To jak plan podróży: gotówka w kieszeni na nagłe wydatki, mapa wiedzy w ręku "
             "i spokojny, regularny krok do celu — bez zgadywania idealnego momentu."
         ),
-        "drill_question": "Który zestaw najlepiej opisuje trzy filary Finance Quest?",
+        "drill_question": "Który zestaw najlepiej opisuje trzy filary Investly?",
         "drill_options": [
             "Inflacja, poduszka i szeroki ETF",
             "Kredyt, dźwignia i jedna spółka",
@@ -1936,27 +1957,27 @@ EXPLAIN_FALLBACKS: dict[str, dict] = {
 }
 
 EXPLAIN_FALLBACKS_EN: dict[str, dict] = {
-    # App navigation (Kita as a guide through the screens).
+    # App navigation (Atlas as a guide through the screens).
     "navigation": {
         "simple_explanation": (
-            "Everything lives in one app: the survey is step one, the sprint map with micro-lessons "
-            "and the Time Machine is step two, the decision simulation with Kita is step three, and "
-            "the day summary, challenge and leaderboard are step four."
+            "Everything lives in one app: the survey is step one, the journey map with micro-lessons "
+            "and the Time Machine is step two, the decision simulation with Atlas is step three, and "
+            "the stage summary, challenge and leaderboard are step four."
         ),
         "real_life_example": (
             "It is like a trip planned on one map: first you set the goal (survey), then you see the "
-            "route (sprint map), you practise the next step (simulation), and finally you tick the day "
+            "route (journey map), you practise the next step (simulation), and finally you tick the stage "
             "off and see how far you have come."
         ),
         "drill_question": "Where do you find the chart that compares cash and a broad ETF (Time Machine)?",
         "drill_options": [
-            "On the sprint map, in the Time Machine card",
+            "On the journey map, in the Time Machine card",
             "In the survey, next to the age question",
             "In the friends leaderboard",
         ],
         "correct_option_index": 0,
         "drill_feedback": (
-            "Yes — the chart sits on the sprint map, right under the micro-lessons, with the years slider."
+            "Yes — the chart sits on the journey map, right under the micro-lessons, with the years slider."
         ),
         "is_fallback": True,
     },
@@ -2101,7 +2122,7 @@ EXPLAIN_FALLBACKS_EN: dict[str, dict] = {
     },
     "general": {
         "simple_explanation": (
-            "Finance Quest rests on three pillars: inflation really eats cash, a buffer "
+            "Investly rests on three pillars: inflation really eats cash, a buffer "
             "protects your everyday budget, and a broad ETF over a long horizon helps money "
             "work."
         ),
@@ -2110,7 +2131,7 @@ EXPLAIN_FALLBACKS_EN: dict[str, dict] = {
             "in hand, and a calm, regular step towards the goal — without guessing the perfect "
             "moment."
         ),
-        "drill_question": "Which set best describes the three pillars of Finance Quest?",
+        "drill_question": "Which set best describes the three pillars of Investly?",
         "drill_options": [
             "Inflation, buffer and broad ETF",
             "Credit, leverage and one company",
@@ -2251,18 +2272,18 @@ _TOPIC_PATTERNS: dict[str, re.Pattern[str]] = {
 EXPLAIN_SCREEN_LABELS: dict[str, dict[str, str]] = {
     "pl": {
         "screen_onboarding": "ankieta (Ekran 1)",
-        "screen_filter_and_timemachine": "mapa sprintu z mikro-lekcjami i Wehikułem Czasu (Ekran 2)",
-        "screen_mission_live": "symulacja decyzji z Kitą (Ekran 3)",
+        "screen_filter_and_timemachine": "mapa ścieżki z mikro-lekcjami i Wehikułem Czasu (Ekran 2)",
+        "screen_mission_live": "symulacja decyzji z Atlasem (Ekran 3)",
         "screen_checkpoint": "Checkpoint #1 — test wiedzy",
-        "screen_checklist": "podsumowanie dnia, wyzwanie i ranking (Ekran 4)",
+        "screen_checklist": "podsumowanie etapu, wyzwanie i ranking (Ekran 4)",
         "modal_bank_order": "podgląd przykładowego planu w banku (modal)",
     },
     "en": {
         "screen_onboarding": "the survey (Screen 1)",
-        "screen_filter_and_timemachine": "the sprint map with micro-lessons and Time Machine (Screen 2)",
-        "screen_mission_live": "the decision simulation with Kita (Screen 3)",
+        "screen_filter_and_timemachine": "the journey map with micro-lessons and Time Machine (Screen 2)",
+        "screen_mission_live": "the decision simulation with Atlas (Screen 3)",
         "screen_checkpoint": "Checkpoint #1 — the knowledge check",
-        "screen_checklist": "the day summary, challenge and leaderboard (Screen 4)",
+        "screen_checklist": "the stage summary, challenge and leaderboard (Screen 4)",
         "modal_bank_order": "the sample bank plan preview (modal)",
     },
 }
@@ -2312,7 +2333,7 @@ def get_explain_fallback(
     """Deterministyczne wyjaśnienie + 3-opcyjny mini-drill (kopia słownika).
 
     Obsługuje także pytania o nawigację po aplikacji i wybór opcji; gdy podano
-    ``user_name`` Kita zwraca się po imieniu, a przy nawigacji dopowiada, na
+    ``user_name`` Atlas zwraca się po imieniu, a przy nawigacji dopowiada, na
     którym ekranie użytkownik jest teraz. ``session_data`` może być minimalne —
     wszystkie odczyty idą przez ``.get``.
     """
@@ -2397,23 +2418,23 @@ SPEAKLY_FILTER_BY_GROUP_EN: dict[AgeGroup, SpeaklyFilter] = {
     ),
 }
 
-PHASE_1_EN: str = "Phase 1: Days 1–4 · Foundations & First Step"
-PHASE_2_EN: str = "Phase 2: Days 5–9 · Risk, Safety & Emotions"
-PHASE_3_EN: str = "Phase 3: Days 10–14 · Your Real Plan"
+PHASE_1_EN: str = "Phase 1: Stages 1–4 · Foundations & First Step"
+PHASE_2_EN: str = "Phase 2: Stages 5–9 · Risk, Safety & Emotions"
+PHASE_3_EN: str = "Phase 3: Stages 10–14 · Your Real Plan"
 
 ROADMAP_BY_GROUP_EN: dict[AgeGroup, list[RoadmapMilestone]] = {
     "20+": [
         _roadmap_milestone(
             1,
             "Inflation, liquidity and getting started",
-            "Today: 5 min • Breaking the frozen-cash myth",
+            "5 min / stage • Breaking the frozen-cash myth",
             PHASE_1_EN,
             "active",
         ),
         _roadmap_milestone(
             4,
             "Simulator of your first -15% drop",
-            "After Day 4: Checkpoint #1 — a quick knowledge check",
+            "After Stage 4: Checkpoint #1 — a quick knowledge check",
             PHASE_1_EN,
         ),
         _roadmap_milestone(
@@ -2425,7 +2446,7 @@ ROADMAP_BY_GROUP_EN: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             14,
             "Your first investment",
-            "Sprint finale • Launching the plan at Commerzbank",
+            "Journey finale • Launching the plan at Collabothon",
             PHASE_3_EN,
         ),
     ],
@@ -2433,14 +2454,14 @@ ROADMAP_BY_GROUP_EN: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             1,
             "Inflation and investing in the background",
-            "Today: 5 min • Buffer separately, surplus separately",
+            "5 min / stage • Buffer separately, surplus separately",
             PHASE_1_EN,
             "active",
         ),
         _roadmap_milestone(
             4,
             "Automation without watching charts",
-            "After Day 4: Checkpoint #1 — fees and your first order",
+            "After Stage 4: Checkpoint #1 — fees and your first order",
             PHASE_1_EN,
         ),
         _roadmap_milestone(
@@ -2452,7 +2473,7 @@ ROADMAP_BY_GROUP_EN: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             14,
             "Start of the automatic ETF plan",
-            "Sprint finale • Setup at Commerzbank",
+            "Journey finale • Setup at Collabothon",
             PHASE_3_EN,
         ),
     ],
@@ -2460,14 +2481,14 @@ ROADMAP_BY_GROUP_EN: dict[AgeGroup, list[RoadmapMilestone]] = {
         _roadmap_milestone(
             1,
             "An anti-inflation shield at any age",
-            "Today: 5 min • Why cash in an account loses value",
+            "5 min / stage • Why cash in an account loses value",
             PHASE_1_EN,
             "active",
         ),
         _roadmap_milestone(
             4,
             "Reacting calmly to volatility",
-            "After Day 4: Checkpoint #1 — calm and horizon",
+            "After Stage 4: Checkpoint #1 — calm and horizon",
             PHASE_1_EN,
         ),
         _roadmap_milestone(
@@ -2478,8 +2499,8 @@ ROADMAP_BY_GROUP_EN: dict[AgeGroup, list[RoadmapMilestone]] = {
         ),
         _roadmap_milestone(
             14,
-            "A confident start at Commerzbank",
-            "Sprint finale • Stress-free plan launch",
+            "A confident start at Collabothon",
+            "Journey finale • Stress-free plan launch",
             PHASE_3_EN,
         ),
     ],
@@ -2611,41 +2632,41 @@ PLAN_SENTENCE_EN: dict[str, str] = {
 }
 
 FINAL_MESSAGE_EN: str = (
-    "Day 1 of 14 complete! Fast-forwarding {horizon_years} years: contributions in a 0% account "
+    "Stage 1 of 14 complete! Fast-forwarding {horizon_years} years: contributions in a 0% account "
     "would be worth about {cash_real_value} PLN in real terms, and about {etf_real_value} PLN "
-    "historically for a broad ETF (educational assumptions). Do today's small challenge and come "
-    "back tomorrow for Day 2."
+    "historically for a broad ETF (educational assumptions). Do today's small challenge, then "
+    "continue straight to Stage 2 or come back at your own pace."
 )
 
 FINAL_MESSAGE_SAVINGS_FIRST_SUFFIX_EN: str = (
     "Remember: buffer first — the ETF is an illustrative example for later."
 )
 
-FINAL_BADGE_EN: str = "Day 1 complete • Goal: {horizon_years} years"
+FINAL_BADGE_EN: str = "Stage 1 complete • Goal: {horizon_years} years"
 
-# Finały Dni 2–4 (EN) — bez nowych liczb i bez obietnic zysku.
+# Finały Etapy 2–4 (EN) — bez nowych liczb i bez obietnic zysku.
 FINAL_MESSAGE_BY_DAY_EN: dict[int, str] = {
     1: FINAL_MESSAGE_EN,
     2: (
-        "Day 2 of 14 complete! You know what to look for in a fee table and why demo mode "
-        "exists. Tomorrow on Day 3 we set up your first standing order."
+        "Stage 2 of 14 complete! You know what to look for in a fee table and why demo mode "
+        "exists. Stage 3 sets up your first standing order whenever you are ready."
     ),
     3: (
-        "Day 3 of 14 complete! A standing order and a symbolic 10 PLN test are the foundation "
-        "of consistency. Tomorrow on Day 4 you will preview your first micro-order into a "
-        "broad ETF."
+        "Stage 3 of 14 complete! A standing order and a symbolic 10 PLN test are the foundation "
+        "of consistency. Stage 4 previews your first micro-order into a broad ETF — go at your "
+        "own pace."
     ),
     4: (
-        "Day 4 of 14 complete! The foundations and your first order practice are done. Time for "
+        "Stage 4 of 14 complete! The foundations and your first order practice are done. Time for "
         "Checkpoint #1 — a short knowledge check from Days 1–4."
     ),
 }
 
 FINAL_BADGE_BY_DAY_EN: dict[int, str] = {
     1: FINAL_BADGE_EN,
-    2: "Day 2 complete • Fees checked",
-    3: "Day 3 complete • 10 PLN test done",
-    4: "Day 4 complete • Ready for Checkpoint #1",
+    2: "Stage 2 complete • Fees checked",
+    3: "Stage 3 complete • 10 PLN test done",
+    4: "Stage 4 complete • Ready for Checkpoint #1",
 }
 
 ASSUMPTIONS_TEXT_EN: str = (
@@ -2658,16 +2679,16 @@ COSTS_NOTE_EN: str = (
     "Past results do not guarantee future ones."
 )
 
-INSTRUMENT_CATEGORY_EN: str = "Broad global ETF (educational example for Day 14)"
+INSTRUMENT_CATEGORY_EN: str = "Broad global ETF (educational example for Stage 14)"
 
-STEP1_BADGE_EN: str = "Day 1 • Start ({recommended_monthly} PLN/mo)"
+STEP1_BADGE_EN: str = "Stage 1 • Start ({recommended_monthly} PLN/mo)"
 
 STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
     "20+": {
         "badge": STEP1_BADGE_EN,
         "step_question": "What gives you more peace of mind at the start?",
         "luna_message": (
-            "Hi! I'm Kita, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} You "
+            "Hi! I'm Atlas, your daily AI Coach — we're starting Stage 1 of 14! {plan_sentence} You "
             "don't have to guess individual companies: a broad ETF spreads your money across "
             "hundreds of companies at once. What gives you more peace of mind at the start?"
         ),
@@ -2709,7 +2730,7 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE_EN,
         "step_question": "What is the biggest advantage of this approach when you are short on time?",
         "luna_message": (
-            "Hi! I'm Kita, your daily AI Coach — welcome to Day 1 of 14. {plan_sentence} A passive "
+            "Hi! I'm Atlas, your daily AI Coach — welcome to Stage 1 of 14. {plan_sentence} A passive "
             "broad ETF runs in the background, without tracking the market daily. What is its "
             "biggest advantage when you are short on time?"
         ),
@@ -2750,7 +2771,7 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
         "badge": STEP1_BADGE_EN,
         "step_question": "Why not keep all your capital in a regular account only?",
         "luna_message": (
-            "Good day! I'm Kita, your daily AI Coach — we're starting a calm 14-day plan. You can "
+            "Good day! I'm Atlas, your daily AI Coach — we're starting a calm 14-stage journey. You can "
             "invest at any age; you just need a matching horizon. {plan_sentence} Why is it better "
             "not to keep all your capital in a regular account only?"
         ),
@@ -2789,10 +2810,10 @@ STEP1_BY_AGE_GROUP_EN: dict[AgeGroup, dict] = {
 
 # Krok 1 — warianty personalizacji EN (docs/03 §10).
 STEP1_SAVINGS_FIRST_EN: dict = {
-    "badge": "Day 1 • Start ({emergency_savings_monthly} PLN/mo to the buffer)",
+    "badge": "Stage 1 • Start ({emergency_savings_monthly} PLN/mo to the buffer)",
     "step_question": "Where do you start when you do not have a buffer yet?",
     "luna_message": (
-        "Hi! I'm Kita, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} "
+        "Hi! I'm Atlas, your daily AI Coach — we're starting Stage 1 of 14! {plan_sentence} "
         "Before money goes to the market, it is worth having a safe buffer for surprises. "
         "Where do you start?"
     ),
@@ -2832,10 +2853,10 @@ STEP1_SAVINGS_FIRST_EN: dict = {
 }
 
 STEP1_CONFIDENT_EN: dict = {
-    "badge": "Day 1 • Start ({recommended_monthly} PLN/mo)",
+    "badge": "Stage 1 • Start ({recommended_monthly} PLN/mo)",
     "step_question": "Which cost and habit really drive the long-term result of a broad ETF?",
     "luna_message": (
-        "Hi! I'm Kita, your daily AI Coach — we're starting Day 1 of 14! {plan_sentence} "
+        "Hi! I'm Atlas, your daily AI Coach — we're starting Stage 1 of 14! {plan_sentence} "
         "Since you feel more confident, let's go deeper: over a long horizon, costs and "
         "simplicity matter more than trying to beat the market. Which cost and habit really "
         "drive the result?"
@@ -3088,15 +3109,15 @@ STEP3_EN: dict = {
 }
 
 # --------------------------------------------------------------------------- #
-# Dni 2–4 (EN): 2 kroki decyzyjne + 2 mikro-lekcje każdego dnia (docs/03 §2/§10)
+# Etapy 2–4 (EN): 2 kroki decyzyjne + 2 mikro-lekcje każdego dnia (docs/03 §2/§10)
 # --------------------------------------------------------------------------- #
 
 DAY2_STEPS_EN: dict[int, dict] = {
     1: {
-        "badge": "Day 2 • Account & fees",
+        "badge": "Stage 2 • Account & fees",
         "step_question": "What should you check in the fee table before opening a brokerage account?",
         "luna_message": (
-            "Day 2 of 14 — time for practice. {plan_sentence} Before you open a brokerage "
+            "Stage 2 of 14 — time for practice. {plan_sentence} Before you open a brokerage "
             "account, look at the fee table. What should you check?"
         ),
         "optimal_criterion": (
@@ -3134,10 +3155,10 @@ DAY2_STEPS_EN: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Day 2 • Fee trap",
+        "badge": "Stage 2 • Fee trap",
         "step_question": "A friend places 20 small orders a month to catch opportunities. What is wiser?",
         "luna_message": (
-            "Day 2 of 14 — costs and diversification. {plan_sentence} A friend says they place 20 "
+            "Stage 2 of 14 — costs and diversification. {plan_sentence} A friend says they place 20 "
             "small orders a month to catch opportunities. What is wiser?"
         ),
         "optimal_criterion": (
@@ -3178,10 +3199,10 @@ DAY2_STEPS_EN: dict[int, dict] = {
 
 DAY3_STEPS_EN: dict[int, dict] = {
     1: {
-        "badge": "Day 3 • Standing order",
+        "badge": "Stage 3 • Standing order",
         "step_question": "What does a standing order set up once give you?",
         "luna_message": (
-            "Day 3 of 14 — automation. {plan_sentence} You set a standing order once and the "
+            "Stage 3 of 14 — automation. {plan_sentence} You set a standing order once and the "
             "bank executes it regularly. What do you gain from that?"
         ),
         "optimal_criterion": (
@@ -3219,10 +3240,10 @@ DAY3_STEPS_EN: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Day 3 • Hot tip",
+        "badge": "Stage 3 • Hot tip",
         "step_question": "A friend sends a “hot tip” about one company. What do you do with your steady plan?",
         "luna_message": (
-            "Day 3 of 14 — emotions and hot tips. {plan_sentence} A friend sends a “hot tip”: one "
+            "Stage 3 of 14 — emotions and hot tips. {plan_sentence} A friend sends a “hot tip”: one "
             "company is “certain” to double. What do you do with your steady plan?"
         ),
         "optimal_criterion": (
@@ -3262,10 +3283,10 @@ DAY3_STEPS_EN: dict[int, dict] = {
 
 DAY4_STEPS_EN: dict[int, dict] = {
     1: {
-        "badge": "Day 4 • First micro-order",
+        "badge": "Stage 4 • First micro-order",
         "step_question": "What does your first micro-order into a broad ETF look like in practice?",
         "luna_message": (
-            "Day 4 of 14 — practice and Checkpoint #1 preparation. {plan_sentence} What does "
+            "Stage 4 of 14 — practice and Checkpoint #1 preparation. {plan_sentence} What does "
             "your first micro-order into a broad global ETF look like?"
         ),
         "optimal_criterion": (
@@ -3303,10 +3324,10 @@ DAY4_STEPS_EN: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Day 4 • Plan under control",
+        "badge": "Stage 4 • Plan under control",
         "step_question": "A month later the washing machine breaks, and the ETF grew from 20% to 28% of the portfolio. What do you do?",
         "luna_message": (
-            "Day 4 of 14 — keeping the plan simple before Checkpoint #1. {plan_sentence} A month "
+            "Stage 4 of 14 — keeping the plan simple before Checkpoint #1. {plan_sentence} A month "
             "later the washing machine breaks, and the ETF share grew from 20% to 28%. What do you do?"
         ),
         "optimal_criterion": (
@@ -3430,171 +3451,185 @@ MICRO_LESSONS_BY_DAY_EN: dict[int, list[MicroLessonCard]] = {
 
 # Mini-checki EN (1 pytanie, 3 opcje, jeden poprawny indeks) — te same id co PL.
 MICRO_LESSON_CHECKS_EN: dict[str, dict] = {
-    # --- Day 1 ---
     "ml_20_1": {
-        "check_question": "How much does 10,000 PLN in a 0% account really lose in a year at 3.5% inflation?",
+        "check_question": "Why can keeping all savings in a 0% account for years still be risky?",
         "check_options": [
-            "About 350 PLN of purchasing power",
-            "About 3,500 PLN of purchasing power",
-            "Nothing — the balance stays the same",
+            "Rising prices mean the same balance buys less and less over time",
+            "The bank automatically deducts money from the balance every year",
+            "Money in a regular checking account is legally frozen",
         ],
         "correct_option_index": 0,
         "check_explanation": (
-            "3.5% of 10,000 PLN is about 350 PLN. The balance stands still, but it buys less."
+            "Inflation leaves the nominal number untouched on screen, but gradually erodes real purchasing power."
         ),
     },
     "ml_20_2": {
-        "check_question": "In month 6 the laptop breaks. What do you do with the 6,000 PLN buffer?",
+        "check_question": "What is the main role of an emergency buffer before you start investing?",
         "check_options": [
-            "I sell the whole ETF to be sure",
-            "I pay from the buffer and the ETF keeps working",
-            "I take a loan because the buffer must never be touched",
+            "To guarantee a high return with zero risk",
+            "To cover surprises so you never have to sell your ETF at a bad moment",
+            "To replace a brokerage account when buying single stocks",
         ],
         "correct_option_index": 1,
         "check_explanation": (
-            "The buffer exists for surprises. The ETF is not frozen, but it does not have to be sold."
+            "A separate cash buffer protects your long-term plan — an unexpected bill will not force you to sell."
         ),
     },
     "ml_20_3": {
-        "check_question": "What does 200 PLN/mo for 15 years give at an assumed 5.7% net?",
+        "check_question": "What matters most when starting with small, regular amounts?",
         "check_options": [
-            "36,000 PLN of contributions and a guaranteed 100,000 PLN",
-            "36,000 PLN of contributions and exactly 36,000 PLN in value",
-            "36,000 PLN of contributions and historically about 56,700 PLN nominal (educational)",
+            "Perfectly timing market bottoms and tops",
+            "Borrowing extra capital for a fast profit",
+            "A long horizon and consistency, while knowing returns are never guaranteed",
         ],
         "correct_option_index": 2,
         "check_explanation": (
-            "200 PLN × 180 months = 36,000 PLN of contributions; at 5.7% net about 56,700 PLN "
-            "nominal, with no guarantee."
+            "Time and consistency let compounding work without guessing the market — while staying honest about risk."
         ),
     },
     "ml_30_1": {
-        "check_question": "How much purchasing power does 20,000 PLN lose in a year at 3.5% inflation?",
+        "check_question": "What is the difference between nominal balance and real purchasing power?",
         "check_options": [
-            "About 700 PLN",
-            "About 70 PLN",
-            "Zero, because the balance does not change",
-        ],
-        "correct_option_index": 0,
-        "check_explanation": "3.5% of 20,000 PLN is about 700 PLN less purchasing power per year.",
-    },
-    "ml_30_2": {
-        "check_question": "How much do you contribute in a year with a 200 PLN/mo standing order?",
-        "check_options": [
-            "200 PLN",
-            "2,400 PLN — without watching charts",
-            "24,000 PLN",
-        ],
-        "correct_option_index": 1,
-        "check_explanation": "200 PLN × 12 months = 2,400 PLN, and you decide only once.",
-    },
-    "ml_30_3": {
-        "check_question": "Expenses are 2,500 PLN/mo. How big is a 3-month buffer?",
-        "check_options": [
-            "2,500 PLN",
-            "25,000 PLN",
-            "7,500 PLN",
-        ],
-        "correct_option_index": 2,
-        "check_explanation": "2,500 PLN × 3 = 7,500 PLN. Only the surplus above that goes to the market.",
-    },
-    "ml_50_1": {
-        "check_question": "How many contributions does 1,200 PLN/mo give over 7 years?",
-        "check_options": [
-            "100,800 PLN",
-            "14,400 PLN",
-            "840,000 PLN",
-        ],
-        "correct_option_index": 0,
-        "check_explanation": "1,200 PLN × 84 months = 100,800 PLN of contributions over 7 years.",
-    },
-    "ml_50_2": {
-        "check_question": "How much purchasing power does 50,000 PLN lose in a year at 3.5%?",
-        "check_options": [
-            "About 175 PLN",
-            "About 1,750 PLN",
-            "None — large amounts do not lose value",
-        ],
-        "correct_option_index": 1,
-        "check_explanation": "3.5% of 50,000 PLN is about 1,750 PLN less purchasing power a year.",
-    },
-    "ml_50_3": {
-        "check_question": "What is the yearly cost of a 0.20% TER on 10,000 PLN?",
-        "check_options": [
-            "200 PLN",
-            "2,000 PLN",
-            "20 PLN",
-        ],
-        "correct_option_index": 2,
-        "check_explanation": "0.20% of 10,000 PLN is 20 PLN a year — an explicit, predictable cost.",
-    },
-    # --- Day 2 ---
-    "ml_d2_1": {
-        "check_question": "Why use demo mode?",
-        "check_options": [
-            "To rehearse orders without real risk",
-            "To get a guaranteed profit",
-            "To avoid every fee",
+            "Real purchasing power adjusts for rising prices and shows what you can actually buy",
+            "They mean the exact same thing",
+            "Real value always grows faster than inflation",
         ],
         "correct_option_index": 0,
         "check_explanation": (
-            "Demo mode is a process rehearsal at zero risk — not a profit promise and not a fee waiver."
+            "Your nominal balance can stay flat while its real purchasing power shrinks as prices go up."
+        ),
+    },
+    "ml_30_2": {
+        "check_question": "Why does a background standing order help beginner investors?",
+        "check_options": [
+            "Because it removes every brokerage fee",
+            "Because it removes monthly decision fatigue and lowers emotional stress",
+            "Because it guarantees a positive return every month",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "Automation lets your plan run calmly in the background without watching charts or reacting to headlines."
+        ),
+    },
+    "ml_30_3": {
+        "check_question": "Why should only surplus above your buffer go to the market?",
+        "check_options": [
+            "Because ETFs cannot be sold during the first 3 years",
+            "Because banks charge a penalty for selling an ETF",
+            "So a temporary portfolio dip never forces you to sell when an unexpected bill hits",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": (
+            "Keeping your emergency buffer separate gives peace of mind during normal market swings."
+        ),
+    },
+    "ml_50_1": {
+        "check_question": "For ages 50+ with a multi-year horizon, what matters most?",
+        "check_options": [
+            "A calm balance between your separate cash buffer and diversified market exposure",
+            "Putting all savings into one trending company to catch up fast",
+            "Checking prices daily and switching strategies every week",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "With a 5–10 year horizon, protecting your buffer and staying calm beats chasing risky shortcuts."
+        ),
+    },
+    "ml_50_2": {
+        "check_question": "Why does inflation sting more when you have built up larger cash savings?",
+        "check_options": [
+            "Because savings accounts are only available to younger savers",
+            "Because purchasing-power erosion affects the entire idle cash pile at once",
+            "Because cash expires after a certain balance",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "The larger the uninvested cash reserve sitting at 0%, the more real buying power quietly slips away."
+        ),
+    },
+    "ml_50_3": {
+        "check_question": "Why is a broad ETF usually simpler and safer than picking one single company?",
+        "check_options": [
+            "Because a broad ETF can never drop in value",
+            "Because it pays a guaranteed weekly dividend",
+            "Because it spreads risk across hundreds of firms with a transparent, low yearly fee (TER)",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": (
+            "Diversification cushions trouble at any single company, while a low TER leaves more growth with you."
+        ),
+    },
+    "ml_d2_1": {
+        "check_question": "Why use demo mode before placing your first real order?",
+        "check_options": [
+            "To practice the brokerage interface and order flow with zero real-money risk",
+            "To lock in guaranteed future profits",
+            "To permanently avoid taxes and brokerage fees",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "Demo mode lets you learn the mechanics safely at 0 PLN risk before committing real funds."
         ),
     },
     "ml_d2_2": {
-        "check_question": "A 0.20% TER on 10,000 PLN plus 12 orders at 3 PLN cost per year:",
+        "check_question": "Why should you check the full fee schedule (TER and order fees) before choosing a fund?",
         "check_options": [
-            "About 6 PLN",
-            "About 56 PLN",
-            "About 560 PLN",
-        ],
-        "correct_option_index": 1,
-        "check_explanation": "20 PLN TER + 36 PLN in order fees = about 56 PLN a year.",
-    },
-    # --- Day 3 ---
-    "ml_d3_1": {
-        "check_question": "How much does a 100 PLN/mo standing order contribute in a year?",
-        "check_options": [
-            "100 PLN",
-            "12,000 PLN",
-            "1,200 PLN without 12 decisions",
-        ],
-        "correct_option_index": 2,
-        "check_explanation": "100 PLN × 12 = 1,200 PLN, and you decide once instead of every month.",
-    },
-    "ml_d3_2": {
-        "check_question": "With a 3 PLN order fee, a 10 PLN transfer costs:",
-        "check_options": [
-            "About 30% of the amount",
-            "About 3% of the amount",
-            "Nothing, because the amount is small",
-        ],
-        "correct_option_index": 0,
-        "check_explanation": "3 PLN out of 10 PLN is 30% — that is why the test is symbolic and shows costs.",
-    },
-    # --- Day 4 ---
-    "ml_d4_1": {
-        "check_question": "What does a sensible first micro-order look like?",
-        "check_options": [
-            "Everything into one company from a hot tip",
-            "50–100 PLN into a broad global ETF",
-            "Borrowed money with leverage",
+            "Because free account opening means investing is completely free forever",
+            "Because recurring yearly fees and per-order commissions compound over time",
+            "Because a higher yearly fee guarantees higher fund returns",
         ],
         "correct_option_index": 1,
         "check_explanation": (
-            "A small amount in a broad ETF holds hundreds of companies inside, with no stock picking "
-            "and no leverage."
+            "Both TER and trading fees reduce returns regardless of market direction — lower costs keep more with you."
+        ),
+    },
+    "ml_d3_1": {
+        "check_question": "What is the biggest advantage of a standing order over manual monthly transfers?",
+        "check_options": [
+            "The bank doubles every automatic contribution",
+            "A standing order always buys at the exact market bottom",
+            "You make one calm decision once and avoid trying to time the market",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": (
+            "Consistency beats guesswork and protects you from postponing when headlines look scary."
+        ),
+    },
+    "ml_d3_2": {
+        "check_question": "Why does a flat per-order commission hurt tiny, frequent deposits the most?",
+        "check_options": [
+            "Because a fixed fee eats a much larger share of a very small transfer right away",
+            "Because small orders carry an extra penalty tax",
+            "Because commissions only apply during the first three months",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "A symbolic test teaches the process, while real deposits should be sized sensibly relative to fixed fees."
+        ),
+    },
+    "ml_d4_1": {
+        "check_question": "What does a sensible first micro-order look like for a beginner?",
+        "check_options": [
+            "All available cash into one company from an online hot tip",
+            "A small, calm amount into a broad global ETF instead of picking winners",
+            "Investing borrowed money with financial leverage",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "A small amount in a broad ETF gives instant diversification across hundreds of companies without leverage."
         ),
     },
     "ml_d4_2": {
-        "check_question": "A 75% threshold in Checkpoint #1 with 4 questions means:",
+        "check_question": "An online ad promises 'guaranteed 20% monthly profit with zero risk'. What is this?",
         "check_options": [
-            "3 correct answers",
-            "2 correct answers",
-            "All 4 answers",
+            "A rare opportunity you should wire money to immediately",
+            "A standard government treasury bond offer",
+            "A classic scam red flag — real investing never guarantees high risk-free returns",
         ],
-        "correct_option_index": 0,
-        "check_explanation": "75% of 4 questions is 3 correct answers — understanding the mechanisms is enough.",
+        "correct_option_index": 2,
+        "check_explanation": (
+            "Promises of guaranteed high returns with zero risk and artificial urgency are hallmark signs of fraud."
+        ),
     },
 }
 
@@ -3672,18 +3707,18 @@ MAX_DAY: int = 4
 
 
 def _normalize_day(day: object) -> int:
-    """Dzień w zakresie 1..4; każda inna wartość wraca do Dnia 1."""
+    """Dzień w zakresie 1..4; każda inna wartość wraca do Etapu 1."""
     value = _as_int(day, 1)
     return value if 1 <= value <= MAX_DAY else 1
 
 
 def total_steps_for_day(day: int = 1) -> int:
-    """Liczba kroków dnia: 3 dla Dnia 1, 2 dla Dni 2–4 (docs/03 §2)."""
+    """Liczba kroków dnia: 3 dla Etapu 1, 2 dla Etapy 2–4 (docs/03 §2)."""
     return TOTAL_STEPS_BY_DAY[_normalize_day(day)]
 
 
 def _select_step_one(facts: dict, lang: Language) -> dict:
-    """Krok 1 Dnia 1: plan ``savings_first`` > pewność siebie > grupa wiekowa."""
+    """Krok 1 Etapu 1: plan ``savings_first`` > pewność siebie > grupa wiekowa."""
     if str(facts.get("plan_type", "")) == "savings_first":
         return STEP1_SAVINGS_FIRST_EN if lang == "en" else STEP1_SAVINGS_FIRST
     if _as_int(facts.get("self_confidence_start"), 0) >= 4 or _as_int(
@@ -3714,7 +3749,7 @@ def _select_step_block(
     steps = (DAY_STEPS_EN if lang == "en" else DAY_STEPS)[active_day]
     block = steps.get(step)
     if block is None:
-        raise ValueError("Krok Dni 2–4 musi być liczbą 1 lub 2")
+        raise ValueError("Krok Etapy 2–4 musi być liczbą 1 lub 2")
     return block
 
 
@@ -3924,16 +3959,16 @@ def get_real_world_challenge(
     lang: Language = "en",
     day: int = 1,
 ) -> RealWorldChallenge:
-    """Codzienne, compliance-safe mikro-wyzwanie Dni 1–4 (docs/03 §6C)."""
+    """Codzienne, compliance-safe mikro-wyzwanie Etapy 1–4 (docs/03 §6C)."""
     english = _normalize_lang(lang) == "en"
     active_day = _normalize_day(day)
 
     if active_day == 2:
         return RealWorldChallenge(
             title=(
-                "Day 2 real-world challenge: Check your brokerage account or demo mode"
+                "Stage 2 real-world challenge: Check your brokerage account or demo mode"
                 if english
-                else "Realne wyzwanie Dnia 2: Sprawdź konto maklerskie lub tryb demo"
+                else "Realne wyzwanie Etapu 2: Sprawdź konto maklerskie lub tryb demo"
             ),
             description=(
                 "Open or review a brokerage account (or its demo mode) in your bank and read the "
@@ -3947,9 +3982,9 @@ def get_real_world_challenge(
             ),
             amount_pln=0,
             target_account=(
-                "Commerzbank Brokerage Account (demo mode)"
+                "Collabothon Brokerage Account (demo mode)"
                 if english
-                else "Konto Maklerskie Commerzbank (tryb demo)"
+                else "Konto Maklerskie Collabothon (tryb demo)"
             ),
             reward_xp=50,
         )
@@ -3957,9 +3992,9 @@ def get_real_world_challenge(
     if active_day == 3:
         return RealWorldChallenge(
             title=(
-                "Day 3 real-world challenge: Fund the account with a 10 PLN test"
+                "Stage 3 real-world challenge: Fund the account with a 10 PLN test"
                 if english
-                else "Realne wyzwanie Dnia 3: Zasil konto testowymi 10 zł"
+                else "Realne wyzwanie Etapu 3: Zasil konto testowymi 10 zł"
             ),
             description=(
                 "Transfer a symbolic 10 PLN to your account or subaccount and check how a "
@@ -3972,9 +4007,9 @@ def get_real_world_challenge(
             ),
             amount_pln=10,
             target_account=(
-                "Commerzbank Investment Subaccount"
+                "Collabothon Investment Subaccount"
                 if english
-                else "Subkonto Inwestycyjne Commerzbank"
+                else "Subkonto Inwestycyjne Collabothon"
             ),
             reward_xp=50,
         )
@@ -3982,9 +4017,9 @@ def get_real_world_challenge(
     if active_day == 4:
         return RealWorldChallenge(
             title=(
-                "Day 4 real-world challenge: Preview your first micro-ETF order"
+                "Stage 4 real-world challenge: Preview your first micro-ETF order"
                 if english
-                else "Realne wyzwanie Dnia 4: Przećwicz pierwsze mikro-zlecenie na szeroki ETF"
+                else "Realne wyzwanie Etapu 4: Przećwicz pierwsze mikro-zlecenie na szeroki ETF"
             ),
             description=(
                 "In demo mode (or with a symbolic 10 PLN) walk through a preview of an order for "
@@ -3999,9 +4034,9 @@ def get_real_world_challenge(
             ),
             amount_pln=10,
             target_account=(
-                "Commerzbank Brokerage Account (demo mode)"
+                "Collabothon Brokerage Account (demo mode)"
                 if english
-                else "Konto Maklerskie Commerzbank (tryb demo)"
+                else "Konto Maklerskie Collabothon (tryb demo)"
             ),
             reward_xp=50,
         )
@@ -4009,47 +4044,47 @@ def get_real_world_challenge(
     if not has_emergency_fund or age_group == "20+":
         return RealWorldChallenge(
             title=(
-                "Day 1 real-world challenge: Transfer 5 PLN to your savings account"
+                "Stage 1 real-world challenge: Transfer 5 PLN to your savings account"
                 if english
-                else "Realne wyzwanie Dnia 1: Wpłać 5 zł na konto oszczędnościowe"
+                else "Realne wyzwanie Etapu 1: Wpłać 5 zł na konto oszczędnościowe"
             ),
             description=(
-                "Before you start the full plan in two weeks, break the barrier of your first "
-                "transfer today with a symbolic 5 PLN and start your streak!"
+                "Before you start the full plan, break the barrier of your first transfer today "
+                "with a symbolic 5 PLN and start your streak!"
                 if english
                 else (
-                    "Zanim za 2 tygodnie ruszysz z pełnym planem, przełam dziś barierę pierwszego "
+                    "Zanim ruszysz z pełnym planem, przełam dziś barierę pierwszego "
                     "przelewu symboliczną kwotą 5 zł i zacznij swoją serię!"
                 )
             ),
             amount_pln=5,
             target_account=(
-                "Commerzbank Savings Account"
+                "Collabothon Savings Account"
                 if english
-                else "Konto Oszczędnościowe Commerzbank"
+                else "Konto Oszczędnościowe Collabothon"
             ),
             reward_xp=50,
         )
     return RealWorldChallenge(
         title=(
-            "Day 1 real-world challenge: Send a test 50 PLN to your starter subaccount"
+            "Stage 1 real-world challenge: Send a test 50 PLN to your starter subaccount"
             if english
-            else "Realne wyzwanie Dnia 1: Przelej próbne 50 zł na subkonto startowe"
+            else "Realne wyzwanie Etapu 1: Przelej próbne 50 zł na subkonto startowe"
         ),
         description=(
             "You already have a buffer! Make a symbolic, stress-free test transfer of 50 PLN today "
-            "to get comfortable with the first step before the target plan on Day 14."
+            "to get comfortable with the first step before the target plan on Stage 14."
             if english
             else (
                 "Masz już poduszkę! Wykonaj dziś symboliczny, bezstresowy przelew testowy 50 zł, "
-                "aby oswoić pierwszy krok przed docelowym planem w Dniu 14."
+                "aby oswoić pierwszy krok przed docelowym planem w Etapie 14."
             )
         ),
         amount_pln=50,
         target_account=(
-            "Commerzbank Starter Investment Subaccount"
+            "Collabothon Starter Investment Subaccount"
             if english
-            else "Subkonto Inwestycyjne Commerzbank"
+            else "Subkonto Inwestycyjne Collabothon"
         ),
         reward_xp=50,
     )
@@ -4146,18 +4181,18 @@ _CHECKLIST_CHK3: dict[str, dict[str, tuple[str, str]]] = {
 
 _CHECKLIST_CHK4: dict[str, tuple[str, str]] = {
     "pl": (
-        "Wiem, że wahania (nawet -20%) są normalne — jutro na Dniu 2 ćwiczymy spokojne reagowanie.",
-        "Regularność w 14 dni buduje prawdziwą pewność siebie.",
+        "Wiem, że wahania (nawet -20%) są normalne — w Etapie 2 ćwiczymy spokojne reagowanie.",
+        "Regularność w 14 etapach buduje prawdziwą pewność siebie.",
     ),
     "en": (
-        "I know that volatility (even -20%) is normal — tomorrow on Day 2 we practise reacting calmly.",
-        "Consistency over 14 days builds real confidence.",
+        "I know that volatility (even -20%) is normal — in Stage 2 we practise reacting calmly.",
+        "Consistency across 14 stages builds real confidence.",
     ),
 }
 
 
 def get_final_checklist(session_facts: dict, lang: Language | None = None) -> list[ChecklistItem]:
-    """4-punktowa checklista Dnia 1 (``chk_1`` wg planu, ``chk_3`` wg obawy)."""
+    """4-punktowa checklista Etapu 1 (``chk_1`` wg planu, ``chk_3`` wg obawy)."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
     values = _format_values(facts, active)
@@ -4209,7 +4244,7 @@ def get_bank_draft(session_facts: dict, lang: Language | None = None) -> BankDra
 
 
 def get_final_message(session_facts: dict, lang: Language | None = None, day: int = 1) -> str:
-    """Finałowy komunikat Kity dla dnia; ``savings_first`` dopisek tylko w Dniu 1."""
+    """Finałowy komunikat Kity dla dnia; ``savings_first`` dopisek tylko w Etapie 1."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
     values = _format_values(facts, active)
@@ -4228,7 +4263,7 @@ def get_final_message(session_facts: dict, lang: Language | None = None, day: in
 
 
 def get_final_badge(session_facts: dict, lang: Language | None = None, day: int = 1) -> str:
-    """Badge zdarzenia w turze finałowej wybranego dnia (Dni 1–4)."""
+    """Badge zdarzenia w turze finałowej wybranego dnia (Etapy 1–4)."""
     facts = session_facts or {}
     active = _lang_of(facts, lang)
     table = FINAL_BADGE_BY_DAY_EN if active == "en" else FINAL_BADGE_BY_DAY
@@ -4296,7 +4331,7 @@ def grade_checkpoint(answers: dict[str, str], lang: Language = "en") -> dict:
 
 
 def get_post_14_paths(lang: Language = "en") -> list[dict]:
-    """4 moduły „After Day 14 — Continuous Learning” w danym języku."""
+    """4 moduły „After Stage 14 — Continuous Learning” w danym języku."""
     active = _normalize_lang(lang)
     source = POST_14_PATHS_EN if active == "en" else POST_14_PATHS
     return [dict(path) for path in source]
