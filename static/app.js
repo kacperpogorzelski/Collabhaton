@@ -1827,12 +1827,11 @@
     const prev = state.rendered;
     const hasSession = !!state.session;
     document.body.classList.toggle('has-session', hasSession);
-    // Keep the taskbar useful before onboarding too: start values are already
-    // present in the markup and are replaced as soon as a session is created.
-    if (els.hudStats) els.hudStats.hidden = false;
+    // Profile stats stay hidden until onboarding creates a real session.
+    if (els.hudStats) els.hudStats.hidden = !hasSession;
     if (els.hudDayNum) els.hudDayNum.textContent = String(state.day);
     if (els.hudDayTotal) els.hudDayTotal.textContent = String(TOTAL_DAYS);
-    if (els.hudStreak) els.hudStreak.textContent = String(gs.streak_days || 1);
+    if (els.hudStreak) els.hudStreak.textContent = String(gs.streak_days || 0);
     const ps = plantState(xp, state.checkpointPassed);
     if (els.hudLevel) els.hudLevel.innerHTML =
       '<span class="stat__short">' + escapeHtml(t('hud.stageShort', { n: ps.stage })) + '</span>' +
