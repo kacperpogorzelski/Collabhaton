@@ -282,3 +282,26 @@ class ChallengeAcceptResponse(BaseModel):
     xp: int
     reward_xp: int
     leaderboard: list[LeaderboardEntry]
+
+
+class ScamDrillClue(BaseModel):
+    id: str
+    text: str
+    is_red_flag: bool
+    explanation: str
+
+
+class ScamDrillRequest(BaseModel):
+    lang: Language = "en"
+    age_group: AgeGroup = "50+"
+    scenario_index: int = Field(default=0, ge=0, le=50)
+
+
+class ScamDrillResponse(BaseModel):
+    channel: str
+    sender: str
+    subject: str = ""
+    message: str
+    clues: list[ScamDrillClue]
+    safe_action: str
+    source: Literal["ai", "offline"] = "offline"

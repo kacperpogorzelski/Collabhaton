@@ -35,6 +35,8 @@ from backend.schemas import (
     MissionTurnResponse,
     OnboardingRequest,
     OnboardingResponse,
+    ScamDrillRequest,
+    ScamDrillResponse,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
@@ -350,3 +352,15 @@ def coach_explain(req: CoachExplainRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=501, detail="explain_with_drill niedostępne")
     result = explain(data, req.question, req.topic_hint, lang)
     return CoachExplainResponse(**result)
+
+
+@app.post("/api/scam/drill", response_model=ScamDrillResponse)
+def scam_drill(req: ScamDrillRequest):
+    """Generuje edukacyjną wiadomość phishingową do ćwiczenia rozpoznawania oszustw."""
+    from backend import luna_service
+
+    gen = getattr(luna_service, "generate_scam_drill", None)
+    if gen is None:
+        raise HTTPException(status_code=501, detail="generate_scam_drill niedostępne")
+    result = gen(lang=req.lang, age_group=req.age_group, scenario_index=req.scenario_index)
+    return ScamDrillResponse(**result)
