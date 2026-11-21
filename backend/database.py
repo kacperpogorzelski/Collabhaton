@@ -100,6 +100,25 @@ def _switch_to_memory_sqlite() -> None:
     SessionLocal.configure(bind=engine)
 
 
+_SESSION_COLUMN_DDL = [
+    "lang VARCHAR(2) NOT NULL DEFAULT 'en'",
+    "current_day INTEGER NOT NULL DEFAULT 1",
+    "completed_days JSON NOT NULL DEFAULT '[]'::json",
+    "completed_challenges JSON NOT NULL DEFAULT '[]'::json",
+    "checkpoint_passed BOOLEAN NOT NULL DEFAULT FALSE",
+]
+
+
+def _ensure_session_columns() -> None:
+    """Zero Alembica: dla PostgreSQL dopisuje nowe kolumny do istniejącej tabeli `sessions`
+    (create_all nie zmienia istniejących tabel, więc stary wolumen pgdata by się wywrócił)."""
+    if engine.dialect.name != "postgresql":
+        return
+    with engine.begin() as conn:
+        for ddl in _SESSION_COLUMN_DDL:
+            conn.execute(text(f"ALTER TABLE sessions ADD COLUMN IF NOT EXISTS {ddl}"))
+
+
 def init_db() -> str:
     """Tworzy tabele i zasiewa ranking. Zwraca nazwę użytego dialektu ('postgresql' lub 'sqlite')."""
     from backend import models  # noqa: F401  (rejestruje tabele w Base.metadata)
@@ -117,6 +136,7 @@ def init_db() -> str:
         _switch_to_memory_sqlite()
 
     Base.metadata.create_all(bind=engine)
+    _ensure_session_columns()
     _seed_leaderboard()
     dialect = engine.dialect.name
     logger.info("Baza gotowa (dialekt: %s).", dialect)

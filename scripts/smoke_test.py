@@ -26,7 +26,8 @@ from backend.main import app  # noqa: E402
 from backend.models import MissionSession  # noqa: E402
 
 FAILS: list[str] = []
-NEUTRAL_FALLBACK = "Dziękuję za odpowiedź! Nie udało się jej teraz ocenić"
+NEUTRAL_FALLBACK = "Thanks for your answer!"
+NEUTRAL_FALLBACK_PL = "Dziękuję za odpowiedź! Nie udało się jej teraz ocenić"
 
 
 def check(cond: bool, msg: str) -> None:
@@ -47,10 +48,11 @@ def pick(session_id: str, optimal: bool) -> str:
     raise RuntimeError("brak opcji o żądanej poprawności")
 
 
-def analyze(client: TestClient, persona: dict) -> dict:
+def analyze(client: TestClient, persona: dict, **extra) -> dict:
     body = {k: persona[k] for k in (
         "age", "net_income", "free_cash", "has_emergency_fund",
         "main_concern", "self_confidence_start")}
+    body.update(extra)
     r = client.post("/api/onboarding/analyze", json=body)
     check(r.status_code == 200, f"analyze {r.status_code}")
     return r.json()
@@ -130,6 +132,22 @@ def run_edge_cases(client: TestClient, persona: dict) -> None:
     check(t["trigger_confetti"] is False, "wolny tekst offline: konfetti")
     check(t["confidence_delta"] == 2, "wolny tekst offline: delta != 2")
     check(NEUTRAL_FALLBACK in (t["understanding_feedback"] or ""), "wolny tekst offline: zły fallback")
+
+    print("[lang] domyślnie EN, jawnie PL")
+    en = analyze(client, persona)
+    check(en["lang"] == "en", "analyze bez lang != en")
+    pl = analyze(client, persona, lang="pl")
+    check(pl["lang"] == "pl", "analyze lang=pl != pl")
+    check(en["persona_label"] != pl["persona_label"], "persona_label taki sam w EN i PL")
+    check(en["safe_investment"]["reasoning"] != pl["safe_investment"]["reasoning"], "reasoning taki sam")
+    en_labels = [p["short_label"] for p in client.get("/api/demo-personas").json()]
+    pl_labels = [p["short_label"] for p in client.get("/api/demo-personas?lang=pl").json()]
+    check(en_labels != pl_labels, "demo-personas: EN == PL")
+    t = turn(client, pl["session_id"], "moja własna odpowiedź")
+    check(NEUTRAL_FALLBACK_PL in (t["understanding_feedback"] or ""), "PL: zły fallback")
+    r = client.post("/api/mission/turn", json={"session_id": pl["session_id"],
+                    "user_message": "my own answer", "lang": "en"}).json()
+    check(NEUTRAL_FALLBACK in (r["understanding_feedback"] or ""), "przełączenie lang na en nie działa")
 
     print("[edge] savings_first (free_cash=250, bez poduszki)")
     a = analyze(client, {**persona, "free_cash": 250, "has_emergency_fund": False})

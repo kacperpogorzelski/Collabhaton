@@ -23,6 +23,11 @@ class MissionSession(Base):
     mission_completed = Column(Boolean, default=False, nullable=False)
     current_options = Column(JSON, default=list, nullable=False)  # opcje bieżącego kroku z is_optimal/feedback (tylko serwer)
     challenge_accepted = Column(Boolean, default=False, nullable=False)
+    lang = Column(String(2), default="en", nullable=False)
+    current_day = Column(Integer, default=1, nullable=False)          # 1..4
+    completed_days = Column(JSON, default=list, nullable=False)       # np. [1, 2]
+    completed_challenges = Column(JSON, default=list, nullable=False) # np. [1, 2]
+    checkpoint_passed = Column(Boolean, default=False, nullable=False)
     history = Column(JSON, default=list, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 

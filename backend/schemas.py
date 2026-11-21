@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, model_validator
 AgeGroup = Literal["20+", "30-50", "50+"]
 MainConcern = Literal["freeze_money", "no_time", "lose_money", "too_late"]
 PlanType = Literal["savings_first", "split", "invest"]
+Language = Literal["en", "pl"]
 
 
 class DemoPersona(BaseModel):
@@ -25,6 +26,7 @@ class OnboardingRequest(BaseModel):
     has_emergency_fund: bool = False
     main_concern: MainConcern
     self_confidence_start: int = Field(..., ge=1, le=5)
+    lang: Language = "en"
 
     @model_validator(mode="after")
     def free_cash_not_above_income(self):
@@ -161,6 +163,7 @@ class MissionTurnResponse(BaseModel):
 
 class OnboardingResponse(BaseModel):
     session_id: str
+    lang: Language = "en"
     age_group: AgeGroup
     persona_label: str
     default_horizon_years: int
@@ -180,10 +183,12 @@ class MissionTurnRequest(BaseModel):
     session_id: str
     user_message: str = Field(..., min_length=1, max_length=600)
     quick_reply_id: Optional[str] = None   # gdy klik karty -> ocena deterministyczna (bez LLM)
+    lang: Optional[Language] = None
 
 
 class ChallengeAcceptRequest(BaseModel):
     session_id: str
+    lang: Optional[Language] = None
 
 
 class ChallengeAcceptResponse(BaseModel):

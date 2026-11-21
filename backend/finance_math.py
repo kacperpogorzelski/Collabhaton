@@ -1,5 +1,5 @@
 """Deterministyczna matematyka finansowa (docs/02 §3). LLM nigdy nie liczy pieniędzy."""
-from backend.schemas import AgeGroup, SafeInvestmentAdvice
+from backend.schemas import AgeGroup, Language, SafeInvestmentAdvice
 
 # --- Stałe edukacyjne (§3A) ---
 R_GROSS = 0.06
@@ -25,6 +25,28 @@ REASONING_SPLIT = (
     "a ok. 20% (co najmniej 100 zł) kierujesz na symboliczny trening w szeroki ETF. "
     "To kwota edukacyjna, nie zalecenie zainwestowania wszystkich wolnych środków."
 )
+REASONING_SAVINGS_FIRST_EN = (
+    "Cushion first. With your free funds, the best first step is a savings account, not investing. "
+    "Below we show on a 100 PLN per month example how it could look once your cushion is ready."
+)
+REASONING_SPLIT_EN = (
+    "First you build a safety layer: about 80% of your free funds go to the emergency cushion, "
+    "and about 20% (at least 100 PLN) goes to a symbolic practice run in a broad ETF. "
+    "This is an educational amount, not a recommendation to invest all your free funds."
+)
+INVEST_REASONING_EN = {
+    "20+": "You already have a cushion and your most valuable asset — time. 50–70% of your free funds "
+           "in a broad ETF shows how the time effect works.",
+    "30-50": "Your family cushion is secured, so 40–60% of your free surplus can work in broad ETFs "
+             "in the background.",
+    "50+": "You have a solid cushion, so you can direct 30–50% of your free funds to broad ETFs as "
+           "potential protection against inflation; keep the rest in safe, accessible forms.",
+}
+AGE_LABELS_EN = {
+    "20+": "Young Start (20+)",
+    "30-50": "Career & Family (30–50)",
+    "50+": "Capital Protection (50+)",
+}
 # grupa -> (min_pct, max_pct, reasoning)
 INVEST_RULES = {
     "20+": (0.50, 0.70,
@@ -55,12 +77,16 @@ def historical_win_rate(year: int) -> int:
     return min(DISPLAY_CAP, int(round(v)))
 
 
-def get_age_group(age: int) -> tuple[AgeGroup, int, str]:
+def get_age_group(age: int, lang: Language = "en") -> tuple[AgeGroup, int, str]:
     if age < 30:
-        return ("20+", 15, "Młody Start (20+)")
-    if age <= 50:
-        return ("30-50", 10, "Kariera i Rodzina (30–50)")
-    return ("50+", 7, "Ochrona Kapitału (50+)")
+        group, horizon, label = "20+", 15, "Młody Start (20+)"
+    elif age <= 50:
+        group, horizon, label = "30-50", 10, "Kariera i Rodzina (30–50)"
+    else:
+        group, horizon, label = "50+", 7, "Ochrona Kapitału (50+)"
+    if lang == "en":
+        label = AGE_LABELS_EN[group]
+    return (group, horizon, label)
 
 
 def round_to_50(val: float) -> int:
@@ -68,20 +94,25 @@ def round_to_50(val: float) -> int:
 
 
 def calculate_safe_investment(age: int, net_income: float, free_cash: float,
-                              has_emergency_fund: bool) -> SafeInvestmentAdvice:
-    age_group, _, _ = get_age_group(age)
+                              has_emergency_fund: bool, lang: Language = "en") -> SafeInvestmentAdvice:
+    en = lang == "en"
+    age_group, _, _ = get_age_group(age, lang)
     if not has_emergency_fund and free_cash < 300:
         return SafeInvestmentAdvice(
             plan_type="savings_first", min_monthly=100, max_monthly=100, recommended_monthly=100,
             emergency_savings_monthly=int(free_cash), training_etf_monthly=0,
-            illustrative_only=True, reasoning=REASONING_SAVINGS_FIRST)
+            illustrative_only=True,
+            reasoning=REASONING_SAVINGS_FIRST_EN if en else REASONING_SAVINGS_FIRST)
     if not has_emergency_fund:
         etf = int(min(free_cash, max(100, round_to_50(free_cash * 0.20))))
         return SafeInvestmentAdvice(
             plan_type="split", min_monthly=etf, max_monthly=etf, recommended_monthly=etf,
             emergency_savings_monthly=int(free_cash - etf), training_etf_monthly=etf,
-            illustrative_only=False, reasoning=REASONING_SPLIT)
+            illustrative_only=False,
+            reasoning=REASONING_SPLIT_EN if en else REASONING_SPLIT)
     min_pct, max_pct, reasoning = INVEST_RULES[age_group]
+    if en:
+        reasoning = INVEST_REASONING_EN[age_group]
     lo = round_to_50(free_cash * min_pct)
     hi = max(lo + 50, round_to_50(free_cash * max_pct))
     rec = round_to_50((lo + hi) / 2.0)
@@ -136,6 +167,7 @@ def build_session_facts(session_columns: dict) -> dict:
         "session_id": s.get("id", s.get("session_id")),
         "id": s.get("id", s.get("session_id")),
         "age": s.get("age"),
+        "lang": s.get("lang", "en"),
         "age_group": s.get("age_group"),
         "main_concern": s.get("main_concern"),
         "plan_type": s.get("plan_type"),
