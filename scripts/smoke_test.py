@@ -260,8 +260,28 @@ def run_edge_cases(client: TestClient, persona: dict) -> None:
     check(si["training_etf_monthly"] == 0, "savings_first: training_etf_monthly != 0")
 
 
+def run_health_and_scam(client: TestClient) -> None:
+    """GET /health (deploy health check, #59) i POST /api/scam/drill (#63) offline."""
+    r = client.get("/health")
+    check(r.status_code == 200 and r.json().get("status") == "ok", "/health != 200/ok")
+    for lang in ("en", "pl"):
+        for idx in (0, 1, 2):
+            r = client.post("/api/scam/drill", json={"lang": lang, "age_group": "50+", "scenario_index": idx})
+            check(r.status_code == 200, f"scam/drill {lang}#{idx} status {r.status_code}")
+            if r.status_code != 200:
+                continue
+            d = r.json()
+            check(d.get("source") == "offline", f"scam/drill {lang}#{idx} source != offline")
+            check(bool(d.get("message")) and bool(d.get("safe_action")), f"scam/drill {lang}#{idx} brak message/safe_action")
+            clues = d.get("clues") or []
+            check(any(c["is_red_flag"] for c in clues), f"scam/drill {lang}#{idx} brak red flag")
+    r = client.post("/api/scam/drill", json={"lang": "xx"})
+    check(r.status_code == 422, "scam/drill zły lang != 422")
+
+
 def main() -> int:
     with TestClient(app) as client:
+        run_health_and_scam(client)
         personas = client.get("/api/demo-personas").json()
         check(len(personas) == 3, "persony != 3")
         for p in personas:
