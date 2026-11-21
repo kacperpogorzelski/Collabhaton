@@ -299,6 +299,7 @@ main { padding: 24px 0 120px; }
 .brand-name { display: block; font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; letter-spacing: -0.02em; }
 .brand-sub { display: block; font-size: 0.72rem; font-weight: 600; color: var(--ink-3); margin-top: 2px; }
 @media (min-width: 1280px) { .brand-text { display: block; } }
+body:not([data-screen="screen_onboarding"]) .brand-text { display: none; }
 @media (max-width: 1599px) { .brand-sub { display: none; } }
 
 .hud__stats { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
@@ -365,6 +366,19 @@ main { padding: 24px 0 120px; }
 .tool-btn:active { transform: translateY(2px); box-shadow: var(--shadow-press); }
 .tool-btn--judges { background: var(--sky-soft); }
 .tool-btn--judges:hover { background: #CBE9FB; }
+.tool-btn--demo { border-style: dashed; box-shadow: none; background: transparent; }
+.tool-btn--demo:hover, .tool-btn--demo[aria-expanded="true"] { background: var(--paper-2); }
+.tool-btn--demo .ic { transition: transform .2s; }
+.tool-btn--demo[aria-expanded="true"] .ic { transform: rotate(180deg); }
+.tool-btn[disabled] { opacity: .5; cursor: not-allowed; box-shadow: none; }
+.demo-pop { width: min(340px, calc(100vw - 2 * var(--gutter))); }
+.demo-head { font-family: var(--font-display); font-weight: 800; font-size: 1.1rem; }
+.demo-title { margin-top: 4px; font-size: 0.75rem; font-weight: 800; color: var(--ink-3); }
+.demo-stages { display: grid; gap: 8px; }
+.demo-stages .stage-pill { width: 100%; border-radius: 16px; }
+.demo-shortcuts { display: grid; gap: 8px; }
+.demo-shortcuts .tool-btn { width: 100%; justify-content: flex-start; }
+.demo-group { display: grid; gap: 10px; padding-top: 10px; border-top: 2px dashed var(--stone-2); }
 
 .hud__menu-btn { display: none; }
 .hud__menu {
@@ -381,7 +395,7 @@ main { padding: 24px 0 120px; }
 
 .hud__ready-row { display: none; }
 
-@media (max-width: 1099px) {
+@media (max-width: 1199px) {
   .hud__tools .seg, .hud__tools .tool-btn { display: none; }
   .hud__menu-btn { display: inline-grid; }
 }
@@ -464,12 +478,6 @@ main { padding: 24px 0 120px; }
 @keyframes thumb { 0%, 70%, 100% { transform: rotate(0) scale(1); } 80% { transform: rotate(-10deg) scale(1.08); } }
 
 /* peeking over a card edge */
-.cora-peek { position: absolute; top: 0; z-index: 2; width: var(--peek-size, 96px); transform: translateY(-88%); pointer-events: none; }
-.has-peek { margin-top: 64px; }
-.cora-peek svg { width: 100%; height: auto; overflow: visible; }
-.cora-peek .c-eyes { transform-origin: 80px 60px; animation: blink 4.6s infinite; }
-.cora-peek--right { right: 28px; }
-.cora-peek--left { left: 28px; }
 
 /* speech bubble */
 .bubble {
@@ -614,13 +622,11 @@ body[data-screen="screen_onboarding"] .cora-dock { display: none; }
   font-family: var(--font-display); font-weight: 800; font-size: 0.95rem; white-space: nowrap;
   font-variant-numeric: tabular-nums; pointer-events: none;
 }
-.range-pill::after { content: ''; position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--ink); border-bottom: 0; }
+.range-pill::after { content: ''; position: absolute; left: calc(50% + var(--arrow, 0px)); bottom: -8px; transform: translateX(-50%); border: 6px solid transparent; border-top-color: var(--ink); border-bottom: 0; }
 
 /* --------------------------------------------------------------------------
    11. Quest Hub (Screen 2)
    -------------------------------------------------------------------------- */
-.stagebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 22px; }
-@media (min-width: 760px) { .stagebar { display: flex; flex-wrap: wrap; gap: 10px; } }
 .stage-pill {
   display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 14px 6px 8px;
   border: var(--line); border-radius: 999px; background: var(--card); box-shadow: 0 3px 0 var(--ink);
@@ -639,8 +645,39 @@ body[data-screen="screen_onboarding"] .cora-dock { display: none; }
 @media (max-width: 759px) { .stage-pill { border-radius: 18px; } .stage-pill__name { white-space: normal; line-height: 1.15; } }
 .stage-pill.is-loading .stage-pill__dot { animation: spin 1s linear infinite; border-right-color: transparent; }
 
-.hub { display: grid; grid-template-columns: 1fr; gap: 22px; }
-@media (min-width: 980px) { .hub { grid-template-columns: minmax(360px, 440px) 1fr; gap: 28px; align-items: start; } }
+.hub { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "path" "brief" "more"; gap: 22px; }
+.hub__path { grid-area: path; }
+.hub__brief { grid-area: brief; align-self: start; }
+.hub__more { grid-area: more; }
+@media (min-width: 980px) {
+  .hub { grid-template-columns: minmax(360px, 440px) minmax(0, 1fr); grid-template-areas: "path brief" "more brief"; gap: 22px 28px; align-items: start; }
+}
+
+/* calm step tabs (Quest Hub briefing, Done screen) */
+.steps { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; padding: 6px; border: var(--line); border-radius: var(--r-lg); background: var(--paper-2); }
+.step-tab {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 6px 10px;
+  border: 2px solid transparent; border-radius: 14px; font-weight: 800; font-size: 0.875rem; line-height: 1.15; text-align: left;
+  color: var(--ink-2); transition: background-color .15s, transform 75ms, box-shadow 75ms;
+}
+.step-tab:hover { background: var(--card); }
+.step-tab[aria-selected="true"] { background: var(--yellow); border-color: var(--ink); color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
+.step-tab:active { transform: translateY(2px); box-shadow: none; }
+.step-tab__n { display: inline-grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border: var(--line); border-radius: 50%; background: var(--card); font-family: var(--font-display); font-size: 0.85rem; }
+@media (max-width: 479px) { .step-tab { flex-direction: column; gap: 4px; font-size: 0.75rem; text-align: center; } }
+.step-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.step-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.step-nav .btn { flex: 0 1 auto; }
+@media (max-width: 639px) { .step-nav .btn--primary { flex: 1 1 100%; order: -1; } .step-nav .btn--ghost { flex: 1 1 100%; } }
+.ic--flip { transform: scaleX(-1); }
+
+/* time machine: years + what-if monthly amount */
+.tm-sliders { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px 26px; margin-top: 18px; }
+@media (min-width: 640px) { .tm-sliders { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tm-sliders label { display: block; margin-bottom: 2px; }
+.range-pill--yellow { background: var(--yellow); color: var(--ink); }
+.whatif__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 10px; min-height: 44px; }
+.whatif__bar .tiny { flex: 1 1 220px; }
 .hub__col { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; min-width: 0; }
 
 .learner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -708,11 +745,26 @@ body[data-screen="screen_onboarding"] .cora-dock { display: none; }
 .path-cora--right { left: calc(100% + 6px); }
 @media (max-width: 420px) { .path-cora { --cora-size: 58px; } .node { width: 68px; height: 68px; } .node--checkpoint { width: 78px; height: 78px; } }
 
-.chapter { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border: 2px solid var(--stone-2); border-radius: var(--r-lg); background: var(--stone); }
-.chapter__dots { display: flex; gap: 5px; margin-top: 10px; }
-.chapter__dots span { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--stone-2); background: var(--paper); }
-.chapter__dots span.is-check { border-radius: 7px; width: 26px; }
-.chapter__lock { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 2px solid var(--stone-2); border-radius: 14px; background: var(--paper); }
+/* Phases 2-3: live day pebbles (tap -> friendly Kita message, no backend call) */
+.phase-card { padding: 16px; border: var(--line); border-radius: var(--r-lg); }
+.phase-card--2 { background: var(--sky-soft); }
+.phase-card--2 .phase__num { background: var(--sky); }
+.phase-card--3 { background: var(--green-soft); }
+.phase-card--3 .phase__num { background: var(--green); }
+.phase-card__head { display: flex; align-items: flex-start; gap: 14px; }
+.pebbles { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-bottom: 4px; }
+.pebble {
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%;
+  border: var(--line); background: var(--card); box-shadow: 0 4px 0 var(--ink);
+  transition: transform 75ms ease-out, box-shadow 75ms ease-out, background-color .15s;
+}
+.pebble:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--ink); background: var(--yellow-soft); }
+.pebble:active { transform: translateY(3px); box-shadow: var(--shadow-press); }
+.pebble__n { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.pebble--goal { border-radius: 14px; width: 54px; background: var(--yellow); }
+.pebble--goal .ic { width: 26px; height: 26px; }
+.after14--spotlight { box-shadow: var(--shadow-lg); }
+.after14--spotlight .card__head .ic { flex-shrink: 0; }
 
 .after14 { background: var(--sky-soft); }
 .after14__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
@@ -966,7 +1018,11 @@ body[data-screen="screen_checkpoint"] main { padding-top: 0; padding-bottom: 200
 .levelup { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; padding: 6px 14px; border: var(--line); border-radius: 999px; background: var(--yellow); font-weight: 800; }
 
 .done-streak { display: inline-flex; align-items: center; gap: 6px; margin-top: 14px; color: var(--tangerine-text); }
-.complete-grid { display: grid; grid-template-columns: 1fr; gap: 22px; margin-top: 92px; }
+.steps--done { margin-top: 28px; }
+.done-panel { margin-top: 22px; }
+.done-panel--today { padding-top: 70px; }
+@media (min-width: 640px) { .done-panel--today { padding-top: 80px; } }
+.complete-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
 @media (min-width: 900px) { .complete-grid { grid-template-columns: 1.1fr 1fr; align-items: start; } }
 
 /* Cora stands on the top edge of the "first real step" card */
@@ -1103,6 +1159,9 @@ body[data-screen="screen_checkpoint"] main { padding-top: 0; padding-bottom: 200
 .toast { max-width: 460px; padding: 12px 16px; border: var(--line); border-radius: var(--r-md); background: var(--ink); color: #fff; font-weight: 700; font-size: 0.9rem; box-shadow: 0 4px 0 #021820; pointer-events: auto; animation: popIn .3s var(--spring); }
 .toast--warn { background: var(--tangerine-soft); color: var(--ink); box-shadow: var(--shadow); }
 .toast--ok { background: var(--green); color: var(--ink); box-shadow: var(--shadow); }
+.toast--kita { display: flex; align-items: center; gap: 12px; background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+.toast__kita { display: block; width: 58px; flex-shrink: 0; }
+.toast__kita svg { width: 100%; height: auto; }
 .toast.is-out { animation: toastOut .25s ease-in forwards; }
 @keyframes toastOut { to { opacity: 0; transform: translateY(10px); } }
 

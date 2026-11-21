@@ -133,7 +133,6 @@
       'concern.too_late': "It's probably too late for me",
 
       'hub.srTitle': 'Your quest map',
-      'hub.stagebar': 'Life stage',
       'hub.horizon': '{n}-year horizon',
       'hub.worry': 'Worry: {x}',
       'hub.phase': 'Phase {n}',
@@ -161,6 +160,16 @@
       'hub.after14.title': 'After Day 14: keep learning',
       'hub.after14.sub': 'The sprint gets you started. Short monthly sessions keep you going.',
       'hub.done': 'Done',
+      'hub.steps': "Today's briefing",
+      'hub.step1': 'Your plan',
+      'hub.step2': 'What-if simulator',
+      'hub.step3': 'Day {n} lessons',
+      'hub.next': 'Next',
+      'hub.back': 'Back',
+      'hub.soon': 'Available in the full 14-day sprint. Complete Days 1–4 and Checkpoint #1 first.',
+      'hub.pebble': 'Day {n}, part of the full 14-day sprint',
+      'hub.checkpoint2Short': 'Checkpoint #2',
+      'hub.finaleShort': 'Sprint finale',
 
       'plan.title': 'Your sample split',
       'plan.label': 'Illustrative target amount per month',
@@ -201,6 +210,11 @@
       'tm.history': 'Historical simulation. Results vary and future returns are not guaranteed.',
       'tm.yAxis': "today's PLN",
       'tm.year': 'Year {n}',
+      'tm.whatIf': 'What if I invest a different amount?',
+      'tm.amountPill': '{amount}/mo',
+      'tm.reset': 'Reset to my plan',
+      'tm.planNote': 'Your sample plan: {plan}/mo. Drag to try another amount.',
+      'tm.whatIfNote': 'What-if: {amount}/mo instead of your sample {plan}/mo. Same assumptions as below.',
 
       'compliance.mifid': 'Finance Quest is strictly an educational and simulation tool. Calculations are based on simplified assumptions and historical data, exclude capital gains tax, brokerage fees, and currency risk, do not guarantee future returns, and do not constitute investment advice or a recommendation under MiFID II. Investing involves the risk of losing part or all of your capital.',
       'ai.disclaimer': 'AI Coach Kita can make mistakes. Always verify key details. Educational simulation only, not financial advice.',
@@ -297,6 +311,9 @@
       'done.toMap': 'Back to the quest map',
       'done.streak': 'Streak started. See you tomorrow!',
       'done.badgeLabel': 'Badge unlocked',
+      'done.tabs': 'Day summary',
+      'done.tabToday': "Today's step",
+      'done.tabMore': 'Checklist, rank & After Day 14',
 
       'first.title': 'Take your first real step',
       'first.sub': "Small, safe and today. That's how confidence turns into action.",
@@ -384,10 +401,15 @@
 
       'judges.title': 'How Finance Quest works',
       'judges.sub': 'Commerzbank challenge: from financial knowledge to a first real step.',
-      'judges.shortcuts': 'Demo shortcuts',
       'judges.jumpDay4': 'Jump to Day 4',
       'judges.openCp': 'Open Checkpoint #1',
       'judges.noMultiDay': "This server doesn't have Days 2–4 yet.",
+      'judges.demoHint': 'Sample life stages and presenter shortcuts live in Demo, top right.',
+      'demo.toggle': 'Demo',
+      'demo.title': 'Demo mode',
+      'demo.stages': 'Sample life stage',
+      'demo.shortcuts': 'Presenter shortcuts',
+      'demo.needProfile': 'Pick a life stage first.',
 
       'toast.network': "Can't reach the server. Start the backend: uvicorn backend.main:app --port 8000",
       'toast.timeout': 'The server took too long. Try again.',
@@ -464,7 +486,6 @@
       'concern.too_late': 'Chyba za późno na start',
 
       'hub.srTitle': 'Twoja mapa misji',
-      'hub.stagebar': 'Etap życia',
       'hub.horizon': 'Horyzont: {n}',
       'hub.worry': 'Obawa: {x}',
       'hub.phase': 'Faza {n}',
@@ -492,6 +513,16 @@
       'hub.after14.title': 'Po Dniu 14: ucz się dalej',
       'hub.after14.sub': 'Sprint daje start. Krótkie comiesięczne sesje utrzymują nawyk.',
       'hub.done': 'Zaliczone',
+      'hub.steps': 'Dzisiejszy plan',
+      'hub.step1': 'Twój plan',
+      'hub.step2': 'Symulator: co jeśli?',
+      'hub.step3': 'Lekcje Dnia {n}',
+      'hub.next': 'Dalej',
+      'hub.back': 'Wstecz',
+      'hub.soon': 'Dostępne w pełnym 14-dniowym sprincie. Najpierw ukończ Dni 1–4 i Checkpoint #1.',
+      'hub.pebble': 'Dzień {n}, część pełnego 14-dniowego sprintu',
+      'hub.checkpoint2Short': 'Checkpoint #2',
+      'hub.finaleShort': 'Finał sprintu',
 
       'plan.title': 'Twój przykładowy podział',
       'plan.label': 'Przykładowa kwota docelowa miesięcznie',
@@ -532,6 +563,11 @@
       'tm.history': 'Symulacja historyczna; wyniki są zmienne i nie gwarantują przyszłych zysków.',
       'tm.yAxis': 'zł (dzisiejsze)',
       'tm.year': 'Rok {n}',
+      'tm.whatIf': 'Co jeśli wpłacę inną kwotę?',
+      'tm.amountPill': '{amount}/mies.',
+      'tm.reset': 'Wróć do mojego planu',
+      'tm.planNote': 'Twój przykładowy plan: {plan}/mies. Przesuń, by sprawdzić inną kwotę.',
+      'tm.whatIfNote': 'Co jeśli: {amount}/mies. zamiast przykładowych {plan}/mies. Te same założenia co niżej.',
 
       'compliance.mifid': 'Aplikacja Finance Quest ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.',
       'ai.disclaimer': 'AI Coach Kita może popełniać błędy. Symulacja wyłącznie edukacyjna — to nie jest porada inwestycyjna.',
@@ -628,6 +664,9 @@
       'done.toMap': 'Wróć do mapy',
       'done.streak': 'Seria rozpoczęta. Do jutra!',
       'done.badgeLabel': 'Odznaka odblokowana',
+      'done.tabs': 'Podsumowanie dnia',
+      'done.tabToday': 'Dzisiejszy krok',
+      'done.tabMore': 'Checklista, ranking i Po Dniu 14',
 
       'first.title': 'Zrób pierwszy prawdziwy krok',
       'first.sub': 'Mały, bezpieczny i dziś. Tak pewność zamienia się w działanie.',
@@ -715,10 +754,15 @@
 
       'judges.title': 'Jak działa Finance Quest',
       'judges.sub': 'Wyzwanie Commerzbanku: od wiedzy finansowej do pierwszego realnego kroku.',
-      'judges.shortcuts': 'Skróty demo',
       'judges.jumpDay4': 'Skocz do Dnia 4',
       'judges.openCp': 'Otwórz Checkpoint #1',
       'judges.noMultiDay': 'Ten serwer nie ma jeszcze Dni 2–4.',
+      'judges.demoHint': 'Przykładowe etapy życia i skróty dla prowadzącego są w zakładce Demo, w prawym górnym rogu.',
+      'demo.toggle': 'Demo',
+      'demo.title': 'Tryb demo',
+      'demo.stages': 'Przykładowy etap życia',
+      'demo.shortcuts': 'Skróty dla prowadzącego',
+      'demo.needProfile': 'Najpierw wybierz etap życia.',
 
       'toast.network': 'Brak połączenia z serwerem. Uruchom backend: uvicorn backend.main:app --port 8000',
       'toast.timeout': 'Serwer nie odpowiedział na czas. Spróbuj ponownie.',
@@ -1207,8 +1251,20 @@
     const pct = max > min ? clamp(((Number(input.value) - min) / (max - min)) * 100, 0, 100) : 0;
     input.style.setProperty('--fill', pct + '%');
     if (pill) {
-      pill.style.setProperty('--pos', 'calc(' + pct + '% + ' + ((0.5 - pct / 100) * 32).toFixed(1) + 'px)');
       if (label != null) pill.textContent = label;
+      // Keep the pill inside its slider (two sliders sit side by side); the arrow still points
+      // at the thumb. Hidden panels have no width yet, so they fall back to the % position.
+      const track = pill.parentElement ? pill.parentElement.clientWidth : 0;
+      const pw = pill.offsetWidth;
+      if (track > 0 && pw > 0) {
+        const thumb = (pct / 100) * (track - 32) + 16;
+        const left = clamp(thumb, pw / 2, Math.max(pw / 2, track - pw / 2));
+        pill.style.setProperty('--pos', left.toFixed(1) + 'px');
+        pill.style.setProperty('--arrow', clamp(thumb - left, -pw / 2 + 10, pw / 2 - 10).toFixed(1) + 'px');
+      } else {
+        pill.style.setProperty('--pos', 'calc(' + pct + '% + ' + ((0.5 - pct / 100) * 32).toFixed(1) + 'px)');
+        pill.style.setProperty('--arrow', '0px');
+      }
     }
   }
   function storageGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
@@ -1303,6 +1359,8 @@
     summary: null,
     cp: null,
     cora: { busy: false, result: null, picked: null, question: '' },
+    hubTab: 1,               // Quest Hub briefing step: 1 plan · 2 what-if simulator · 3 lessons
+    tmAmount: null,          // what-if monthly amount; null = the sample plan amount
   });
 
   const els = {};
@@ -1455,22 +1513,39 @@
     ).join('');
   }
 
-  function renderStagebar() {
-    const pills = STAGES.map((s) =>
+  // Demo ▾ — sample life stages + presenter shortcuts, kept off the product screens (Issue #44).
+  // Same content in the desktop popover and inside the mobile ⋯ menu.
+  function demoGroupHTML() {
+    const has = !!state.session;
+    const stages = STAGES.map((s) =>
       '<button type="button" class="stage-pill" data-stage="' + s.id + '" aria-pressed="' + (state.stageId === s.id) + '">' +
         '<span class="stage-pill__dot">' + icon(s.icon) + '</span>' +
         '<span class="stage-pill__text"><span class="stage-pill__name">' + escapeHtml(t('stage.' + s.id + '.name')) + '</span>' +
         '<span class="stage-pill__meta">' + escapeHtml(t('stage.' + s.id + '.meta')) + '</span></span>' +
       '</button>'
+    ).join('');
+    return (
+      '<p class="demo-title">' + escapeHtml(t('demo.stages')) + '</p>' +
+      '<div class="demo-stages">' + stages + '</div>' +
+      '<p class="demo-title">' + escapeHtml(t('demo.shortcuts')) + '</p>' +
+      '<div class="demo-shortcuts">' +
+        '<button type="button" class="tool-btn" data-action="demo-day4"' + (has ? '' : ' disabled') + '>' + icon('target', 'ic--sm') + escapeHtml(t('judges.jumpDay4')) + '</button>' +
+        '<button type="button" class="tool-btn" data-action="demo-cp"' + (has ? '' : ' disabled') + '>' + icon('trophy', 'ic--sm') + escapeHtml(t('judges.openCp')) + '</button>' +
+      '</div>' +
+      (has ? '' : '<p class="tiny muted">' + escapeHtml(t('demo.needProfile')) + '</p>')
     );
-    if (!state.stageId && state.session) {
-      pills.push('<button type="button" class="stage-pill" data-action="reset" aria-pressed="true">' +
-        '<span class="stage-pill__dot">' + icon('user') + '</span>' +
-        '<span class="stage-pill__text"><span class="stage-pill__name">' + escapeHtml(t('stage.custom')) + '</span>' +
-        '<span class="stage-pill__meta">' + escapeHtml(t('hud.reset')) + '</span></span></button>');
-    }
-    els.stagebar.innerHTML = pills.join('');
   }
+  function renderDemoMenus() {
+    if (els.demoPop) els.demoPop.innerHTML = '<p class="demo-head">' + escapeHtml(t('demo.title')) + '</p>' + demoGroupHTML();
+    if (els.demoMobile) els.demoMobile.innerHTML = demoGroupHTML();
+  }
+  function toggleDemo(force) {
+    const open = force != null ? force : els.demoPop.hidden;
+    if (open) { closeMenu(); renderDemoMenus(); }
+    els.demoPop.hidden = !open;
+    document.querySelectorAll('[data-action="toggle-demo"]').forEach((b) => b.setAttribute('aria-expanded', String(open)));
+  }
+  function closeDemo() { if (els.demoPop && !els.demoPop.hidden) toggleDemo(false); }
 
   function setStageBusy(stageId, busy) {
     document.querySelectorAll('[data-stage]').forEach((btn) => {
@@ -1608,7 +1683,7 @@
     };
   }
   function freshSummary() {
-    return { challengeBusy: false, accepted: false, reward: 0, leaderboard: null, checked: new Set(), celebrated: false, selfAfter: null, bankOption: 'a', bankDone: false, leveledViaChallenge: false };
+    return { challengeBusy: false, accepted: false, reward: 0, leaderboard: null, checked: new Set(), celebrated: false, selfAfter: null, bankOption: 'a', bankDone: false, leveledViaChallenge: false, doneTab: 'today' };
   }
 
   async function analyzeProfile(profile, opts) {
@@ -1664,6 +1739,8 @@
     state.dayLessons = data.micro_lessons || [];
     state.log = [];
     state.tm = { year: null, point: null };
+    state.tmAmount = null;
+    state.hubTab = 1;
     state.mission = freshMissionState();
     state.summary = freshSummary();
     state.cp = null;
@@ -1675,6 +1752,8 @@
   function selectStage(stageId) {
     const stage = stageById(stageId);
     if (!stage || state.busy) return;
+    closeDemo();
+    closeMenu();
     state.stageId = stageId;
     const profile = stageProfile(stage);
     fillForm(profile);
@@ -1710,8 +1789,10 @@
     closeModal();
     closeCora();
     closeDrawer();
+    closeDemo();
     resetHudBaseline();
     renderStageCards();
+    renderDemoMenus();
     showScreen(SCREENS.ONBOARDING);
   }
 
@@ -1749,13 +1830,61 @@
 
   function renderHub() {
     if (!state.session) return;
-    renderStagebar();
+    renderDemoMenus();
     renderPathColumn();
     renderPlanCard();
     renderSkippedCard();
     renderLessonsCard();
     setupTimeMachine();
+    renderHubSteps();
     els.hubMobileCta.innerHTML = '<div class="wrap" style="padding:0">' + primaryButton('btn--block') + '</div>';
+  }
+
+  // Today's briefing as three calm steps: plan -> what-if simulator -> lessons (Issue #44).
+  const HUB_STEPS = 3;
+  function hubStepLabel(n) {
+    return n === 1 ? t('hub.step1') : n === 2 ? t('hub.step2') : t('hub.step3', { n: state.day });
+  }
+  function renderHubSteps() {
+    const cur = clamp(state.hubTab || 1, 1, HUB_STEPS);
+    els.hubSteps.innerHTML = [1, 2, 3].map((n) =>
+      '<button type="button" class="step-tab" role="tab" id="hub-tab-' + n + '" aria-controls="hub-panel-' + n + '" aria-selected="' + (n === cur) + '"' +
+        (n === cur ? '' : ' tabindex="-1"') + ' data-action="hub-tab" data-tab="' + n + '">' +
+        '<span class="step-tab__n">' + n + '</span><span class="step-tab__label">' + escapeHtml(hubStepLabel(n)) + '</span></button>'
+    ).join('');
+    for (let n = 1; n <= HUB_STEPS; n++) {
+      const panel = document.getElementById('hub-panel-' + n);
+      if (panel) panel.hidden = n !== cur;
+      const nav = document.querySelector('[data-step-nav="' + n + '"]');
+      if (!nav) continue;
+      const back = n > 1
+        ? '<button type="button" class="btn btn--ghost" data-action="hub-tab" data-tab="' + (n - 1) + '" data-scroll="1">' + icon('arrow-right', 'ic--flip') + escapeHtml(t('hub.back')) + '</button>'
+        : '<span></span>';
+      const next = n < HUB_STEPS
+        ? '<button type="button" class="btn btn--primary" data-action="hub-tab" data-tab="' + (n + 1) + '" data-scroll="1">' +
+            escapeHtml(t('hub.next') + ': ' + hubStepLabel(n + 1)) + icon('arrow-right') + '</button>'
+        : primaryButton('');
+      nav.innerHTML = back + next;
+    }
+  }
+  function showHubTab(n, opts) {
+    const o = opts || {};
+    state.hubTab = clamp(Number(n) || 1, 1, HUB_STEPS);
+    renderHubSteps();
+    if (state.hubTab === 2) {
+      // The chart and slider pills live in a panel that was hidden: re-measure once visible.
+      syncAmountControls();
+      updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false });
+      if (tmChart) tmChart.resize();
+    }
+    if (o.scroll) {
+      const top = els.hubSteps.getBoundingClientRect().top + window.scrollY - 90;
+      if (window.scrollY > top) window.scrollTo({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    }
+    if (o.focus) {
+      const tab = document.getElementById('hub-tab-' + state.hubTab);
+      if (tab) tab.focus({ preventScroll: true });
+    }
   }
 
   function milestoneFor(day) {
@@ -1816,16 +1945,27 @@
       );
     }).join('');
 
+    // Phases 2–3: live-looking day pebbles (no grey locks). Tapping one explains, with Kita,
+    // that it belongs to the full sprint — no call to a mission backend that does not exist yet.
     const m9 = milestoneFor(9);
     const m14 = milestoneFor(14);
-    const chapter = (num, range, title, milestone, ending) =>
-      '<div class="chapter">' +
-        '<span class="chapter__lock">' + icon('lock') + '</span>' +
-        '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: num }) + ', ' + t(range)) + '</p>' +
-          '<p class="phase__title">' + escapeHtml(t(title)) + '</p>' +
-          (milestone ? '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(milestone.title) + ', ' + escapeHtml(t(ending)) + '</p>' : '') +
-          '<div class="chapter__dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span class="is-check"></span></div>' +
-        '</div></div>';
+    const phaseCard = (num, from, to, range, title, milestone, endIcon, endLabel) => {
+      let pebbles = '';
+      for (let d = from; d <= to; d++) {
+        pebbles += '<button type="button" class="pebble" data-action="soon-day" data-day="' + d + '" aria-label="' + escapeHtml(t('hub.pebble', { n: d })) + '">' +
+          '<span class="pebble__n">' + d + '</span></button>';
+      }
+      pebbles += '<button type="button" class="pebble pebble--goal" data-action="soon-day" data-day="' + to + '" aria-label="' + escapeHtml(endLabel) + '" title="' + escapeHtml(endLabel) + '">' + icon(endIcon) + '</button>';
+      return (
+        '<div class="phase-card phase-card--' + num + '">' +
+          '<div class="phase-card__head"><span class="phase__num">' + num + '</span>' +
+            '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: num }) + ', ' + t(range) + ', ' + t('hub.perDay')) + '</p>' +
+            '<p class="phase__title">' + escapeHtml(t(title)) + '</p>' +
+            (milestone ? '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(milestone.title) + '</p>' : '') + '</div></div>' +
+          '<div class="pebbles">' + pebbles + '</div>' +
+        '</div>'
+      );
+    };
 
     const after = after14Paths().map((p) =>
       '<div class="after14__tile">' + icon(p.icon || 'chat') + '<h4 style="margin-top:8px">' + escapeHtml(p.title) + '</h4><p>' + escapeHtml(p.cadence || '') + '</p></div>'
@@ -1850,12 +1990,20 @@
           '</svg>' + slots +
         '</div>' +
         '<div class="hub-cta-desktop" style="margin-top:6px">' + primaryButton('btn--block') + '</div>' +
-      '</div>' +
-      chapter(2, 'hub.phase2.range', 'hub.phase2.title', m9, 'hub.checkpoint2') +
-      chapter(3, 'hub.phase3.range', 'hub.phase3.title', m14, 'hub.finale') +
-      '<div class="card after14"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3>' +
+      '</div>';
+    els.hubMoreCol.innerHTML =
+      phaseCard(2, 5, 9, 'hub.phase2.range', 'hub.phase2.title', m9, 'trophy', t('hub.checkpoint2Short')) +
+      phaseCard(3, 10, 14, 'hub.phase3.range', 'hub.phase3.title', m14, 'flag', t('hub.finaleShort')) +
+      '<div class="card after14 after14--spotlight">' +
+        '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3>' + icon('sunset', 'ic--lg') + '</div>' +
         '<p class="small" style="color:var(--ink-2);margin-top:4px">' + escapeHtml(t('hub.after14.sub')) + '</p>' +
         '<div class="after14__grid">' + after + '</div></div>';
+  }
+
+  function onSoonDay(btn) {
+    replayClass(btn, 'bump');
+    Sound.pop();
+    toast(t('hub.soon'), 'info', 3800, { kita: true });
   }
 
   function after14Paths() {
@@ -1899,9 +2047,7 @@
         '</div>' +
         '<p class="chip chip--soft" style="margin-top:10px">' + icon('clock', 'ic--sm') + escapeHtml(t('plan.etfLater', { amount: money(a.recommended_monthly) })) + '</p>';
     }
-    els.cardPlan.classList.add('has-peek');
     els.cardPlan.innerHTML =
-      '<div class="cora-peek cora-peek--right" style="--peek-size:104px">' + coraPeekSVG() + '</div>' +
       '<h3 class="card__title">' + escapeHtml(t('plan.title')) + '</h3>' +
       '<p class="tiny muted" style="margin-top:2px">' + escapeHtml(t('plan.label')) + '</p>' + body +
       '<p class="small" style="margin-top:14px;color:var(--ink-2)">' + escapeHtml(a.reasoning || '') + '</p>';
@@ -1960,17 +2106,88 @@
     renderHud();
   }
 
-  // Time machine: slider 1–20 years, 3 KPIs in today's money, chart with a "Year 0" point.
+  // Time machine: slider 1–20 years + what-if monthly amount, 3 KPIs in today's money,
+  // chart with a "Year 0" point.
+  const TM_AMOUNT_MIN = 50;
+  const TM_AMOUNT_STEP = 50;
+  const TM_AMOUNT_MAX = 5000;
+  function planAmount() { return Number(state.session.safe_investment.recommended_monthly) || 100; }
+  function currentAmount() { return state.tmAmount == null ? planAmount() : state.tmAmount; }
+
+  // Python's round() (half to even), so totals match backend/finance_math.py to the złoty.
+  function pyRound(x) {
+    const f = Math.floor(x);
+    if (Math.abs(x - f - 0.5) < 1e-9) return f % 2 === 0 ? f : f + 1;
+    return Math.round(x);
+  }
+  // Mirror of finance_math.generate_projection_series(monthly_amount). Rates come from the
+  // server's `assumptions` and the stress multipliers from the server's own series, so the
+  // client never drifts from the backend constants.
+  function projectionFor(amount) {
+    const s = state.session;
+    const base = s.projection_series || [];
+    if (amount === planAmount()) return base;
+    const a = s.assumptions || {};
+    const rEtf = (Number(a.etf_net_nominal_pct) || 5.7) / 100;
+    const rInf = (Number(a.inflation_pct) || 3.5) / 100;
+    const i = rEtf / 12;
+    return base.map((bp) => {
+      const year = bp.year;
+      const n = 12 * year;
+      const paid = amount * n;
+      const nominal = amount * ((Math.pow(1 + i, n) - 1) / i);
+      const deflator = Math.pow(1 + rInf, year);
+      const etfReal = nominal / deflator;
+      const cashReal = paid / deflator;
+      const stress = bp.etf_real_value > 0 ? Math.round((bp.etf_stress_real_value / bp.etf_real_value) * 100) / 100 : 1;
+      const er = pyRound(etfReal);
+      const cr = pyRound(cashReal);
+      return {
+        year, total_paid: paid, etf_nominal_value: pyRound(nominal), etf_real_value: er,
+        etf_stress_real_value: pyRound(etfReal * stress), cash_real_value: cr,
+        real_gain_vs_cash: er - cr, historical_win_rate: bp.historical_win_rate,
+      };
+    });
+  }
+
   function setupTimeMachine() {
     const s = state.session;
-    els.tmMonthly.textContent = t('tm.monthly', { amount: money(s.safe_investment.recommended_monthly) });
+    const plan = planAmount();
+    const max = Math.max(TM_AMOUNT_MAX, Math.ceil(plan / TM_AMOUNT_STEP) * TM_AMOUNT_STEP);
+    els.tmAmount.min = String(TM_AMOUNT_MIN);
+    els.tmAmount.max = String(max);
+    els.tmAmount.step = String(TM_AMOUNT_STEP);
+    els.tmAmountMin.textContent = money(TM_AMOUNT_MIN);
+    els.tmAmountMax.textContent = money(max);
     els.tmAssumptions.textContent = s.assumptions ? s.assumptions.text : '';
     els.tmMin.textContent = years(1);
     els.tmMax.textContent = years(20);
+    syncAmountControls();
+  }
+  function syncAmountControls() {
+    const plan = planAmount();
+    const amount = currentAmount();
+    els.tmAmount.value = String(amount);
+    setRangeFill(els.tmAmount, els.tmAmountPill, t('tm.amountPill', { amount: money(amount) }));
+    els.tmMonthly.textContent = t('tm.monthly', { amount: money(amount) });
+    const whatIf = amount !== plan;
+    els.tmReset.hidden = !whatIf;
+    els.tmAmountNote.textContent = whatIf
+      ? t('tm.whatIfNote', { amount: money(amount), plan: money(plan) })
+      : t('tm.planNote', { plan: money(plan) });
+  }
+  function setWhatIfAmount(value) {
+    if (!state.session) return;
+    const max = Number(els.tmAmount.max) || TM_AMOUNT_MAX;
+    const v = clamp(Math.round((Number(value) || TM_AMOUNT_MIN) / TM_AMOUNT_STEP) * TM_AMOUNT_STEP, TM_AMOUNT_MIN, max);
+    // Snap back to the exact plan amount (it may not sit on the 50 PLN grid, e.g. savings_first 100).
+    state.tmAmount = Math.abs(v - planAmount()) < TM_AMOUNT_STEP / 2 ? null : v;
+    syncAmountControls();
+    updateTimeMachine(state.tm.year || state.session.default_horizon_years);
   }
   function updateTimeMachine(year, opts) {
     if (!state.session) return;
-    const series = state.session.projection_series || [];
+    const series = projectionFor(currentAmount());
     if (!series.length) return;
     const y = clamp(Math.round(Number(year) || 1), 1, series.length);
     const p = series[y - 1];
@@ -2618,6 +2835,7 @@
       state.day = res.day || n;
       state.turn = res.initial_mission_turn;
       state.dayLessons = res.micro_lessons || [];
+      state.hubTab = 3;   // a new day opens on its own lessons
       state.mission = freshMissionState();
       state.summary = freshSummary();
       // Jumping ahead in Demo Mode: the skipped days count as done on the map.
@@ -2714,20 +2932,31 @@
         '<p class="small strong done-streak">' + icon('flame', 'ic--sm') + '<span>' + escapeHtml(t('done.streak')) + '</span></p>' +
       '</div>';
 
+    // Below the result: two calm tabs instead of a wall of cards (Issue #44).
+    const tab = s.doneTab === 'more' ? 'more' : 'today';
+    const tabBtn = (id, label, n) =>
+      '<button type="button" class="step-tab" role="tab" id="done-tab-' + id + '" aria-controls="done-panel-' + id + '" aria-selected="' + (tab === id) + '"' +
+        (tab === id ? '' : ' tabindex="-1"') + ' data-action="done-tab" data-tab="' + id + '">' +
+        '<span class="step-tab__n">' + n + '</span><span class="step-tab__label">' + escapeHtml(label) + '</span></button>';
     els.doneRoot.innerHTML =
       hero +
-      '<div class="complete-grid">' +
-        '<div id="done-first"></div>' +
-        '<div class="hub__col"><div class="card" id="done-bank"></div><div class="card" id="done-board"></div></div>' +
+      '<div class="steps steps--done" role="tablist" aria-label="' + escapeHtml(t('done.tabs')) + '">' +
+        tabBtn('today', t('done.tabToday'), 1) + tabBtn('more', t('done.tabMore'), 2) + '</div>' +
+      '<div class="done-panel done-panel--today" id="done-panel-today" role="tabpanel" aria-labelledby="done-tab-today"' + (tab === 'today' ? '' : ' hidden') + '>' +
+        '<div class="complete-grid"><div id="done-first"></div><div class="card" id="done-bank"></div></div>' +
       '</div>' +
-      '<div class="card after14 after14--wide" style="margin-top:22px"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3>' +
-        '<p class="small" style="color:var(--ink-2);margin-top:4px">' + escapeHtml(t('hub.after14.sub')) + '</p>' +
-        '<div class="after14__grid">' + after14Paths().map((p) =>
-          '<div class="after14__tile">' + icon(p.icon || 'chat') + '<h4 style="margin-top:8px">' + escapeHtml(p.title) + '</h4><p>' + escapeHtml(p.description || '') + '</p>' +
-          '<p class="strong" style="color:var(--ink-2)">' + escapeHtml(p.cadence || '') + '</p></div>').join('') + '</div></div>' +
+      '<div class="done-panel" id="done-panel-more" role="tabpanel" aria-labelledby="done-tab-more"' + (tab === 'more' ? '' : ' hidden') + '>' +
+        '<div class="complete-grid"><div class="card" id="done-check"></div><div class="card" id="done-board"></div></div>' +
+        '<div class="card after14 after14--wide" style="margin-top:22px"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3>' +
+          '<p class="small" style="color:var(--ink-2);margin-top:4px">' + escapeHtml(t('hub.after14.sub')) + '</p>' +
+          '<div class="after14__grid">' + after14Paths().map((p) =>
+            '<div class="after14__tile">' + icon(p.icon || 'chat') + '<h4 style="margin-top:8px">' + escapeHtml(p.title) + '</h4><p>' + escapeHtml(p.description || '') + '</p>' +
+            '<p class="strong" style="color:var(--ink-2)">' + escapeHtml(p.cadence || '') + '</p></div>').join('') + '</div></div>' +
+      '</div>' +
       '<div class="compliance"><p>' + escapeHtml(t('compliance.mifid')) + '</p><p>' + escapeHtml(t('ai.disclaimer')) + '</p></div>';
 
     renderFirstStep();
+    renderChecklist();
     renderBankCard();
     renderBoard();
 
@@ -2748,13 +2977,32 @@
     return t('done.selfCompare', { a: before != null ? before : '?', b: after });
   }
 
+  function checklistState() {
+    const items = (state.turn && state.turn.final_checklist) || [];
+    const done = items.filter((i) => state.summary.checked.has(i.id)).length;
+    return { items, done, all: items.length > 0 && done === items.length };
+  }
+  function bankButton(all, extraStyle) {
+    if (!state.turn.bank_draft) return '';
+    return '<button type="button" class="btn btn--ink btn--block' + (all ? ' glow-pulse' : '') + '" data-action="open-bank" style="' + (extraStyle || 'margin-top:18px') + '">' +
+      icon('landmark') + escapeHtml(t('first.toBank')) + '</button>';
+  }
+  function showDoneTab(id) {
+    state.summary.doneTab = id === 'more' ? 'more' : 'today';
+    ['today', 'more'].forEach((k) => {
+      const panel = document.getElementById('done-panel-' + k);
+      const tab = document.getElementById('done-tab-' + k);
+      const on = k === state.summary.doneTab;
+      if (panel) panel.hidden = !on;
+      if (tab) { tab.setAttribute('aria-selected', String(on)); if (on) tab.removeAttribute('tabindex'); else tab.setAttribute('tabindex', '-1'); }
+    });
+  }
+
   function renderFirstStep() {
     const tt = state.turn;
     const c = tt.real_world_challenge;
     const s = state.summary;
-    const items = tt.final_checklist || [];
-    const done = items.filter((i) => s.checked.has(i.id)).length;
-    const all = items.length > 0 && done === items.length;
+    const all = checklistState().all;
     const challenge = c
       ? '<div class="challenge">' +
           '<span class="chip chip--tangerine">' + icon('target', 'ic--sm') + escapeHtml(t('first.challenge')) + '</span>' +
@@ -2768,25 +3016,34 @@
                 (s.challengeBusy ? '<span class="spinner"></span>' : icon('flame')) + escapeHtml(t('first.accept', { n: c.reward_xp })) + '</button>') + '</div>' +
         '</div>'
       : '';
+    document.getElementById('done-first').innerHTML =
+      '<div class="card firststep">' +
+        coraHTML('confident', 'firststep__cora') +
+        '<h2 class="h2">' + escapeHtml(t('first.title')) + '</h2>' +
+        '<p class="small" style="margin-top:6px;color:var(--ink-2);max-width:46ch">' + escapeHtml(t('first.sub')) + '</p>' +
+        challenge + bankButton(all) +
+      '</div>';
+  }
+
+  function renderChecklist() {
+    const box = document.getElementById('done-check');
+    const { items, done, all } = checklistState();
+    if (!items.length) { box.hidden = true; return; }
+    box.hidden = false;
+    const s = state.summary;
     const checks = items.map((i) =>
       '<button type="button" class="check" role="checkbox" aria-checked="' + s.checked.has(i.id) + '" data-action="toggle-check" data-id="' + escapeHtml(i.id) + '">' +
         '<span class="check__box">' + icon('check') + '</span>' +
         '<span><span class="check__text">' + escapeHtml(i.text) + '</span><span class="check__detail">' + escapeHtml(i.detail) + '</span></span>' +
       '</button>'
     ).join('');
-    document.getElementById('done-first').innerHTML =
-      '<div class="card firststep">' +
-        coraHTML('confident', 'firststep__cora') +
-        '<h2 class="h2">' + escapeHtml(t('first.title')) + '</h2>' +
-        '<p class="small" style="margin-top:6px;color:var(--ink-2);max-width:46ch">' + escapeHtml(t('first.sub')) + '</p>' +
-        challenge +
-        (items.length ? '<div class="card__head" style="margin-top:22px"><h3 class="h3">' + escapeHtml(t('first.checklist')) + '</h3>' +
-          '<span class="strong num"><span data-check-count>' + done + '</span>/' + items.length + '</span></div>' +
-          '<div class="meter" style="margin-top:8px" aria-hidden="true"><div class="meter__fill" data-check-bar style="width:' + (items.length ? (done / items.length) * 100 : 0) + '%"></div></div>' +
-          '<div class="checks">' + checks + '</div>' +
-          '<p class="small strong" data-check-done style="margin-top:12px;color:var(--green-text)"' + (all ? '' : ' hidden') + '>' + escapeHtml(t('first.allDone')) + '</p>' : '') +
-        (tt.bank_draft ? '<button type="button" class="btn btn--ink btn--block' + (all ? ' glow-pulse' : '') + '" data-action="open-bank" style="margin-top:18px">' + icon('landmark') + escapeHtml(t('first.toBank')) + '</button>' : '') +
-      '</div>';
+    box.innerHTML =
+      '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('first.checklist')) + '</h3>' +
+        '<span class="strong num"><span data-check-count>' + done + '</span>/' + items.length + '</span></div>' +
+      '<div class="meter" style="margin-top:8px" aria-hidden="true"><div class="meter__fill" data-check-bar style="width:' + (done / items.length) * 100 + '%"></div></div>' +
+      '<div class="checks">' + checks + '</div>' +
+      '<div data-check-done' + (all ? '' : ' hidden') + '><p class="small strong" style="margin-top:12px;color:var(--green-text)">' + escapeHtml(t('first.allDone')) + '</p>' +
+        bankButton(true, 'margin-top:10px') + '</div>';
   }
 
   async function acceptChallenge() {
@@ -2834,13 +3091,13 @@
     if (s.checked.has(id)) s.checked.delete(id); else s.checked.add(id);
     btn.setAttribute('aria-checked', String(s.checked.has(id)));
     replayClass(btn, 'bump');
-    const root = document.getElementById('done-first');
+    const root = document.getElementById('done-check');
     const done = items.filter((i) => s.checked.has(i.id)).length;
     const all = done === items.length;
     root.querySelector('[data-check-count]').textContent = String(done);
     root.querySelector('[data-check-bar]').style.width = (done / items.length) * 100 + '%';
     root.querySelector('[data-check-done]').hidden = !all;
-    const bank = root.querySelector('[data-action="open-bank"]');
+    const bank = document.querySelector('#done-first [data-action="open-bank"]');
     if (bank) bank.classList.toggle('glow-pulse', all);
     if (s.checked.has(id)) Sound.pop();
     if (all && !s.celebrated) { s.celebrated = true; Sound.fanfare(); fireConfetti('full'); }
@@ -3215,15 +3472,10 @@
       '<section class="judge judge--' + s.tone + (s.wide ? ' judge--wide' : '') + '"><h3>' + icon(s.icon, 'ic--sm') + escapeHtml(s.title) + '</h3>' +
         (s.list ? '<ul>' + s.list.map((li) => '<li>' + escapeHtml(li) + '</li>').join('') + '</ul>' : '<p>' + escapeHtml(s.text) + '</p>') + '</section>'
     ).join('');
-    const has = !!state.session;
     els.judgesContent.innerHTML =
       '<div class="judges">' + sections + '</div>' +
-      '<div class="card__head" style="margin-top:18px"><p class="small strong">' + escapeHtml(t('judges.shortcuts')) + '</p></div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">' +
-        '<button type="button" class="btn btn--ghost btn--sm" data-action="demo-day4"' + (has ? '' : ' disabled') + '>' + icon('target', 'ic--sm') + escapeHtml(t('judges.jumpDay4')) + '</button>' +
-        '<button type="button" class="btn btn--ghost btn--sm" data-action="demo-cp"' + (has ? '' : ' disabled') + '>' + icon('trophy', 'ic--sm') + escapeHtml(t('judges.openCp')) + '</button>' +
-      '</div>' +
-      '<p class="disclaimer" style="margin-top:14px">' + icon('info') + '<span>' + escapeHtml(t('ai.disclaimer')) + '</span></p>';
+      '<p class="disclaimer" style="margin-top:16px">' + icon('menu') + '<span>' + escapeHtml(t('judges.demoHint')) + '</span></p>' +
+      '<p class="disclaimer" style="margin-top:8px">' + icon('info') + '<span>' + escapeHtml(t('ai.disclaimer')) + '</span></p>';
   }
   function toggleMenu(force) {
     const open = force != null ? force : els.hudMenu.hidden;
@@ -3232,11 +3484,16 @@
   }
   function closeMenu() { if (els.hudMenu && !els.hudMenu.hidden) toggleMenu(false); }
 
-  function toast(message, tone, ms) {
+  function toast(message, tone, ms, opts) {
     const el = document.createElement('div');
-    el.className = 'toast' + (tone === 'warn' ? ' toast--warn' : tone === 'ok' ? ' toast--ok' : '');
+    const kita = !!(opts && opts.kita);
+    el.className = 'toast' + (tone === 'warn' ? ' toast--warn' : tone === 'ok' ? ' toast--ok' : '') + (kita ? ' toast--kita' : '');
     el.setAttribute('role', tone === 'warn' ? 'alert' : 'status');
-    el.textContent = message;
+    if (kita) {
+      el.innerHTML = '<span class="toast__kita" aria-hidden="true">' + coraPeekSVG() + '</span><span>' + escapeHtml(message) + '</span>';
+    } else {
+      el.textContent = message;
+    }
     els.toastRoot.appendChild(el);
     setTimeout(() => {
       el.classList.add('is-out');
@@ -3279,6 +3536,7 @@
     renderStageCards();
     syncFormOutputs();
     renderHud({ animate: false });
+    renderDemoMenus();
     if (!els.modalJudges.hidden) renderJudges();
     loadPersonas();
     // Nothing answered yet -> refresh server content in the new language (docs/01 §9).
@@ -3314,11 +3572,12 @@
 
   function bindEvents() {
     document.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.btn, .answer, .node, .stage-card, .stage-pill, .tile-wrap, .icon-btn, .tool-btn, .check, .fund__row, .seg button, .topic-chips button, .cora-dock')) Sound.click();
+      if (e.target.closest('.btn, .answer, .node, .stage-card, .stage-pill, .tile-wrap, .icon-btn, .tool-btn, .check, .fund__row, .seg button, .topic-chips button, .cora-dock, .pebble, .step-tab')) Sound.click();
     });
 
     document.addEventListener('click', (e) => {
       if (els.hudMenu && !els.hudMenu.hidden && !e.target.closest('#hud-menu, [data-action="toggle-menu"]')) toggleMenu(false);
+      if (els.demoPop && !els.demoPop.hidden && !e.target.closest('#demo-pop, [data-action="toggle-demo"]')) toggleDemo(false);
       const el = e.target.closest('[data-action], [data-stage], [data-lang]');
       if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true' && el.dataset.action !== 'node') return;
       if (el.dataset.lang) { setLang(el.dataset.lang); closeMenu(); return; }
@@ -3328,8 +3587,13 @@
         case 'go-home': goHome(); break;
         case 'reset': resetToProfile(); break;
         case 'toggle-sound': Sound.setMuted(!Sound.isMuted()); renderSoundButton(); if (!Sound.isMuted()) Sound.pop(); break;
-        case 'toggle-menu': toggleMenu(); break;
-        case 'open-judges': closeMenu(); renderJudges(); openModal('modal_judges'); break;
+        case 'toggle-menu': closeDemo(); renderDemoMenus(); toggleMenu(); break;
+        case 'toggle-demo': toggleDemo(); break;
+        case 'open-judges': closeMenu(); closeDemo(); renderJudges(); openModal('modal_judges'); break;
+        case 'hub-tab': showHubTab(el.dataset.tab, { scroll: el.dataset.scroll === '1', focus: el.classList.contains('step-tab') }); break;
+        case 'done-tab': showDoneTab(el.dataset.tab); break;
+        case 'soon-day': onSoonDay(el); break;
+        case 'tm-reset': state.tmAmount = null; syncAmountControls(); updateTimeMachine(state.tm.year || state.session.default_horizon_years); break;
         case 'close-modal': closeModal(el.closest('.modal') ? el.closest('.modal').id : null); break;
         case 'toggle-tailor': openTailor(); break;
         case 'node': onNode(el.dataset.node, el); break;
@@ -3366,8 +3630,8 @@
         case 'cora-topic': askCora(t('cora.topic.' + el.dataset.topic), el.dataset.topic); break;
         case 'cora-drill': pickDrill(Number(el.dataset.i)); break;
         case 'cora-reset': state.cora.result = null; state.cora.picked = null; state.cora.question = ''; renderCoraBody(); break;
-        case 'demo-day4': closeModal(); startDay(4, { demo: true }); break;
-        case 'demo-cp': closeModal(); openCheckpoint(); break;
+        case 'demo-day4': closeModal(); closeDemo(); closeMenu(); startDay(4, { demo: true }); break;
+        case 'demo-cp': closeModal(); closeDemo(); closeMenu(); openCheckpoint(); break;
         default: break;
       }
     });
@@ -3376,7 +3640,13 @@
       if (e.key === 'Escape') {
         if (!els.coraSheet.hidden) closeCora();
         else if (document.querySelector('.modal:not([hidden])')) closeModal();
-        else closeMenu();
+        else { closeMenu(); closeDemo(); }
+      }
+      // Arrow keys move between the step tabs (WAI-ARIA tabs pattern).
+      if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.target && e.target.classList && e.target.classList.contains('step-tab')) {
+        const tabs = Array.from(e.target.parentElement.querySelectorAll('.step-tab'));
+        const next = tabs[(tabs.indexOf(e.target) + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        if (next) { e.preventDefault(); next.click(); next.focus(); }
       }
       if (e.target && e.target.id === 'm-input' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
         e.preventDefault();
@@ -3393,6 +3663,7 @@
       if (id === 'm-input') syncOwn();
       else if (id === 'm-alloc') updateAlloc();
       else if (id === 'tm-years') updateTimeMachine(e.target.value);
+      else if (id === 'tm-amount') setWhatIfAmount(e.target.value);
     });
     document.addEventListener('change', (e) => {
       const input = e.target;
@@ -3441,8 +3712,17 @@
     els.fFreeOut = $('f-free-out');
     els.fFreeHint = $('f-free-hint');
     els.ctaOnboarding = $('cta-onboarding');
-    els.stagebar = $('stagebar');
+    els.demoPop = $('demo-pop');
+    els.demoMobile = $('demo-menu-mobile');
     els.hubPathCol = $('hub-path-col');
+    els.hubMoreCol = $('hub-more-col');
+    els.hubSteps = $('hub-steps');
+    els.tmAmount = $('tm-amount');
+    els.tmAmountPill = $('tm-amount-pill');
+    els.tmAmountMin = $('tm-amount-min');
+    els.tmAmountMax = $('tm-amount-max');
+    els.tmAmountNote = $('tm-amount-note');
+    els.tmReset = $('tm-reset');
     els.cardPlan = $('card-plan');
     els.cardSkipped = $('card-skipped');
     els.cardLessons = $('card-lessons');
@@ -3518,6 +3798,7 @@
     configureChart();
     bindEvents();
     renderStageCards();
+    renderDemoMenus();
     syncFormOutputs();
     renderHud({ animate: false });
     loadPersonas();
