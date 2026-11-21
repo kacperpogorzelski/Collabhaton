@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#F7F5EE">
+  <meta name="theme-color" content="#F7F6F2">
   <meta name="color-scheme" content="light">
   <meta name="description" data-i18n-content="meta.description" content="Finance Quest by Commerzbank: build investing confidence in a 14-day sprint, five minutes a day.">
   <title data-i18n="meta.title">Finance Quest by Commerzbank</title>
-  <!-- Inline favicon (no /favicon.ico request) -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1.5' y='1.5' width='29' height='29' rx='8' fill='%23FFCC00' stroke='%23082933' stroke-width='3'/%3E%3Cpath d='M8 21l5-5 4 3 7-8' fill='none' stroke='%23082933' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <!-- Inline favicon (no /favicon.ico request): petrol case, canary compass needle -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23082933'/%3E%3Ccircle cx='16' cy='16' r='10' fill='none' stroke='%23FFFFFF' stroke-opacity='.35' stroke-width='1.5'/%3E%3Cpath d='M16 6.5l3 9.5h-6z' fill='%23FFCC00'/%3E%3Cpath d='M16 25.5l3-9.5h-6z' fill='%23FFFFFF'/%3E%3C/svg%3E">
   <!-- Everything is local (static/vendor) — zero CDN at runtime (AGENTS.md §3).
        ?v= cache-busting: bump after every change to styles.css / app.js. -->
-  <link rel="preload" href="/static/vendor/fonts/BricolageGrotesque-800.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-600.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/styles.css?v=19.0">
+  <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/styles.css?v=20.0">
 </head>
 <body data-screen="screen_bank_entry">
   <a href="#main" class="skip-link" data-i18n="a11y.skip">Skip to content</a>
 
-  <!-- ===================== PLAYER HUD (docs/01 §6) ===================== -->
+  <!-- ===================== HUD (docs/01 §6) — readiness & competence stage first ===================== -->
   <header class="hud" id="hud">
     <div class="wrap hud__inner">
       <button type="button" class="hud__brand" data-action="go-home" data-i18n-aria="hud.home" aria-label="Finance Quest home">
@@ -29,35 +29,38 @@
         </span>
       </button>
 
-      <div class="hud__stats">
-        <span class="stat stat--day" id="hud-day" data-i18n-title="hud.dayTitle" title="Day of your 14-day sprint">
-          <span data-icon="calendar"></span><span class="stat__label" data-i18n="hud.day">Day</span>
-          <b class="num"><span id="hud-day-num">1</span>/<span id="hud-day-total">14</span></b>
-        </span>
-        <span class="stat stat--streak" data-i18n-title="hud.streakTitle" title="Day streak">
-          <span data-icon="flame"></span><b class="num" id="hud-streak">1</b>
-        </span>
-        <span class="stat stat--xp" id="hud-xp-pill" title="XP">
-          <span data-icon="bolt"></span><b class="num" id="hud-xp">20</b><span class="stat__unit">XP</span>
-          <span class="stat__lvl" id="hud-level">Lv 1</span>
-        </span>
+      <div class="hud__stats" id="hud-stats" hidden>
         <div class="ready" id="hud-ready" hidden>
-          <span class="ready__label"><span data-i18n="hud.readiness">Readiness</span> <b id="hud-ready-val">0%</b></span>
+          <span class="ready__label"><span data-ready-label data-i18n="hud.readiness">Readiness</span> <b id="hud-ready-val">0%</b></span>
           <div class="meter" role="progressbar" data-i18n-aria="hud.readiness" aria-label="Readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="hud-ready-bar">
             <div class="meter__fill" id="hud-ready-fill" style="width: 0%"></div>
           </div>
         </div>
+        <span class="stat stat--stage" id="hud-stage" data-i18n-title="hud.stageTitle" title="Competence stage">
+          <span data-icon="pillars"></span><span id="hud-level">Stage 1/5</span>
+        </span>
+        <span class="stat stat--day" id="hud-day" data-i18n-title="hud.dayTitle" title="Day of your 14-day sprint">
+          <span data-icon="calendar"></span><span class="stat__label" data-i18n="hud.day">Day</span>
+          <b class="num"><span id="hud-day-num">1</span>/<span id="hud-day-total">14</span></b>
+        </span>
+        <span class="stat stat--practice xp-detail" data-i18n-title="hud.streakTitle" title="Practice days">
+          <span data-i18n="hud.practiceLabel">Practice days:</span><b class="num" id="hud-streak">1</b>
+        </span>
+        <span class="stat stat--xp xp-detail" id="hud-xp-pill" data-i18n-title="hud.xpTitle" title="Practice points (XP)">
+          <b class="num" id="hud-xp">20</b><span class="stat__unit">XP</span>
+        </span>
       </div>
 
       <div class="hud__tools">
-        <button type="button" class="icon-btn" id="hud-sound" data-action="toggle-sound" aria-pressed="false" data-i18n-aria="hud.sound" aria-label="Sound effects"></button>
+        <button type="button" class="icon-btn icon-btn--sound" id="hud-sound" data-action="toggle-sound" aria-pressed="false" data-i18n-aria="hud.sound" aria-label="Sound effects"></button>
+        <button type="button" class="icon-btn icon-btn--calm" data-action="toggle-calm" aria-pressed="false" data-i18n-aria="hud.calm" data-i18n-title="hud.calm" aria-label="Larger text / Calm UI" title="Larger text / Calm UI"><span data-icon="text-size"></span></button>
         <div class="seg" role="group" data-i18n-aria="hud.language" aria-label="Language">
           <button type="button" data-lang="en" aria-pressed="true">EN</button>
           <button type="button" data-lang="pl" aria-pressed="false">PL</button>
         </div>
         <button type="button" class="tool-btn" data-action="reset"><span data-icon="reset"></span><span data-i18n="hud.reset">Reset / Profile</span></button>
         <button type="button" class="tool-btn tool-btn--judges" data-action="open-judges"><span data-icon="clipboard"></span><span data-i18n="hud.judges">For judges</span></button>
-        <!-- Demo ▾ — presenter controls, collapsed by default (Issue #44) -->
+        <!-- Demo ▾ — presenter controls, collapsed by default -->
         <button type="button" class="tool-btn tool-btn--demo" data-action="toggle-demo" aria-expanded="false" aria-controls="demo-pop"><span data-i18n="demo.toggle">Demo</span><span data-icon="chevron-down" data-icon-class="ic--sm"></span></button>
         <button type="button" class="icon-btn hud__menu-btn" data-action="toggle-menu" aria-expanded="false" aria-controls="hud-menu" data-i18n-aria="hud.menu" aria-label="More options"><span data-icon="menu"></span></button>
       </div>
@@ -68,6 +71,7 @@
         <button type="button" data-lang="en" aria-pressed="true">EN</button>
         <button type="button" data-lang="pl" aria-pressed="false">PL</button>
       </div>
+      <button type="button" class="tool-btn" data-action="toggle-calm" aria-pressed="false"><span data-icon="text-size"></span><span data-i18n="hud.calm">Larger text / Calm UI</span></button>
       <button type="button" class="tool-btn" data-action="reset"><span data-icon="reset"></span><span data-i18n="hud.reset">Reset / Profile</span></button>
       <button type="button" class="tool-btn tool-btn--judges" data-action="open-judges"><span data-icon="clipboard"></span><span data-i18n="hud.judges">For judges</span></button>
       <div class="demo-group" id="demo-menu-mobile"></div>
@@ -88,16 +92,16 @@
           </div>
           <span class="bank-entry__mark" aria-hidden="true"><span data-icon="brand"></span></span>
         </div>
-        <div class="bank-entry__transactions" aria-label="Recent sample transactions">
+        <div class="bank-entry__transactions" data-i18n-aria="entry.transactions" aria-label="Recent sample transactions">
           <div><span><span class="bank-entry__dot bank-entry__dot--green"></span><span data-i18n="entry.transaction1">Salary · sample</span></span><b>+6,000 PLN</b></div>
           <div><span><span class="bank-entry__dot bank-entry__dot--coral"></span><span data-i18n="entry.transaction2">Rent · sample</span></span><b>−2,100 PLN</b></div>
         </div>
-        <button type="button" class="btn btn--primary btn--lg btn--block" data-action="start-entry"><span data-icon="arrow-right"></span><span data-i18n="entry.cta">Build your investment plan &amp; start investing in 14 days</span></button>
+        <button type="button" class="btn btn--primary btn--lg btn--block" data-action="start-entry"><span data-i18n="entry.cta">Build your investment plan &amp; start investing in 14 days</span><span data-icon="arrow-right"></span></button>
         <p class="tiny muted bank-entry__note" data-i18n="entry.note">Nothing is executed. This is a guided learning simulation.</p>
       </div>
       <div class="bank-entry__why">
         <div class="cora" data-cora="idle"></div>
-        <div><h2 class="h2" data-i18n="entry.whyTitle">A calmer way to start</h2><p class="lead" data-i18n="entry.whyText">Kita turns a big money decision into one small, clear step at a time.</p></div>
+        <div><h2 class="h2" data-i18n="entry.whyTitle">A calmer way to start</h2><p class="lead" data-i18n="entry.whyText">Atlas, your Commerzbank financial guide, turns a big money decision into one clear step at a time.</p></div>
       </div>
     </section>
 
@@ -106,10 +110,10 @@
       <div class="intro">
         <div>
           <h1 id="t-onboarding" class="h1" data-screen-title tabindex="-1" data-i18n="onb.title">Build investing confidence in 14 days.</h1>
-          <p class="lead" style="margin-top:14px" data-i18n="onb.lead">Five minutes a day. Pick where you are in life and Kita cuts every bit of theory you don't need yet.</p>
+          <p class="lead" style="margin-top:14px" data-i18n="onb.lead">Five minutes a day. Pick where you are in life and Atlas leaves out every bit of theory you don't need yet.</p>
         </div>
         <div class="intro__cora">
-          <div class="bubble bubble--left" data-i18n="onb.bubble">Hi, I'm Kita, your daily coach. Tap the life stage that sounds like you.</div>
+          <div class="bubble" id="onb-bubble" data-i18n="onb.bubble">I'm Atlas, your Commerzbank financial guide. Choose the life stage that fits you best.</div>
           <div class="cora" data-cora="idle"></div>
         </div>
       </div>
@@ -205,10 +209,10 @@
 
     <!-- ===================== Screen 2 — Quest Hub ===================== -->
     <section id="screen_filter_and_timemachine" class="screen wrap" aria-labelledby="t-hub" hidden>
-      <h2 id="t-hub" class="sr-only" data-screen-title tabindex="-1" data-i18n="hub.srTitle">Your quest map</h2>
+      <h2 id="t-hub" class="sr-only" data-screen-title tabindex="-1" data-i18n="hub.srTitle">Your 14-day plan</h2>
       <div class="hub">
         <div class="hub__col hub__path" id="hub-path-col"></div>
-        <!-- Today's briefing: one calm step at a time (Issue #44) -->
+        <!-- Today's briefing: one calm step at a time -->
         <div class="hub__col hub__brief" id="hub-brief-col">
           <div class="steps" role="tablist" id="hub-steps" data-i18n-aria="hub.steps" aria-label="Today's briefing"></div>
           <div class="step-panel" id="hub-panel-1" role="tabpanel" aria-labelledby="hub-tab-1">
@@ -259,6 +263,8 @@
                 <p class="kpi__sub" id="kpi-win-text"></p>
               </div>
             </div>
+            <!-- Cost of Waiting (inflation erosion) — the calm 45+ mode shows it -->
+            <div class="cow calm-only" id="tm-cow" aria-live="polite"></div>
             <div class="chart-box"><canvas id="tm-chart" role="img" data-i18n-aria="tm.chartAria" aria-label="Chart of contributions in a 0% account versus a broad ETF in today's money, with an educational -20% dip in year 3"></canvas></div>
             <ul class="legend">
               <li><i class="l-etf"></i><span data-i18n="tm.legendEtf">Broad ETF (real)</span></li>
@@ -268,7 +274,7 @@
             <div class="assume">
               <p><strong id="tm-assumptions"></strong></p>
               <p data-i18n="tm.history">Historical simulation. Results vary and future returns are not guaranteed.</p>
-              <p data-i18n="compliance.mifid">Finance Quest is strictly an educational and simulation tool.</p>
+              <p data-i18n-define="compliance.mifid">Finance Quest is strictly an educational and simulation tool.</p>
             </div>
           </div>
             <div class="step-nav" data-step-nav="2"></div>
@@ -285,16 +291,16 @@
 
     <!-- ===================== Screen 3 — mission (full focus) ===================== -->
     <section id="screen_mission_live" class="screen" aria-labelledby="t-mission" hidden>
-      <h2 id="t-mission" class="sr-only" data-screen-title tabindex="-1" data-i18n="mission.srTitle">Mission</h2>
+      <h2 id="t-mission" class="sr-only" data-screen-title tabindex="-1" data-i18n="mission.srTitle">Decision simulation</h2>
       <div class="mbar">
         <div class="wrap wrap--narrow">
           <div class="mbar__row">
-            <button type="button" class="icon-btn" data-action="close-mission" data-i18n-aria="mission.close" aria-label="Close mission"><span data-icon="x"></span></button>
-            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="m-progress" data-i18n-aria="mission.progress" aria-label="Mission progress">
+            <button type="button" class="icon-btn" data-action="close-mission" data-i18n-aria="mission.close" aria-label="Close simulation"><span data-icon="x"></span></button>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="m-progress" data-i18n-aria="mission.progress" aria-label="Simulation progress">
               <div class="progress__ticks" id="m-ticks"></div>
               <div class="progress__fill" id="m-progress-fill"></div>
             </div>
-            <span class="mbar__xp" id="m-xp-pill"><span data-icon="bolt"></span><span id="m-xp">20</span></span>
+            <span class="mbar__xp xp-detail" id="m-xp-pill"><span id="m-xp" class="num">20</span> XP</span>
           </div>
           <div class="mbar__meta" id="m-meta"></div>
         </div>
@@ -305,9 +311,9 @@
         <div class="wrap wrap--narrow">
           <div class="checkbar__row">
             <button type="button" class="btn btn--ghost" data-action="open-cora" id="m-explain"><span data-icon="help"></span><span data-i18n="mission.explain">Explain simpler</span></button>
-            <button type="button" class="btn btn--primary" data-action="check" id="m-check" disabled><span class="spinner" hidden></span><span data-label data-i18n="mission.check">Check</span></button>
+            <button type="button" class="btn btn--primary" data-action="check" id="m-check" disabled><span class="spinner" hidden></span><span data-label data-i18n="mission.check">Check my answer</span></button>
           </div>
-          <p class="disclaimer"><span data-icon="info"></span><span data-i18n="ai.disclaimer">AI Coach Kita can make mistakes. Educational simulation only, not financial advice.</span></p>
+          <p class="disclaimer"><span data-icon="info"></span><span data-i18n="ai.disclaimer">Atlas is an AI guide and can make mistakes. Educational simulation only, not financial advice.</span></p>
         </div>
       </div>
 
@@ -327,9 +333,9 @@
       </div>
     </section>
 
-    <!-- ===================== Screen 4 — mission complete ===================== -->
+    <!-- ===================== Screen 4 — day complete ===================== -->
     <section id="screen_checklist" class="screen wrap" aria-labelledby="t-complete" hidden>
-      <h2 id="t-complete" class="sr-only" data-screen-title tabindex="-1" data-i18n="done.srTitle">Mission complete</h2>
+      <h2 id="t-complete" class="sr-only" data-screen-title tabindex="-1" data-i18n="done.srTitle">Day complete</h2>
       <div id="done-root"></div>
     </section>
 
@@ -344,43 +350,43 @@
   <div id="modal_intro" class="modal modal--center" role="dialog" aria-modal="true" aria-labelledby="intro-title" hidden>
     <div class="scrim" data-action="close-intro"></div>
     <div class="modal__panel intro-modal">
-      <div class="intro-modal__top"><span class="chip chip--yellow" id="intro-step">1/3</span><button type="button" class="icon-btn" data-action="close-intro" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button></div>
-      <div class="intro-modal__scene"><div class="cora" data-cora="coaching"></div><div class="bubble bubble--left"><p class="h3" id="intro-title"></p><p class="small" id="intro-copy" style="margin-top:8px"></p></div></div>
+      <div class="intro-modal__top"><span class="chip chip--soft num" id="intro-step">1/3</span><button type="button" class="icon-btn" data-action="close-intro" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button></div>
+      <div class="intro-modal__scene"><span class="intro-modal__icon" id="intro-icon" aria-hidden="true"></span><div><p class="h3" id="intro-title"></p><p class="small" id="intro-copy" style="margin-top:8px;color:var(--ink-2)"></p></div></div>
       <div class="intro-modal__progress"><span id="intro-progress"></span></div>
       <div class="intro-modal__actions"><button type="button" class="btn btn--ghost" data-action="skip-intro" data-i18n="intro.skip">Skip</button><button type="button" class="btn btn--primary" data-action="next-intro" id="intro-next"><span data-i18n="intro.next">Next</span><span data-icon="arrow-right"></span></button></div>
     </div>
   </div>
 
-  <!-- Kita name welcome -->
+  <!-- How should we address you? (advisory-style name prompt) -->
   <div id="modal_name" class="modal modal--center" role="dialog" aria-modal="true" aria-labelledby="name-title" hidden>
     <div class="scrim" data-action="close-name"></div>
     <div class="modal__panel name-modal">
-      <div class="intro-modal__top"><span class="chip chip--sky" data-i18n="name.badge">Meet Kita</span><button type="button" class="icon-btn" data-action="close-name" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button></div>
-      <div class="name-modal__scene"><div class="cora" data-cora="celebrating"></div><div class="bubble bubble--left"><h2 id="name-title" class="h2" data-i18n="name.title">What should I call you?</h2><p class="small" data-i18n="name.copy">A first name helps me make the journey feel like yours.</p></div></div>
-      <form id="name-form" class="name-modal__form"><label for="user-name" class="small strong" data-i18n="name.label">Your first name</label><input id="user-name" class="input" maxlength="40" autocomplete="given-name" data-i18n-placeholder="name.placeholder" placeholder="For example, Alex"><div class="name-modal__actions"><button type="button" class="btn btn--ghost" data-action="skip-name" data-i18n="name.skip">Skip for now</button><button type="submit" class="btn btn--primary"><span data-i18n="name.continue">Continue</span><span data-icon="arrow-right"></span></button></div></form>
+      <div class="intro-modal__top"><span class="chip chip--soft" data-i18n="name.badge">Your personal plan</span><button type="button" class="icon-btn" data-action="close-name" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button></div>
+      <div class="name-modal__head"><div class="cora" data-cora="confident"></div><div><h2 id="name-title" class="h2" data-i18n="name.title">How would you like us to address you?</h2><p class="name-modal__sub" data-i18n="name.copy">Atlas will prepare your plan.</p></div></div>
+      <form id="name-form" class="name-modal__form"><label for="user-name" class="small strong" data-i18n="name.label">First name</label><input id="user-name" class="input" maxlength="40" autocomplete="given-name" data-i18n-placeholder="name.placeholder" placeholder="For example, Alex"><p class="input-note" data-i18n="name.note">Used only to personalise your plan and summaries.</p><div class="name-modal__actions"><button type="button" class="btn btn--ghost" data-action="skip-name" data-i18n="name.skip">Skip for now</button><button type="submit" class="btn btn--primary"><span data-i18n="name.continue">Continue</span><span data-icon="arrow-right"></span></button></div></form>
     </div>
   </div>
 
-  <!-- Ask Kita dock (docs/01 §5) -->
-  <button type="button" class="cora-dock" id="cora-dock" data-action="open-cora" data-i18n-aria="cora.ask" aria-label="Ask Kita">
+  <!-- Ask Atlas dock (docs/01 §5) -->
+  <button type="button" class="cora-dock" id="cora-dock" data-action="open-cora" data-i18n-aria="cora.ask" aria-label="Ask Atlas">
     <span class="cora-dock__face" data-cora-face></span>
-    <span class="cora-dock__label" data-i18n="cora.ask">Ask Kita</span>
+    <span class="cora-dock__label" data-i18n="cora.ask">Ask Atlas</span>
   </button>
 
-  <!-- Ask Kita / Explain simpler drawer -->
+  <!-- Ask Atlas / Explain simpler drawer -->
   <div id="cora-sheet" hidden>
     <div class="scrim" data-action="close-cora"></div>
     <aside class="sheet sheet--side" role="dialog" aria-modal="true" aria-labelledby="cora-sheet-title">
       <div class="sheet__head">
         <div class="cora" data-cora="idle" id="cora-sheet-cora"></div>
         <div>
-          <p class="sheet__title" id="cora-sheet-title" data-i18n="cora.title">Ask Kita</p>
+          <p class="sheet__title" id="cora-sheet-title" data-i18n="cora.title">Ask Atlas</p>
           <p class="small muted" data-i18n="cora.sub">Plain words, a real-life example and a 10-second check.</p>
         </div>
         <button type="button" class="icon-btn sheet__close" data-action="close-cora" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button>
       </div>
       <div class="sheet__body" id="cora-body"></div>
-      <div class="sheet__foot"><p class="disclaimer"><span data-icon="info"></span><span data-i18n="ai.disclaimer">AI Coach Kita can make mistakes.</span></p></div>
+      <div class="sheet__foot"><p class="disclaimer"><span data-icon="info"></span><span data-i18n="ai.disclaimer">Atlas is an AI guide and can make mistakes.</span></p></div>
     </aside>
   </div>
 
@@ -411,10 +417,13 @@
     </div>
   </div>
 
+  <!-- Tap-to-define popover (filled by app.js) -->
+  <div class="term-pop" id="term-pop" role="dialog" aria-modal="false" aria-labelledby="term-pop-title" hidden></div>
+
   <div class="toast-root" id="toast-root" aria-live="polite"></div>
 
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
-  <script src="/static/app.js?v=19.0"></script>
+  <script src="/static/app.js?v=20.0"></script>
 </body>
 </html>
