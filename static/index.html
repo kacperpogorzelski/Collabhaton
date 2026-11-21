@@ -1,458 +1,346 @@
 <!doctype html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#002E3C">
+  <meta name="theme-color" content="#F7F5EE">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="Finance Quest by Commerzbank — od zera do pierwszej świadomej inwestycji w 14 dni, po 5 minut dziennie.">
-  <title>Finance Quest — by Commerzbank</title>
-  <!-- Favicon inline (bez żądania /favicon.ico) -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23FFCC00'/%3E%3Cpath d='M7 21l6-6 4 4 8-8' fill='none' stroke='%23002E3C' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-
-  <!-- Wszystkie zasoby LOKALNIE z /static/vendor/ — zero CDN w runtime (AGENTS.md §3, docs/01 §5) -->
-  <!-- ?v= — cache-busting: po każdej zmianie styles.css/app.js podbij wersję (serwer nie wysyła Cache-Control) -->
-  <link rel="stylesheet" href="/static/styles.css?v=12.1">
-  <script>
-    // Tailwind Play (plik lokalny z /static/vendor/) zawsze ostrzega o „cdn.tailwindcss.com",
-    // choć nic nie jest pobierane z CDN. Wyciszamy tylko ten komunikat na czas wczytania skryptu.
-    window.__fqWarn = console.warn;
-    console.warn = function (msg) {
-      if (typeof msg === 'string' && msg.indexOf('cdn.tailwindcss.com should not be used in production') === 0) return;
-      return window.__fqWarn.apply(console, arguments);
-    };
-  </script>
-  <script src="/static/vendor/tailwind.js"></script>
-  <script>
-    console.warn = window.__fqWarn;
-    delete window.__fqWarn;
-
-    // Paleta i font (docs/01 §5) — jedyne miejsce konfiguracji Tailwinda.
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'brand-dark': '#002E3C',
-            'brand-yellow': '#FFCC00',
-            'brand-yellow-dark': '#D9A900',
-            'etf-green': '#10B981',
-            'inflation-red': '#F43F5E',
-            'streak-orange': '#F97316',
-            'stress-amber': '#F59E0B',
-            'surface-bg': '#F8FAFC',
-            'card-bg': '#FFFFFF'
-          },
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'Arial', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Noto Color Emoji"']
-          },
-          minHeight: { tap: '44px' },
-          minWidth: { tap: '44px' }
-        }
-      }
-    };
-  </script>
+  <meta name="description" data-i18n-content="meta.description" content="Finance Quest by Commerzbank: build investing confidence in a 14-day sprint, five minutes a day.">
+  <title data-i18n="meta.title">Finance Quest by Commerzbank</title>
+  <!-- Inline favicon (no /favicon.ico request) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1.5' y='1.5' width='29' height='29' rx='8' fill='%23FFCC00' stroke='%23082933' stroke-width='3'/%3E%3Cpath d='M8 21l5-5 4 3 7-8' fill='none' stroke='%23082933' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <!-- Everything is local (static/vendor) — zero CDN at runtime (AGENTS.md §3).
+       ?v= cache-busting: bump after every change to styles.css / app.js. -->
+  <link rel="preload" href="/static/vendor/fonts/BricolageGrotesque-800.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/styles.css?v=13.0">
 </head>
-<body class="min-h-screen bg-surface-bg font-sans text-brand-dark antialiased" data-screen="screen_onboarding">
-  <a href="#app-main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-xl focus:bg-brand-yellow focus:px-4 focus:py-3 focus:font-bold">Przejdź do treści</a>
+<body data-screen="screen_onboarding">
+  <a href="#main" class="skip-link" data-i18n="a11y.skip">Skip to content</a>
 
-  <!-- ===================== STAŁY NAGŁÓWEK (docs/01 §6) ===================== -->
-  <header id="app-header" class="bg-brand-dark text-white">
-    <div class="mx-auto flex max-w-4xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-      <!-- Lewa: logo -->
-      <div class="flex min-h-tap items-center gap-3">
-        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-yellow text-brand-dark shadow-[0_3px_0_#D9A900]" aria-hidden="true">
-          <i data-lucide="trending-up" class="h-6 w-6"></i>
+  <!-- ===================== PLAYER HUD (docs/01 §6) ===================== -->
+  <header class="hud" id="hud">
+    <div class="wrap hud__inner">
+      <button type="button" class="hud__brand" data-action="go-home" data-i18n-aria="hud.home" aria-label="Finance Quest home">
+        <span class="brand-mark" data-icon="brand"></span>
+        <span class="brand-text">
+          <span class="brand-name">Finance Quest</span>
+          <span class="brand-sub" data-i18n="brand.sub">by Commerzbank, 14-Day Confidence Sprint</span>
         </span>
-        <span class="leading-tight">
-          <span class="block text-lg font-extrabold tracking-tight sm:text-xl">Finance Quest</span>
-          <span class="block text-xs font-medium text-white/70">by Commerzbank • Plan 14 Dni</span>
+      </button>
+
+      <div class="hud__stats">
+        <span class="stat stat--day" id="hud-day" data-i18n-title="hud.dayTitle" title="Day of your 14-day sprint">
+          <span data-icon="calendar"></span><span class="stat__label" data-i18n="hud.day">Day</span>
+          <b class="num"><span id="hud-day-num">1</span>/<span id="hud-day-total">14</span></b>
         </span>
+        <span class="stat stat--streak" data-i18n-title="hud.streakTitle" title="Day streak">
+          <span data-icon="flame"></span><b class="num" id="hud-streak">1</b>
+        </span>
+        <span class="stat stat--xp" id="hud-xp-pill" title="XP">
+          <span data-icon="bolt"></span><b class="num" id="hud-xp">20</b><span class="stat__unit">XP</span>
+          <span class="stat__lvl" id="hud-level">Lv 1</span>
+        </span>
+        <div class="ready" id="hud-ready" hidden>
+          <span class="ready__label"><span data-i18n="hud.readiness">Readiness</span> <b id="hud-ready-val">0%</b></span>
+          <div class="meter" role="progressbar" data-i18n-aria="hud.readiness" aria-label="Readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="hud-ready-bar">
+            <div class="meter__fill" id="hud-ready-fill" style="width: 0%"></div>
+          </div>
+        </div>
       </div>
 
-      <!-- Prawa: DEMO MODE — 3 pigułki person (GET /api/demo-personas) -->
-      <nav id="demo-mode" aria-label="Demo Mode — przykładowe profile" class="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-        <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-yellow">
-          <i data-lucide="presentation" class="h-3.5 w-3.5" aria-hidden="true"></i>Demo Mode
-        </span>
-        <div class="grid grid-cols-3 gap-1.5 sm:flex sm:gap-2">
-          <button type="button" data-persona-id="young_20" aria-pressed="false" title="22 l. • Student (Start od zera)"
-            class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-4 sm:text-sm">22 l. Student</button>
-          <button type="button" data-persona-id="mid_38" aria-pressed="false" title="38 l. • Kariera i Rodzina"
-            class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-4 sm:text-sm">38 l. Rodzina</button>
-          <button type="button" data-persona-id="senior_56" aria-pressed="false" title="56 l. • Ochrona Kapitału 50+"
-            class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-4 sm:text-sm">56 l. 50+</button>
+      <div class="hud__tools">
+        <button type="button" class="icon-btn" id="hud-sound" data-action="toggle-sound" aria-pressed="false" data-i18n-aria="hud.sound" aria-label="Sound effects"></button>
+        <div class="seg" role="group" data-i18n-aria="hud.language" aria-label="Language">
+          <button type="button" data-lang="en" aria-pressed="true">EN</button>
+          <button type="button" data-lang="pl" aria-pressed="false">PL</button>
         </div>
-      </nav>
+        <button type="button" class="tool-btn" data-action="reset"><span data-icon="reset"></span><span data-i18n="hud.reset">Reset / Profile</span></button>
+        <button type="button" class="tool-btn tool-btn--judges" data-action="open-judges"><span data-icon="clipboard"></span><span data-i18n="hud.judges">For judges</span></button>
+        <button type="button" class="icon-btn hud__menu-btn" data-action="toggle-menu" aria-expanded="false" aria-controls="hud-menu" data-i18n-aria="hud.menu" aria-label="More options"><span data-icon="menu"></span></button>
+      </div>
+    </div>
+    <div class="wrap hud__ready-row" id="hud-ready-row" hidden></div>
+    <div class="hud__menu" id="hud-menu" hidden>
+      <div class="seg" role="group" data-i18n-aria="hud.language" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="pl" aria-pressed="false">PL</button>
+      </div>
+      <button type="button" class="tool-btn" data-action="reset"><span data-icon="reset"></span><span data-i18n="hud.reset">Reset / Profile</span></button>
+      <button type="button" class="tool-btn tool-btn--judges" data-action="open-judges"><span data-icon="clipboard"></span><span data-i18n="hud.judges">For judges</span></button>
     </div>
   </header>
 
-  <!-- Środek nagłówka: dzień, poziom/XP, streak, Gotowość (przyklejony od md) -->
-  <div id="status-bar" class="z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur md:sticky md:top-0">
-    <div class="mx-auto flex max-w-4xl flex-wrap items-center gap-2 px-4 py-2.5 sm:gap-3 sm:px-6 lg:px-8">
-      <span class="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-dark/5 px-3 text-xs font-bold sm:text-sm">
-        <span aria-hidden="true">📅</span>
-        <span>Dzień <span id="hdr-day" class="tabular-nums">1</span> z <span id="hdr-total-days" class="tabular-nums">14</span></span>
-      </span>
-
-      <span id="hdr-level" class="inline-flex h-9 items-center gap-2 rounded-full border border-brand-yellow/70 bg-brand-yellow/15 px-3 text-xs font-bold sm:text-sm">
-        <span id="hdr-level-icon" aria-hidden="true">⭐</span>
-        <span>Poz. <span id="hdr-level-num">1</span>: <span id="hdr-level-title">Obserwator</span> (<span id="hdr-xp" class="tabular-nums">20</span> XP)</span>
-        <span class="hidden h-1.5 w-14 overflow-hidden rounded-full bg-brand-yellow/30 sm:block" aria-hidden="true">
-          <span id="hdr-xp-fill" class="shimmer-bar block h-full rounded-full bg-brand-yellow-dark transition-[width] duration-700 ease-out" style="width: 20%"></span>
-        </span>
-        <span id="hdr-xp-delta" class="text-etf-green tabular-nums" aria-hidden="true" hidden></span>
-      </span>
-
-      <span id="hdr-streak" class="inline-flex h-9 items-center gap-1.5 rounded-full bg-streak-orange/10 px-3 text-xs font-bold text-streak-orange sm:text-sm">
-        <span aria-hidden="true">🔥</span><span id="hdr-streak-text">1 dzień</span>
-      </span>
-
-      <!-- Gotowość: widoczna od Ekranu 2 (confidence_score z API, startuje od samooceny) -->
-      <div id="hdr-readiness" class="flex basis-full items-center gap-3 md:min-w-[220px] md:flex-1 md:basis-0" hidden>
-        <span class="whitespace-nowrap text-xs font-bold sm:text-sm">
-          Gotowość: <span id="hdr-readiness-value" class="tabular-nums">0%</span>
-          <span id="hdr-readiness-delta" class="ml-0.5 text-etf-green tabular-nums" aria-hidden="true" hidden></span>
-        </span>
-        <div id="hdr-readiness-bar" class="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-200/80" role="progressbar" aria-label="Gotowość" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-          <div id="hdr-readiness-fill" class="shimmer-bar h-full rounded-full bg-gradient-to-r from-etf-green to-emerald-400 transition-[width] duration-700 ease-out" style="width: 0%"></div>
+  <main id="main" tabindex="-1">
+    <!-- ===================== Screen 1 — life stage / profile ===================== -->
+    <section id="screen_onboarding" class="screen wrap" aria-labelledby="t-onboarding">
+      <div class="intro">
+        <div>
+          <h1 id="t-onboarding" class="h1" data-screen-title tabindex="-1" data-i18n="onb.title">Build investing confidence in 14 days.</h1>
+          <p class="lead" style="margin-top:14px" data-i18n="onb.lead">Five minutes a day. Pick where you are in life and Cora cuts every bit of theory you don't need yet.</p>
+        </div>
+        <div class="intro__cora">
+          <div class="bubble bubble--left" data-i18n="onb.bubble">Hi, I'm Cora, your daily coach. Tap the life stage that sounds like you.</div>
+          <div class="cora" data-cora="idle"></div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ===================== EKRANY (docs/01 §7) ===================== -->
-  <main id="app-main" class="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-
-    <!-- Ekran 1: Ankieta (docs/01 §7 Ekran 1) -->
-    <section id="screen_onboarding" class="screen screen-enter" aria-labelledby="screen_onboarding_title">
-      <div class="mb-6 max-w-2xl sm:mb-8">
-        <h1 id="screen_onboarding_title" data-screen-title tabindex="-1" class="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">Zbuduj pewność inwestycyjną w 14 dni. Po 5 minut dziennie.</h1>
-        <p class="mt-3 text-base text-slate-600 sm:text-lg">6 szybkich pytań wytnie zbędną teorię w stylu Speakly i ułoży Twój plan.</p>
-        <p class="mt-2 flex items-center gap-2 text-sm text-slate-500">
-          <i data-lucide="mouse-pointer-click" class="h-4 w-4 shrink-0 text-brand-yellow-dark" aria-hidden="true"></i>
-          <span>Szybki start: wybierz profil w <strong class="font-bold text-brand-dark">Demo Mode</strong> u góry ekranu.</span>
-        </p>
+      <div class="section-title">
+        <h2 class="h2" data-i18n="onb.stagesTitle">Where are you in life?</h2>
+        <p class="small muted" data-i18n="onb.stagesHint">One tap builds your plan.</p>
       </div>
+      <div class="stage-grid" id="stage-grid"></div>
 
-      <form id="onboarding-form" novalidate class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-8">
-        <div class="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
-
-          <!-- 1. Wiek -->
-          <div class="fq-field" data-field="age">
-            <div class="flex items-baseline justify-between gap-3">
-              <label for="f-age" class="fq-q"><span class="fq-q-num">1</span>Wiek</label>
-              <output id="f-age-out" for="f-age" class="text-2xl font-extrabold tabular-nums">35 lat</output>
-            </div>
-            <input id="f-age" name="age" type="range" min="18" max="70" step="1" value="35" class="fq-range mt-1 w-full" aria-describedby="f-age-group">
-            <span id="f-age-group" class="inline-flex self-start rounded-full bg-brand-dark/5 px-2.5 py-1 text-xs font-bold text-brand-dark">Kariera i Rodzina (30–50)</span>
-            <p class="fq-error" data-error-for="age" role="alert" hidden></p>
-          </div>
-
-          <!-- 2. Zarobki netto -->
-          <div class="fq-field" data-field="net_income">
-            <div class="flex items-baseline justify-between gap-3">
-              <label for="f-net" class="fq-q"><span class="fq-q-num">2</span>Zarobki netto</label>
-              <output id="f-net-out" for="f-net" class="text-2xl font-extrabold tabular-nums">6 000 zł</output>
-            </div>
-            <input id="f-net" name="net_income" type="range" min="2500" max="25000" step="500" value="6000" class="fq-range mt-1 w-full">
-            <p class="text-xs text-slate-500">miesięcznie, „na rękę”</p>
-            <p class="fq-error" data-error-for="net_income" role="alert" hidden></p>
-          </div>
-
-          <!-- 3. Wolne środki -->
-          <div class="fq-field" data-field="free_cash">
-            <div class="flex items-baseline justify-between gap-3">
-              <label for="f-free" class="fq-q"><span class="fq-q-num">3</span>Wolne środki miesięcznie</label>
-              <output id="f-free-out" for="f-free" class="text-2xl font-extrabold tabular-nums">1 000 zł</output>
-            </div>
-            <input id="f-free" name="free_cash" type="range" min="200" max="6000" step="100" value="1000" class="fq-range mt-1 w-full" aria-describedby="f-free-hint">
-            <p id="f-free-hint" class="text-xs text-slate-500">maks. <span id="f-free-max" class="tabular-nums">6 000 zł</span> — nie więcej niż zarobki netto</p>
-            <p class="fq-error" data-error-for="free_cash" role="alert" hidden></p>
-          </div>
-
-          <!-- 4. Poduszka -->
-          <fieldset class="fq-field" data-field="has_emergency_fund">
-            <legend class="fq-q"><span class="fq-q-num">4</span>Poduszka (min. 3 mies. wydatków)</legend>
-            <div class="mt-3 grid grid-cols-2 gap-3">
-              <label class="block cursor-pointer">
-                <input type="radio" name="has_emergency_fund" value="true" class="sr-only">
-                <span class="fq-tile"><i data-lucide="shield-check" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Tak, mam poduszkę</span>
-              </label>
-              <label class="block cursor-pointer">
-                <input type="radio" name="has_emergency_fund" value="false" class="sr-only">
-                <span class="fq-tile"><i data-lucide="piggy-bank" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Jeszcze ją buduję</span>
-              </label>
-            </div>
-            <p class="fq-error" data-error-for="has_emergency_fund" role="alert" hidden></p>
-          </fieldset>
-
-          <!-- 5. Główna obawa -->
-          <fieldset class="fq-field md:col-span-2" data-field="main_concern">
-            <legend class="fq-q"><span class="fq-q-num">5</span>Czego najbardziej się obawiasz?</legend>
-            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label class="block cursor-pointer">
-                <input type="radio" name="main_concern" value="freeze_money" class="sr-only">
-                <span class="fq-tile"><i data-lucide="snowflake" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Boję się, że zamrożę pieniądze</span>
-              </label>
-              <label class="block cursor-pointer">
-                <input type="radio" name="main_concern" value="no_time" class="sr-only">
-                <span class="fq-tile"><i data-lucide="clock" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Nie mam czasu na giełdę</span>
-              </label>
-              <label class="block cursor-pointer">
-                <input type="radio" name="main_concern" value="lose_money" class="sr-only">
-                <span class="fq-tile"><i data-lucide="trending-down" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Boję się, że stracę pieniądze</span>
-              </label>
-              <label class="block cursor-pointer">
-                <input type="radio" name="main_concern" value="too_late" class="sr-only">
-                <span class="fq-tile"><i data-lucide="hourglass" class="h-5 w-5 shrink-0" aria-hidden="true"></i>Chyba za późno na start</span>
-              </label>
-            </div>
-            <p class="fq-error" data-error-for="main_concern" role="alert" hidden></p>
-          </fieldset>
-
-          <!-- 6. Samoocena pewności -->
-          <fieldset class="fq-field md:col-span-2" data-field="self_confidence_start">
-            <legend class="fq-q"><span class="fq-q-num">6</span>Jak pewnie czujesz się na myśl o zainwestowaniu pierwszych pieniędzy?</legend>
-            <div class="mt-3 grid grid-cols-5 gap-2 sm:gap-3">
-              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="1" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">1</span></label>
-              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="2" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">2</span></label>
-              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="3" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">3</span></label>
-              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="4" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">4</span></label>
-              <label class="block cursor-pointer"><input type="radio" name="self_confidence_start" value="5" class="sr-only"><span class="fq-tile fq-tile--center text-lg tabular-nums">5</span></label>
-            </div>
-            <div class="mt-1.5 flex justify-between text-xs text-slate-500" aria-hidden="true"><span>1 — wcale</span><span>5 — bardzo pewnie</span></div>
-            <p class="fq-error" data-error-for="self_confidence_start" role="alert" hidden></p>
-          </fieldset>
-        </div>
-      </form>
-
-      <div class="mt-6">
-        <button type="button" id="cta-onboarding" data-action="submit-onboarding" class="btn-3d w-full text-base sm:w-auto sm:text-lg">
-          <span class="fq-spinner" aria-hidden="true" hidden></span>
-          <span data-label>Ułóż mój 14-dniowy plan Speakly</span>
-          <span data-idle-icon class="inline-flex"><i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i></span>
+      <div class="tailor">
+        <button type="button" class="btn btn--ghost btn--block tailor__toggle" data-action="toggle-tailor" aria-expanded="false" aria-controls="tailor-body">
+          <span data-i18n="onb.tailorToggle">Not quite you? Answer 6 quick questions instead</span>
+          <span data-icon="chevron-down"></span>
         </button>
-      </div>
-    </section>
-
-    <!-- Ekran 2: Mapa 14 dni, Filtr Speakly + mikro-lekcje, podział środków, Wehikuł Czasu (docs/01 §7 Ekran 2) -->
-    <section id="screen_filter_and_timemachine" class="screen" aria-labelledby="screen_filter_title" hidden>
-      <h2 id="screen_filter_title" data-screen-title tabindex="-1" class="sr-only">Twój plan Dnia 1: mapa 14 dni, filtr Speakly i Wehikuł Czasu</h2>
-      <div id="plan-intro" class="mb-4 flex flex-wrap items-center gap-2 md:mb-6"></div>
-
-      <div class="grid grid-cols-1 gap-4 md:gap-6">
-        <!-- Karta A — Mapa 14 dni (roadmap_milestones) -->
-        <div id="card-roadmap" data-slot="Karta A — Mapa 14 dni" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
-
-        <!-- Karta B — Filtr Speakly + 3 mikro-lekcje (speakly_filter, micro_lessons) -->
-        <div id="card-speakly" data-slot="Karta B — Filtr Speakly i 3 mikro-lekcje" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
-
-        <!-- Karta C — Przykładowy podział wolnych środków (safe_investment) -->
-        <div id="card-split" data-slot="Karta C — Przykładowy podział wolnych środków" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6"></div>
-
-        <!-- Karta D — Wehikuł Czasu (projection_series, assumptions) -->
-        <div id="card-timemachine" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6">
-          <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h3 class="text-lg font-extrabold tracking-tight sm:text-xl">Wehikuł Czasu: gotówka vs szeroki ETF</h3>
-              <p class="text-sm text-slate-500">w dzisiejszych złotych • przykład: <span id="tm-monthly" class="font-bold text-brand-dark tabular-nums">0 zł/mies.</span></p>
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <div class="flex items-baseline justify-between gap-3">
-              <label for="tm-years" class="text-sm font-bold">Przewiń czas</label>
-              <output id="tm-years-out" for="tm-years" class="text-2xl font-extrabold tabular-nums">15 lat</output>
-            </div>
-            <input id="tm-years" type="range" min="1" max="20" step="1" value="15" class="fq-range w-full">
-            <div class="flex justify-between text-xs text-slate-400" aria-hidden="true"><span>1 rok</span><span>20 lat</span></div>
-          </div>
-
-          <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div class="rounded-2xl border border-inflation-red/25 bg-inflation-red/5 p-4">
-              <p class="text-xs font-bold leading-snug text-inflation-red">Wpłaty na koncie 0% (realnie, w dzisiejszych zł)</p>
-              <p class="mt-1.5 text-2xl font-extrabold tabular-nums"><span id="kpi-cash">0</span> zł</p>
-              <p class="mt-0.5 text-xs text-slate-500">wpłacono łącznie <span id="kpi-paid" class="tabular-nums">0</span> zł</p>
-            </div>
-            <div class="rounded-2xl border border-etf-green/30 bg-etf-green/5 p-4">
-              <p class="text-xs font-bold leading-snug text-emerald-700">Szeroki ETF (realnie, założenia poniżej)</p>
-              <p class="mt-1.5 text-2xl font-extrabold tabular-nums"><span id="kpi-etf">0</span> zł</p>
-              <p class="mt-0.5 text-xs text-slate-500">nominalnie ok. <span id="kpi-etf-nominal" class="tabular-nums">0</span> zł</p>
-            </div>
-            <div class="rounded-2xl border border-brand-yellow/70 bg-brand-yellow/10 p-4">
-              <p class="text-xs font-bold leading-snug text-brand-yellow-dark">Okna historyczne (ilustracyjnie)</p>
-              <p class="mt-1.5 text-sm leading-snug">W ilustracyjnych oknach historycznych <strong id="kpi-win" class="text-2xl font-extrabold tabular-nums">0%</strong> kończyło się dodatnim wynikiem realnym</p>
-              <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-brand-yellow/30" aria-hidden="true"><div id="kpi-win-bar" class="h-full rounded-full bg-brand-yellow-dark transition-[width] duration-500" style="width: 0%"></div></div>
-              <p class="mt-1.5 text-[11px] text-slate-500">ilustracyjne dane edukacyjne<span id="kpi-win-source"></span></p>
-            </div>
-          </div>
-
-          <div class="relative mt-5 h-64 sm:h-72 lg:h-80">
-            <canvas id="tm-chart" role="img" aria-label="Wykres: wartość wpłat na koncie 0% i w szerokim ETF w dzisiejszych złotych, ze scenariuszem wahania -20% w roku 3"></canvas>
-          </div>
-          <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-xs font-semibold text-slate-600">
-            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--solid" aria-hidden="true"></span>Szeroki ETF (realnie)</li>
-            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--dashed" aria-hidden="true"></span>Wpłaty na koncie 0% (realnie)</li>
-            <li class="flex items-center gap-2"><span class="fq-legend-line fq-legend-line--dotted" aria-hidden="true"></span>Scenariusz wahania -20% w roku 3 (edukacyjny)</li>
-          </ul>
-
-          <div class="mt-4 space-y-1.5 border-t border-slate-100 pt-4 text-xs leading-relaxed text-slate-500">
-            <p id="tm-assumptions" class="font-semibold text-slate-600"></p>
-            <p>Symulacja historyczna; wyniki są zmienne i nie gwarantują przyszłych zysków.</p>
-            <p id="tm-compliance"></p>
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-6">
-        <button type="button" data-goto="screen_mission_live" class="btn-3d w-full text-base sm:w-auto sm:text-lg">
-          <span data-label>Rozpocznij Symulację Dnia 1 z AI Coachem</span>
-          <i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i>
-        </button>
-      </div>
-    </section>
-
-    <!-- Ekran 3: Symulacja wyborów z Luną (3 kroki) -->
-    <section id="screen_mission_live" class="screen" aria-labelledby="screen_mission_title" hidden>
-      <h2 id="screen_mission_title" data-screen-title tabindex="-1" class="sr-only">Dzień 1 z 14 — symulacja wyborów z Luną</h2>
-      <div id="mission-root" class="grid grid-cols-1 gap-4 md:gap-6">
-
-        <!-- Mini-panel: krok, wartość portfela (nominalnie), zdarzenie -->
-        <div id="ms-panel" class="fq-scroll-anchor rounded-3xl bg-brand-dark p-5 text-white shadow-xl shadow-slate-200/60 sm:p-6">
-          <div class="flex flex-wrap items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="text-xs font-extrabold uppercase tracking-wider text-brand-yellow sm:text-sm">
-                Dzień <span id="ms-day" class="tabular-nums">1</span> z <span id="ms-total-days" class="tabular-nums">14</span>
-                <span aria-hidden="true">•</span> Symulacja wyborów <span aria-hidden="true">•</span>
-                Krok <span id="ms-step" class="tabular-nums">1</span> z <span id="ms-total-steps" class="tabular-nums">3</span>
-              </p>
-              <div id="ms-steps" class="mt-3 flex w-48 max-w-full gap-1.5" aria-hidden="true">
-                <span class="fq-step"></span><span class="fq-step"></span><span class="fq-step"></span>
+        <div id="tailor-body" class="card" style="margin-top:14px" hidden>
+          <form id="onboarding-form" novalidate>
+            <div class="form-grid">
+              <div class="field" data-field="age">
+                <div class="field__row">
+                  <label for="f-age" class="field__q"><span class="field__n">1</span><span data-i18n="form.age">Your age</span></label>
+                  <output id="f-age-out" for="f-age" class="field__out">35</output>
+                </div>
+                <input id="f-age" name="age" type="range" min="18" max="70" step="1" value="35" class="range">
+                <span id="f-age-group" class="chip chip--soft" style="align-self:flex-start"></span>
+                <p class="field__error" data-error-for="age" role="alert" hidden></p>
               </div>
-              <span id="ms-badge" class="mt-3 inline-flex min-h-[32px] items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-bold sm:text-sm">
-                <i data-lucide="flag" class="h-4 w-4 text-brand-yellow" aria-hidden="true"></i><span id="ms-badge-text"></span>
-              </span>
-            </div>
-            <div class="sm:text-right">
-              <p class="text-xs font-bold text-white/60">Portfel w symulacji (nominalnie)</p>
-              <p class="mt-0.5 text-3xl font-extrabold sm:text-4xl"><span id="ms-value" class="tabular-nums">0</span>&nbsp;zł</p>
-            </div>
-          </div>
-        </div>
 
-        <!-- Karta feedbacku (po kroku 1, 2 i 3): zielona = trafna, bursztynowa = wskazówka -->
-        <div id="ms-feedback" class="fq-feedback fq-scroll-anchor" data-tone="good" role="status" aria-live="polite" hidden>
-          <div class="flex items-start gap-3 sm:gap-4">
-            <span class="fq-feedback-icon" aria-hidden="true">
-              <i data-lucide="shield-check" data-tone-icon="good" class="h-6 w-6"></i>
-              <i data-lucide="brain" data-tone-icon="warm" class="h-6 w-6"></i>
-            </span>
-            <div class="min-w-0 flex-1">
-              <p id="ms-feedback-title" class="font-extrabold"></p>
-              <p id="ms-feedback-answer" class="mt-0.5 text-xs font-semibold text-slate-500" hidden></p>
-              <p id="ms-feedback-text" class="mt-1.5 leading-relaxed"></p>
-              <div class="mt-3 flex flex-wrap items-center gap-2">
-                <span id="ms-feedback-xp" class="fq-pill fq-pill--xp tabular-nums"></span>
-                <span id="ms-feedback-readiness" class="fq-pill tabular-nums" hidden></span>
-                <span id="ms-feedback-level" class="fq-pill fq-pill--level" hidden></span>
+              <div class="field" data-field="net_income">
+                <div class="field__row">
+                  <label for="f-net" class="field__q"><span class="field__n">2</span><span data-i18n="form.net">Net monthly income</span></label>
+                  <output id="f-net-out" for="f-net" class="field__out">6,000 PLN</output>
+                </div>
+                <input id="f-net" name="net_income" type="range" min="2500" max="25000" step="500" value="6000" class="range">
+                <p class="field__hint" data-i18n="form.netHint">What lands in your account each month.</p>
+                <p class="field__error" data-error-for="net_income" role="alert" hidden></p>
               </div>
+
+              <div class="field" data-field="free_cash">
+                <div class="field__row">
+                  <label for="f-free" class="field__q"><span class="field__n">3</span><span data-i18n="form.free">Free cash each month</span></label>
+                  <output id="f-free-out" for="f-free" class="field__out">1,000 PLN</output>
+                </div>
+                <input id="f-free" name="free_cash" type="range" min="200" max="6000" step="100" value="1000" class="range" aria-describedby="f-free-hint">
+                <p id="f-free-hint" class="field__hint"></p>
+                <p class="field__error" data-error-for="free_cash" role="alert" hidden></p>
+              </div>
+
+              <fieldset class="field" data-field="has_emergency_fund">
+                <legend class="field__q"><span class="field__n">4</span><span data-i18n="form.fund">Emergency cushion (3+ months of costs)</span></legend>
+                <div class="tiles tiles--2" style="margin-top:8px">
+                  <label class="tile-wrap"><input type="radio" name="has_emergency_fund" value="true" class="sr-only"><span class="tile"><span data-icon="shield"></span><span data-i18n="form.fundYes">I have one</span></span></label>
+                  <label class="tile-wrap"><input type="radio" name="has_emergency_fund" value="false" class="sr-only"><span class="tile"><span data-icon="piggy"></span><span data-i18n="form.fundNo">Still building it</span></span></label>
+                </div>
+                <p class="field__error" data-error-for="has_emergency_fund" role="alert" hidden></p>
+              </fieldset>
+
+              <fieldset class="field span-2" data-field="main_concern">
+                <legend class="field__q"><span class="field__n">5</span><span data-i18n="form.concern">What worries you most?</span></legend>
+                <div class="tiles tiles--concern" style="margin-top:8px">
+                  <label class="tile-wrap"><input type="radio" name="main_concern" value="freeze_money" class="sr-only"><span class="tile"><span data-icon="snowflake"></span><span data-i18n="concern.freeze_money">Freezing my money</span></span></label>
+                  <label class="tile-wrap"><input type="radio" name="main_concern" value="no_time" class="sr-only"><span class="tile"><span data-icon="clock"></span><span data-i18n="concern.no_time">No time to watch markets</span></span></label>
+                  <label class="tile-wrap"><input type="radio" name="main_concern" value="lose_money" class="sr-only"><span class="tile"><span data-icon="trend-down"></span><span data-i18n="concern.lose_money">Losing my money</span></span></label>
+                  <label class="tile-wrap"><input type="radio" name="main_concern" value="too_late" class="sr-only"><span class="tile"><span data-icon="hourglass"></span><span data-i18n="concern.too_late">It's probably too late for me</span></span></label>
+                </div>
+                <p class="field__error" data-error-for="main_concern" role="alert" hidden></p>
+              </fieldset>
+
+              <fieldset class="field span-2" data-field="self_confidence_start">
+                <legend class="field__q"><span class="field__n">6</span><span data-i18n="form.confidence">How confident do you feel about investing your first money?</span></legend>
+                <div class="tiles tiles--5" style="margin-top:8px">
+                  <label class="tile-wrap"><input type="radio" name="self_confidence_start" value="1" class="sr-only"><span class="tile tile--center">1</span></label>
+                  <label class="tile-wrap"><input type="radio" name="self_confidence_start" value="2" class="sr-only"><span class="tile tile--center">2</span></label>
+                  <label class="tile-wrap"><input type="radio" name="self_confidence_start" value="3" class="sr-only"><span class="tile tile--center">3</span></label>
+                  <label class="tile-wrap"><input type="radio" name="self_confidence_start" value="4" class="sr-only"><span class="tile tile--center">4</span></label>
+                  <label class="tile-wrap"><input type="radio" name="self_confidence_start" value="5" class="sr-only"><span class="tile tile--center">5</span></label>
+                </div>
+                <div class="scale-legend" aria-hidden="true"><span data-i18n="form.scaleLow">1, not at all</span><span data-i18n="form.scaleHigh">5, very confident</span></div>
+                <p class="field__error" data-error-for="self_confidence_start" role="alert" hidden></p>
+              </fieldset>
             </div>
-          </div>
-        </div>
-
-        <!-- Karta Luny -->
-        <div id="ms-luna" class="fq-scroll-anchor rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6">
-          <div class="flex items-center gap-3">
-            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-yellow text-brand-dark shadow-md shadow-brand-yellow/40" aria-hidden="true">
-              <i data-lucide="sparkles" class="h-6 w-6"></i>
-            </span>
-            <p class="font-extrabold leading-tight">Luna <span class="text-slate-400" aria-hidden="true">•</span> <span class="font-semibold text-slate-500">Twój codzienny AI Coach</span></p>
-          </div>
-          <p id="ms-luna-message" class="mt-4 text-base leading-relaxed sm:text-lg" aria-live="polite"></p>
-          <div id="ms-thinking" class="mt-4 inline-flex items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-600" role="status" hidden>
-            <span class="fq-typing" aria-hidden="true"><span></span><span></span><span></span></span>
-            Luna analizuje Twoją odpowiedź...
-          </div>
-        </div>
-
-        <!-- Odpowiedź: 3 karty quick_replies (natychmiast, bez LLM) lub własny tekst -->
-        <div id="ms-interaction" class="rounded-3xl border border-slate-100 bg-card-bg p-5 shadow-xl shadow-slate-200/60 sm:p-6">
-          <div class="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 class="text-lg font-extrabold tracking-tight">Co robisz?</h3>
-            <span class="text-xs font-semibold text-slate-500">Kliknij kartę albo odpowiedz własnymi słowami</span>
-          </div>
-          <div id="ms-replies" class="mt-4 grid grid-cols-1 gap-3"></div>
-
-          <form id="ms-form" class="mt-5" novalidate>
-            <label for="ms-input" class="sr-only">Własna odpowiedź dla AI Coacha</label>
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-              <textarea id="ms-input" name="user_message" rows="2" maxlength="600"
-                class="fq-textarea min-h-[56px] flex-1"
-                placeholder="Lub napisz AI Coachowi własnymi słowami, co robisz i dlaczego..."></textarea>
-              <button type="submit" id="ms-send" class="inline-flex min-h-tap items-center justify-center gap-2 rounded-2xl bg-brand-dark px-5 font-extrabold text-white transition hover:bg-brand-dark/90 disabled:cursor-not-allowed disabled:opacity-50">
-                <span class="fq-spinner fq-spinner--light" hidden></span>
-                <i data-lucide="send" data-idle-icon class="h-4 w-4" aria-hidden="true"></i>
-                <span data-label>Wyślij</span>
+            <div style="margin-top:26px">
+              <button type="submit" class="btn btn--primary btn--lg" id="cta-onboarding">
+                <span class="spinner" hidden></span>
+                <span data-label data-i18n="form.cta">Build my 14-day plan</span>
+                <span data-icon="arrow-right" data-idle-icon></span>
               </button>
-            </div>
-            <div class="mt-1.5 flex justify-between gap-3 text-xs text-slate-500">
-              <span>Enter — wyślij, Shift+Enter — nowa linia</span>
-              <span class="tabular-nums" aria-hidden="true"><span id="ms-count">0</span>/600</span>
             </div>
           </form>
         </div>
       </div>
+    </section>
 
-      <div class="mt-6">
-        <button type="button" id="cta-finish-day" data-goto="screen_checklist" class="btn-3d w-full text-base sm:w-auto sm:text-lg" hidden>
-          <span data-label>Zakończ Dzień 1 i odbierz podsumowanie</span>
-          <i data-lucide="arrow-right" class="h-5 w-5" aria-hidden="true"></i>
-        </button>
+    <!-- ===================== Screen 2 — Quest Hub ===================== -->
+    <section id="screen_filter_and_timemachine" class="screen wrap" aria-labelledby="t-hub" hidden>
+      <h2 id="t-hub" class="sr-only" data-screen-title tabindex="-1" data-i18n="hub.srTitle">Your quest map</h2>
+      <div class="stagebar" id="stagebar" role="group" data-i18n-aria="hub.stagebar" aria-label="Life stage"></div>
+      <div class="hub">
+        <div class="hub__col" id="hub-path-col"></div>
+        <div class="hub__col" id="hub-brief-col">
+          <div class="card" id="card-plan"></div>
+          <div class="card" id="card-skipped"></div>
+          <div class="card" id="card-lessons"></div>
+          <div class="card" id="card-timemachine">
+            <div class="card__head">
+              <h3 class="card__title" data-i18n="tm.title">Time machine: cash vs a broad ETF</h3>
+              <span class="chip chip--soft" id="tm-monthly"></span>
+            </div>
+            <p class="small muted" style="margin-top:4px" data-i18n="tm.sub">All values in today's money, so both lines compare fairly.</p>
+            <div class="range-wrap" style="margin-top:18px">
+              <span class="range-pill" id="tm-pill">15</span>
+              <label for="tm-years" class="sr-only" data-i18n="tm.slider">Years invested</label>
+              <input id="tm-years" type="range" min="1" max="20" step="1" value="15" class="range">
+              <div class="scale-legend" aria-hidden="true"><span id="tm-min">1</span><span id="tm-max">20</span></div>
+            </div>
+            <div class="kpis">
+              <div class="kpi kpi--cash">
+                <p class="kpi__label" data-i18n="tm.kpiCash">Contributions in a 0% account (real)</p>
+                <p class="kpi__value" id="kpi-cash">0</p>
+                <p class="kpi__sub" id="kpi-paid"></p>
+              </div>
+              <div class="kpi kpi--etf">
+                <p class="kpi__label" data-i18n="tm.kpiEtf">Broad ETF (real, assumptions below)</p>
+                <p class="kpi__value" id="kpi-etf">0</p>
+                <p class="kpi__sub" id="kpi-etf-nominal"></p>
+              </div>
+              <div class="kpi kpi--win">
+                <p class="kpi__label" data-i18n="tm.kpiWin">Illustrative historical windows</p>
+                <p class="kpi__value" id="kpi-win">0%</p>
+                <p class="kpi__sub" id="kpi-win-text"></p>
+              </div>
+            </div>
+            <div class="chart-box"><canvas id="tm-chart" role="img" data-i18n-aria="tm.chartAria" aria-label="Chart of contributions in a 0% account versus a broad ETF in today's money, with an educational -20% dip in year 3"></canvas></div>
+            <ul class="legend">
+              <li><i class="l-etf"></i><span data-i18n="tm.legendEtf">Broad ETF (real)</span></li>
+              <li><i class="l-cash"></i><span data-i18n="tm.legendCash">0% account (real)</span></li>
+              <li><i class="l-stress"></i><span data-i18n="tm.legendStress">-20% dip in year 3 (educational)</span></li>
+            </ul>
+            <div class="assume">
+              <p><strong id="tm-assumptions"></strong></p>
+              <p data-i18n="tm.history">Historical simulation. Results vary and future returns are not guaranteed.</p>
+              <p data-i18n="compliance.mifid">Finance Quest is strictly an educational and simulation tool.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mobile-cta" id="hub-mobile-cta"></div>
+    </section>
+
+    <!-- ===================== Screen 3 — mission (full focus) ===================== -->
+    <section id="screen_mission_live" class="screen" aria-labelledby="t-mission" hidden>
+      <h2 id="t-mission" class="sr-only" data-screen-title tabindex="-1" data-i18n="mission.srTitle">Mission</h2>
+      <div class="mbar">
+        <div class="wrap wrap--narrow">
+          <div class="mbar__row">
+            <button type="button" class="icon-btn" data-action="close-mission" data-i18n-aria="mission.close" aria-label="Close mission"><span data-icon="x"></span></button>
+            <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="m-progress" data-i18n-aria="mission.progress" aria-label="Mission progress">
+              <div class="progress__ticks" id="m-ticks"></div>
+              <div class="progress__fill" id="m-progress-fill"></div>
+            </div>
+            <span class="mbar__xp" id="m-xp-pill"><span data-icon="bolt"></span><span id="m-xp">20</span></span>
+          </div>
+          <div class="mbar__meta" id="m-meta"></div>
+        </div>
+      </div>
+      <div class="wrap wrap--narrow" id="m-stage" aria-live="polite"></div>
+
+      <div class="checkbar" id="m-checkbar">
+        <div class="wrap wrap--narrow">
+          <div class="checkbar__row">
+            <button type="button" class="btn btn--ghost" data-action="open-cora" id="m-explain"><span data-icon="help"></span><span data-i18n="mission.explain">Explain simpler</span></button>
+            <button type="button" class="btn btn--primary" data-action="check" id="m-check" disabled><span class="spinner" hidden></span><span data-label data-i18n="mission.check">Check</span></button>
+          </div>
+          <p class="disclaimer"><span data-icon="info"></span><span data-i18n="ai.disclaimer">AI Coach Cora can make mistakes. Educational simulation only, not financial advice.</span></p>
+        </div>
+      </div>
+
+      <div class="drawer" id="m-drawer" role="status" aria-live="assertive" data-tone="win" aria-hidden="true">
+        <div class="wrap wrap--narrow">
+          <div class="drawer__row">
+            <div class="cora" data-cora="celebrating" id="m-drawer-cora"></div>
+            <div>
+              <p class="drawer__title" id="m-drawer-title"></p>
+              <p class="drawer__answer" id="m-drawer-answer" hidden></p>
+              <p class="drawer__text" id="m-drawer-text"></p>
+              <div class="drawer__pills" id="m-drawer-pills"></div>
+            </div>
+            <button type="button" class="btn btn--green drawer__cta" data-action="continue" id="m-continue"><span data-label data-i18n="mission.continue">Continue</span></button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Ekran 4: Ukończenie Dnia 1, wyzwanie, ranking, Commerzbank -->
-    <section id="screen_checklist" class="screen" aria-labelledby="screen_checklist_title" hidden>
-      <h2 id="screen_checklist_title" data-screen-title tabindex="-1" class="sr-only">Podsumowanie Dnia 1 z 14</h2>
-      <!-- Baner ukończenia Dnia 1 / awansu (.level-pop), Gotowość start -> wynik, samoocena „po" -->
-      <div id="card-levelup" class="mb-4 md:mb-6"></div>
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-        <div class="flex flex-col gap-4 md:gap-6">
-          <!-- Lewa kolumna — realne działanie dziś: Karta 1 (mikro-wyzwanie), Karta 2 (checklista) -->
-          <div id="card-challenge"></div>
-          <div id="card-checklist"></div>
-        </div>
-        <div class="flex flex-col gap-4 md:gap-6">
-          <!-- Prawa kolumna — bank i społeczność: Karta 3 (przykładowy plan), Karta 4 (ranking) -->
-          <div id="card-bank"></div>
-          <div id="card-leaderboard"></div>
-        </div>
-      </div>
-      <!-- Stopka compliance (docs/01 §7 Ekran 4, pkt 4) -->
-      <footer id="compliance-footer" class="mt-8"></footer>
+    <!-- ===================== Screen 4 — mission complete ===================== -->
+    <section id="screen_checklist" class="screen wrap" aria-labelledby="t-complete" hidden>
+      <h2 id="t-complete" class="sr-only" data-screen-title tabindex="-1" data-i18n="done.srTitle">Mission complete</h2>
+      <div id="done-root"></div>
+    </section>
+
+    <!-- ===================== Checkpoint #1 ===================== -->
+    <section id="screen_checkpoint" class="screen" aria-labelledby="t-checkpoint" hidden>
+      <h2 id="t-checkpoint" class="sr-only" data-screen-title tabindex="-1" data-i18n="cp.srTitle">Checkpoint #1</h2>
+      <div id="cp-root"></div>
     </section>
   </main>
 
-  <!-- ===================== MODAL: modal_bank_order (DEMO — Zero-Friction Handoff) ===================== -->
-  <div id="modal_bank_order" class="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modal_bank_order_title" hidden>
-    <div class="absolute inset-0 bg-brand-dark/60 backdrop-blur-sm" data-action="close-modal"></div>
-    <div class="screen-enter relative max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-card-bg p-6 shadow-2xl sm:max-w-lg sm:rounded-3xl sm:p-8">
-      <div class="flex items-start justify-between gap-4">
-        <h2 id="modal_bank_order_title" class="text-xl font-extrabold">Przykładowy plan w Commerzbanku</h2>
-        <button type="button" data-action="close-modal" aria-label="Zamknij" class="-mr-2 -mt-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-brand-dark">
-          <i data-lucide="x" class="h-5 w-5" aria-hidden="true"></i>
-        </button>
+  <!-- Ask Cora dock (docs/01 §5) -->
+  <button type="button" class="cora-dock" id="cora-dock" data-action="open-cora" data-i18n-aria="cora.ask" aria-label="Ask Cora">
+    <span class="cora-dock__face" data-cora-face></span>
+    <span class="cora-dock__label" data-i18n="cora.ask">Ask Cora</span>
+  </button>
+
+  <!-- Ask Cora / Explain simpler drawer -->
+  <div id="cora-sheet" hidden>
+    <div class="scrim" data-action="close-cora"></div>
+    <aside class="sheet sheet--side" role="dialog" aria-modal="true" aria-labelledby="cora-sheet-title">
+      <div class="sheet__head">
+        <div class="cora" data-cora="idle" id="cora-sheet-cora"></div>
+        <div>
+          <p class="sheet__title" id="cora-sheet-title" data-i18n="cora.title">Ask Cora</p>
+          <p class="small muted" data-i18n="cora.sub">Plain words, a real-life example and a 10-second check.</p>
+        </div>
+        <button type="button" class="icon-btn sheet__close" data-action="close-cora" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button>
       </div>
-      <div id="bank-order-content" class="mt-4"></div>
+      <div class="sheet__body" id="cora-body"></div>
+      <div class="sheet__foot"><p class="disclaimer"><span data-icon="info"></span><span data-i18n="ai.disclaimer">AI Coach Cora can make mistakes.</span></p></div>
+    </aside>
+  </div>
+
+  <!-- Bank modal (DEMO — zero-friction handoff) -->
+  <div id="modal_bank_order" class="modal" role="dialog" aria-modal="true" aria-labelledby="bank-title" hidden>
+    <div class="scrim" data-action="close-modal"></div>
+    <div class="modal__panel">
+      <div class="modal__head">
+        <h2 id="bank-title" class="h3" data-i18n="bank.title">Your sample plan at Commerzbank</h2>
+        <button type="button" class="icon-btn" data-action="close-modal" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button>
+      </div>
+      <div id="bank-content"></div>
     </div>
   </div>
 
-  <!-- Toasty -->
-  <div id="toast-root" class="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4" aria-live="polite" aria-atomic="false"></div>
+  <!-- For Judges modal -->
+  <div id="modal_judges" class="modal" role="dialog" aria-modal="true" aria-labelledby="judges-title" hidden>
+    <div class="scrim" data-action="close-modal"></div>
+    <div class="modal__panel modal__panel--wide">
+      <div class="modal__head">
+        <div>
+          <h2 id="judges-title" class="h2" data-i18n="judges.title">How Finance Quest works</h2>
+          <p class="small muted" style="margin-top:4px" data-i18n="judges.sub">Commerzbank challenge: from financial knowledge to a first real step.</p>
+        </div>
+        <button type="button" class="icon-btn" data-action="close-modal" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button>
+      </div>
+      <div id="judges-content"></div>
+    </div>
+  </div>
+
+  <div class="toast-root" id="toast-root" aria-live="polite"></div>
 
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
-  <script src="/static/vendor/lucide.min.js"></script>
-  <script src="/static/app.js?v=12.1"></script>
+  <script src="/static/app.js?v=13.0"></script>
 </body>
 </html>
