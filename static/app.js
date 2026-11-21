@@ -6,11 +6,11 @@
    Sections
     1. Config & constants          9. Router
     2. i18n (EN default + PL)      10. Screen 1 — life stage & profile form
-    3. Icons, Kita mascot, badge   11. Screen 2 — Quest Hub
+    3. Icons, Atlas guide, seal    11. Screen 2 — Quest Hub
     4. Sound (Web Audio, 0 assets) 12. Screen 3 — mission engine
     5. Utilities                   13. Screen 4 — mission complete
     6. API + silent session        14. Checkpoint #1
-       recovery                    15. Ask Kita (explain + mini drill)
+       recovery                    15. Ask Atlas (explain + drill)
     7. State                       16. Modals, toasts, confetti
     8. HUD                         17. Events & init
    ========================================================================== */
@@ -31,7 +31,7 @@
   const TOTAL_DAYS = 14;
   const PLAYABLE_DAYS = 4;
   const LS_LANG = 'fq_lang';
-  const LS_MUTED = 'fq_muted';
+  const LS_SOUND = 'fq_sound';         // '1' = the user switched sound on (default: muted)
   const LS_INTRO_SEEN = 'fq_intro_seen';
   const LS_USER_NAME = 'fq_user_name';
 
@@ -44,11 +44,12 @@
     CHECKPOINT: 'screen_checkpoint',
   });
 
+  // "Petrol & Canary" palette (mirrors the :root tokens in styles.css).
   const C = Object.freeze({
-    ink: '#082933', ink3: '#5A6F75', paper: '#F7F5EE', paper2: '#EEEADF', stone: '#E6E0D2', stone2: '#CBC3B0',
-    yellow: '#FFCC00', yellowPress: '#E0B200', green: '#12B76A', greenPress: '#0B874D',
-    tangerine: '#FF8A00', sky: '#29A9F5', coral: '#F0544F', fur: '#A86B38', furDark: '#8D5524', cream: '#FCEAD2',
+    ink: '#082933', ink3: '#334E58', paper: '#F4F1EA', paper2: '#ECE8DE', rule: '#D8D2C5',
+    yellow: '#FFCC00', green: '#10B981', amber: '#F97316', coral: '#EF4444', sky: '#0EA5E9',
   });
+  const CALM_AGE = 45;   // "Innovations for all generations": larger text & calm UI from 45
 
   // Life stages ("Innovations for all generations"). Three map 1:1 to the backend
   // demo personas (docs/03 §6.0); "peak" is a frontend profile sent to the same API.
@@ -66,6 +67,7 @@
   const NEXT_STAGE = Object.freeze({ first: 'pre', pre: 'home', home: 'peak', peak: 'first' });
   const DAY_ICONS = Object.freeze({ 1: 'sprout', 2: 'search', 3: 'repeat', 4: 'target' });
 
+  // Five competence stages (Quiet Mastery progress system): practice XP, or Checkpoint #1 for stage 5.
   const PLANT_STAGES = Object.freeze([
     { stage: 1, fromXp: 0, nextXp: 60, titleKey: 'garden.stage1', quoteKey: 'garden.quote1' },
     { stage: 2, fromXp: 60, nextXp: 100, titleKey: 'garden.stage2', quoteKey: 'garden.quote2' },
@@ -97,26 +99,36 @@
     };
   }
 
+  // Five capital pillars, Private Banking style: pillars up to the current stage are filled in
+  // petrol, the current one carries a canary cap, a thin emerald trend line links their tops and
+  // stage 5 ends in a canary target mark. Precise 1px/1.75px lines, no cartoon outlines.
   function plantSVG(stage, extraClass) {
     const s = clamp(Number(stage) || 1, 1, 5);
-    const st = 'stroke="' + C.ink + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"';
-    const base = s < 5
-      ? '<ellipse cx="70" cy="125" rx="28" ry="4" fill="' + C.paper2 + '"/><path d="M52 98q18-6 36 0" fill="' + C.furDark + '" ' + st + '/><path d="M49 98h42l-5 27H54z" fill="' + C.tangerine + '" ' + st + '/><path d="M45 96h50v8H45z" fill="' + C.yellow + '" ' + st + '/>'
-      : '<ellipse cx="70" cy="125" rx="46" ry="7" fill="' + C.paper2 + '"/><path d="M22 114q48-18 96 0z" fill="' + C.green + '" ' + st + '/>';
-    const stars = s >= 5
-      ? '<g fill="' + C.yellow + '" ' + st + '><path d="M24 28l3 6 6 1-4.5 4.3 1.2 6.2L24 42.2l-5.7 3.3 1.2-6.2L15 35l6-1z"/><path d="M116 24l2.5 5 5.5 1-4 3.7 1 5.3-5-2.7-5 2.7 1-5.3-4-3.7 5.5-1z"/></g>'
+    const xs = [10, 36, 62, 88, 114];
+    const hs = [18, 30, 42, 54, 66];
+    const base = 92;
+    const w = 16;
+    const tops = [];
+    const bars = xs.map((x, i) => {
+      const n = i + 1;
+      const y = base - hs[i];
+      if (n <= s) tops.push([x + w / 2, y - 7]);
+      if (n > s) {
+        return '<rect class="pl-bar" x="' + (x + 0.5) + '" y="' + (y + 0.5) + '" width="' + (w - 1) + '" height="' + (hs[i] - 1) + '" rx="2" fill="' + C.paper + '" stroke="' + C.rule + '" stroke-width="1" stroke-dasharray="3 2"/>';
+      }
+      const cap = n === s ? '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="4" rx="1.5" fill="' + C.yellow + '"/>' : '';
+      return '<g class="pl-bar pl-bar--on" style="--i:' + i + '"><rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hs[i] + '" rx="2" fill="' + C.ink + '"/>' + cap + '</g>';
+    }).join('');
+    const pts = tops.map((p) => p[0] + ',' + p[1]).join(' ');
+    const trend = tops.length > 1
+      ? '<polyline class="pl-trend" points="' + pts + '" pathLength="1" fill="none" stroke="' + C.green + '" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>'
       : '';
-    const stageParts = [
-      '<path d="M70 96c-5-6-3-14 2-17 4 4 5 12-2 17z" fill="' + C.yellow + '" ' + st + '/>',
-      '<path d="M70 98V80" ' + st + '/><ellipse cx="63" cy="79" rx="8" ry="5" fill="' + C.green + '" ' + st + ' transform="rotate(-18 63 79)"/><ellipse cx="77" cy="77" rx="8" ry="5" fill="' + C.green + '" ' + st + ' transform="rotate(18 77 77)"/>',
-      '<path d="M70 98V58" ' + st + '/><ellipse cx="55" cy="72" rx="14" ry="7" fill="' + C.green + '" ' + st + ' transform="rotate(28 55 72)"/><ellipse cx="85" cy="67" rx="15" ry="7" fill="' + C.green + '" ' + st + ' transform="rotate(-28 85 67)"/><ellipse cx="69" cy="50" rx="13" ry="7" fill="' + C.green + '" ' + st + ' transform="rotate(-6 69 50)"/>',
-      '<path d="M70 98V42" ' + st + '/><ellipse cx="48" cy="64" rx="18" ry="9" fill="' + C.green + '" ' + st + ' transform="rotate(32 48 64)"/><ellipse cx="92" cy="60" rx="19" ry="9" fill="' + C.green + '" ' + st + ' transform="rotate(-32 92 60)"/><ellipse cx="58" cy="43" rx="16" ry="8" fill="' + C.green + '" ' + st + ' transform="rotate(18 58 43)"/><ellipse cx="82" cy="38" rx="17" ry="8" fill="' + C.green + '" ' + st + ' transform="rotate(-18 82 38)"/><g class="plant__flower" fill="' + C.yellow + '" ' + st + '><circle cx="46" cy="42" r="7"/><circle cx="94" cy="38" r="7"/><circle cx="70" cy="25" r="7"/></g>',
-      '<path d="M70 106V43" ' + st + '/><path d="M70 68C58 52 43 48 32 55c7 12 21 18 38 13zM70 68c12-16 27-20 38-13-7 12-21 18-38 13z" fill="' + C.green + '" ' + st + '/><path d="M70 86c-15-13-32-12-43-3 10 10 27 12 43 3zM70 86c15-13 32-12 43-3-10 10-27 12-43 3z" fill="' + C.green + '" ' + st + '/><g fill="' + C.yellow + '" ' + st + '><circle cx="31" cy="38" r="9"/><circle cx="109" cy="34" r="9"/><circle cx="70" cy="22" r="10"/></g><g fill="' + C.tangerine + '" ' + st + '><circle cx="31" cy="38" r="3"/><circle cx="109" cy="34" r="3"/><circle cx="70" cy="22" r="3"/></g><path d="M25 106c-8-9-9-24-3-34 9 5 14 16 12 29zM115 106c8-9 9-24 3-34-9 5-14 16-12 29z" fill="' + C.green + '" ' + st + '/>',
-    ];
-
+    const dots = tops.map((p, i) => (s === 5 && i === 4)
+      ? '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="5.5" fill="' + C.yellow + '" stroke="' + C.ink + '" stroke-width="1.5"/><circle cx="' + p[0] + '" cy="' + p[1] + '" r="1.6" fill="' + C.ink + '"/>'
+      : '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="2.4" fill="#FFFFFF" stroke="' + C.green + '" stroke-width="1.5"/>').join('');
     return '<div class="plant plant--stage-' + s + (extraClass ? ' ' + extraClass : '') + '">' +
-      '<svg viewBox="0 0 140 140" role="img" aria-label="' + escapeHtml(t('garden.svgLabel', { stage: s })) + '">' +
-      base + '<g class="plant__sway">' + stageParts[s - 1] + stars + '</g></svg></div>';
+      '<svg viewBox="0 0 140 100" role="img" aria-label="' + escapeHtml(t('garden.svgLabel', { stage: s })) + '">' +
+      '<path d="M4 92.5h132" stroke="' + C.rule + '" stroke-width="1"/>' + bars + trend + dots + '</svg></div>';
   }
 
   // ------------------------------------------------------------------------
@@ -134,33 +146,45 @@
       'entry.available': 'Available balance · sample data',
       'entry.transaction1': 'Salary · sample',
       'entry.transaction2': 'Rent · sample',
+      'entry.transactions': 'Recent sample transactions',
       'entry.cta': 'Build your investment plan & start investing in 14 days',
       'entry.note': 'Nothing is executed. This is a guided learning simulation.',
       'entry.whyTitle': 'A calmer way to start',
-      'entry.whyText': 'Kita turns a big money decision into one small, clear step at a time.',
+      'entry.whyText': 'Atlas, your Commerzbank financial guide, turns a big money decision into one clear step at a time.',
       'intro.next': 'Next', 'intro.skip': 'Skip',
       'intro.1.title': 'Inflation is quiet, but real.', 'intro.1.copy': 'A 0% account keeps the number the same while prices keep moving. Financial knowledge helps you protect what your money can buy.',
-      'intro.2.title': 'No big sums. No jargon.', 'intro.2.copy': 'Five minutes and one small habit are enough to start. Kita will keep the language human and the steps practical.',
+      'intro.2.title': 'No big sums. No jargon.', 'intro.2.copy': 'Five minutes and one small habit are enough to start. Atlas keeps the language plain and the steps practical.',
       'intro.3.title': 'More calm. More control.', 'intro.3.copy': 'Know what to do when a laptop breaks or markets dip. Confidence grows when the next step is clear.',
-      'name.badge': 'Meet Kita', 'name.title': 'What should I call you?', 'name.copy': 'A first name helps me make the journey feel like yours.', 'name.label': 'Your first name', 'name.placeholder': 'For example, Alex', 'name.skip': 'Skip for now', 'name.continue': 'Continue',
+      'name.badge': 'Your personal plan', 'name.title': 'How would you like us to address you?', 'name.copy': 'Atlas will prepare your plan.', 'name.label': 'First name', 'name.placeholder': 'For example, Alex', 'name.note': 'Used only to personalise your plan and summaries.', 'name.skip': 'Skip for now', 'name.continue': 'Continue',
 
       'hud.home': 'Finance Quest home',
       'hud.day': 'Day',
       'hud.dayTitle': 'Day of your 14-day sprint',
-      'hud.streakTitle': 'Day streak',
+      'hud.streakTitle': 'Practice days',
+      'hud.practiceLabel': 'Practice days:',
+      'hud.xpTitle': 'Practice points (XP)',
+      'hud.stageTitle': 'Competence stage',
+      'hud.stageShort': 'Stage {n}/5',
+      'hud.stageLong': 'Stage {n}: {title}',
       'hud.readiness': 'Readiness',
+      'hud.readinessCalm': 'Readiness & Capital Protection',
       'hud.sound': 'Sound effects',
+      'hud.calm': 'Larger text / Calm UI',
+      'hud.calmOn': 'Larger text and calm layout are on.',
+      'hud.calmOff': 'Standard text size is back.',
       'hud.language': 'Language',
       'hud.reset': 'Reset / Profile',
       'hud.judges': 'For judges',
-      'hud.menu': 'More options',
-      'hud.lvl': 'Lv {n}',
+      'settings.title': 'Settings',
+      'settings.soundSub': 'Off by default',
+      'settings.calmSub': 'Automatic from age 45',
       'hud.soundOn': 'Sound is on',
       'hud.soundOff': 'Sound is off',
 
       'onb.title': 'Build investing confidence in 14 days.',
-      'onb.lead': "Five minutes a day. Pick where you are in life and Kita cuts every bit of theory you don't need yet.",
-      'onb.bubble': "Hi, I'm Kita, your daily AI coach. Tap the life stage that sounds most like you.",
+      'onb.lead': "Five minutes a day. Pick where you are in life and Atlas leaves out every bit of theory you don't need yet.",
+      'onb.bubble': "I'm Atlas, your Commerzbank financial guide. Choose the life stage that fits you best.",
+      'onb.bubbleName': 'Welcome, {name}. Choose the life stage that fits you best and I will prepare your plan.',
       'onb.stagesTitle': 'Where are you in life?',
       'onb.stagesHint': 'One tap builds your plan.',
       'onb.tailorToggle': 'Not quite you? Answer 6 quick questions instead',
@@ -202,7 +226,7 @@
       'concern.lose_money': 'Losing my money',
       'concern.too_late': "It's probably too late for me",
 
-      'hub.srTitle': 'Your quest map',
+      'hub.srTitle': 'Your 14-day plan',
       'hub.horizon': '{n}-year horizon',
       'hub.worry': 'Worry: {x}',
       'hub.phase': 'Phase {n}',
@@ -217,49 +241,87 @@
       'hub.checkpointSub': 'A quick knowledge check',
       'hub.checkpoint2': 'ends with Checkpoint #2',
       'hub.finale': 'ends with the sprint finale',
-      'hub.start': 'START',
-      'hub.resume': 'RESUME',
-      'hub.startMission': 'Start Day {n} mission',
-      'hub.resumeMission': 'Continue Day {n}',
+      'hub.start': 'Today',
+      'hub.resume': 'In progress',
+      'hub.startMission': 'Start Day {n} simulation · ~5 min',
+      'hub.resumeMission': 'Continue Day {n} simulation',
       'hub.nextDay': 'Start Day {n}',
       'hub.openCheckpoint': 'Start Checkpoint #1',
       'hub.reviewDay': 'See Day {n} results',
       'hub.locked': 'Unlocks after Day {n}',
       'hub.lockedCp': 'Unlocks after Day 4',
-      'hub.tomorrow': 'Day {n} opens tomorrow. Come back to keep your streak!',
+      'hub.tomorrow': 'Day {n} opens tomorrow. Come back to keep your practice going.',
       'hub.after14.title': 'After Day 14: keep learning',
       'hub.after14.sub': 'The sprint gets you started. Short monthly sessions keep you going.',
       'hub.done': 'Done',
-      'hub.steps': "Today's briefing",
-      'hub.step1': 'Your plan',
-      'hub.step2': 'What-if simulator',
-      'hub.step3': 'Day {n} lessons',
-      'hub.next': 'Next',
-      'hub.back': 'Back',
+      'hub.phaseDone': '{a} of {b} done',
+      'hub.ctaLessons': 'Start with the Day {n} lessons ({a}/{b})',
+      'hub.ctaCheckin': 'Atlas check-in, then start Day {n}',
+
+      'quest.eyebrow': 'Daily quests',
+      'quest.title': 'Day {d} of 14',
+      'tool.railTitle': 'Your sprint',
+      'tool.back': 'Back to daily quests',
+      'tool.nextTo': 'Next: {title}',
+      'tool.quests.title': 'Daily quests',
+      'tool.quests.sub': 'Day {d} of 14 · {a} of {b} done',
+      'tool.plan.title': 'Your plan',
+      'tool.plan.split': 'Cushion {a} · ETF {b}',
+      'tool.plan.range': '{a}–{b} in a broad ETF',
+      'tool.plan.savings': 'Cushion {a} first',
+      'tool.sim.title': 'What-if simulator',
+      'tool.sim.sub': '{amount}/mo over {years}',
+      'tool.lessons.title': 'Day {n} lessons',
+      'tool.lessons.sub': '{a} of {b} passed',
+      'tool.lessons.ready': 'All passed, check-in done',
+      'tool.lessons.badge': 'Next',
+      'tool.roadmap.title': 'Full sprint & after Day 14',
+      'tool.roadmap.sub': 'Phases 2–3 and continuous learning',
+      'tool.ask.title': 'Ask Atlas',
+      'tool.ask.sub': 'Plain words and a real-life example',
+
+      // Short worries for the context pill on the Daily quests card
+      'worry.freeze_money': 'frozen money',
+      'worry.no_time': 'no time for markets',
+      'worry.lose_money': 'losing money',
+      'worry.too_late': 'too late to start',
+
+      // Day titles are owned by the UI so they always follow the EN | PL switch
+      'day.20+.1': 'Inflation, liquidity and getting started',
+      'day.20+.4': 'Simulator of your first -15% drop',
+      'day.20+.9': 'How to choose a low-cost, broad ETF?',
+      'day.20+.14': 'Your first investment',
+      'day.30-50.1': 'Inflation and investing in the background',
+      'day.30-50.4': 'Automation without watching charts',
+      'day.30-50.9': 'Sensible proportions for a family',
+      'day.30-50.14': 'Start of the automatic ETF plan',
+      'day.50+.1': 'An anti-inflation shield at any age',
+      'day.50+.4': 'Reacting calmly to volatility',
+      'day.50+.9': 'A simple capital-protection portfolio',
+      'day.50+.14': 'A confident start at Commerzbank',
       'hub.soon': 'Available in the full 14-day sprint. Complete Days 1–4 and Checkpoint #1 first.',
       'hub.pebble': 'Day {n}, part of the full 14-day sprint',
       'hub.checkpoint2Short': 'Checkpoint #2',
       'hub.finaleShort': 'Sprint finale',
 
-      'garden.title': "Kita's Growth",
-      'garden.stageLabel': 'Stage {stage}/5',
-      'garden.stage1': 'Seed in a pot',
-      'garden.stage2': 'First sprout',
-      'garden.stage3': 'Young sapling',
-      'garden.stage4': 'Blooming tree',
-      'garden.stage5': "Kita's Golden Orchard",
-      'garden.toNext': 'Only {xp} XP away from {title}!',
-      'garden.complete': "Kita's garden is complete — keep growing!",
-      'garden.progress': 'XP progress',
-      'garden.grew': 'Your plant grew! {from} → {to}',
-      'garden.noGrowth': 'Kita is tending your garden',
+      'garden.title': 'Competence stage',
+      'garden.stageLabel': 'Stage {stage} of 5',
+      'garden.stage1': 'Foundations',
+      'garden.stage2': 'Liquidity Control',
+      'garden.stage3': 'Market Calm',
+      'garden.stage4': 'Strategy Builder',
+      'garden.stage5': 'Action Ready',
+      'garden.toNext': '{xp} XP of practice to the next stage: {title}',
+      'garden.complete': 'All five stages reached. Keep your monthly check-ins.',
+      'garden.progress': 'Stage progress',
+      'garden.grew': 'New stage: {from} → {to}',
       'garden.current': 'Current stage',
-      'garden.quote1': 'Every strong habit starts with a tiny seed.',
-      'garden.quote2': 'Small steps are already becoming visible.',
-      'garden.quote3': 'A steady routine is helping you grow.',
-      'garden.quote4': 'Your consistency is blooming beautifully.',
-      'garden.quote5': 'You built a garden of confidence — keep it thriving!',
-      'garden.svgLabel': 'Growing plant, stage {stage} of 5',
+      'garden.quote1': 'You know your starting point: income, free cash and a cushion.',
+      'garden.quote2': 'The cushion comes first, so a surprise bill never forces a sale.',
+      'garden.quote3': 'A -20% dip is a fluctuation, not a loss, unless you sell.',
+      'garden.quote4': 'You plan with an amount, a horizon and costs — not with guesses.',
+      'garden.quote5': 'Foundations confirmed. You are ready for a first, small step.',
+      'garden.svgLabel': 'Capital pillars chart, stage {stage} of 5',
 
       'plan.title': 'Your sample split',
       'plan.label': 'Illustrative target amount per month',
@@ -282,10 +344,10 @@
       'lessons.check': 'Quick check',
       'lessons.right': 'Correct, lesson passed',
       'lessons.wrong': 'Not quite. Have another look at the key point.',
-      'lessons.askKita': 'Ask Kita to explain',
-      'hub.gateLessons': 'Pass the lesson checks ({a}/{b}) & Kita check-in first',
-      'hub.gateCheckin': 'Kita check-in first',
-      'checkin.title': 'Kita check-in',
+      'lessons.askGuide': 'Ask Atlas to explain',
+      'hub.gateLessons': 'Pass the lesson checks ({a}/{b}) and the Atlas check-in first',
+      'hub.gateCheckin': 'Atlas check-in first',
+      'checkin.title': 'Atlas check-in',
       'checkin.q': 'Is this section clear, or would you like me to explain anything else before the challenge?',
       'checkin.yes': 'Yes, explain something first',
       'checkin.start': 'Everything is clear: start Day {n} challenge',
@@ -318,33 +380,42 @@
       'tm.planNote': 'Your sample plan: {plan}/mo. Drag to try another amount.',
       'tm.whatIfNote': 'What-if: {amount}/mo instead of your sample {plan}/mo. Same assumptions as below.',
 
-      'compliance.mifid': 'Finance Quest is strictly an educational and simulation tool. Calculations are based on simplified assumptions and historical data, exclude capital gains tax, brokerage fees, and currency risk, do not guarantee future returns, and do not constitute investment advice or a recommendation under MiFID II. Investing involves the risk of losing part or all of your capital.',
-      'ai.disclaimer': 'AI Coach Kita can make mistakes. Always verify key details. Educational simulation only, not financial advice.',
+      'cow.title': 'Cost of Waiting (Inflation Erosion)',
+      'cow.lead': 'Over {years} at {amount}/mo — your generation\'s horizon — in today\'s money:',
+      'cow.paid': 'You pay in',
+      'cow.cash': 'Kept in a 0% account',
+      'cow.cashLoss': '{amount} of purchasing power lost',
+      'cow.etf': 'Broad ETF (illustrative)',
+      'cow.etfGain': '{amount} more than cash',
+      'cow.note': 'Same assumptions as the chart: 5.7% a year after costs, 3.5% inflation. Illustrative, not a forecast or a guarantee.',
 
-      'mission.srTitle': 'Mission',
-      'mission.close': 'Close mission',
-      'mission.progress': 'Mission progress',
+      'compliance.mifid': 'Finance Quest is strictly an educational and simulation tool. Calculations are based on simplified assumptions and historical data, exclude capital gains tax, brokerage fees, and currency risk, do not guarantee future returns, and do not constitute investment advice or a recommendation under MiFID II. Investing involves the risk of losing part or all of your capital.',
+      'ai.disclaimer': 'Atlas is an AI guide and can make mistakes. Always verify key details. Educational simulation only, not financial advice.',
+
+      'mission.srTitle': 'Decision simulation',
+      'mission.close': 'Close simulation',
+      'mission.progress': 'Simulation progress',
       'mission.explain': 'Explain simpler',
-      'mission.check': 'Check',
-      'mission.checking': 'Checking…',
+      'mission.check': 'Check my answer',
+      'mission.checking': 'Checking your answer…',
       'mission.continue': 'Continue',
       'mission.tryAgain': 'Try again',
       'mission.finish': 'See my results',
       'mission.dayChip': 'Day {d} of 14',
       'mission.stepChip': 'Step {s} of {t}',
       'mission.portfolio': 'Simulated portfolio {amount}',
-      'mission.coraWho': 'Kita, your daily AI coach',
+      'mission.coraWho': 'Atlas, your Commerzbank financial guide',
       'mission.ownLabel': 'Or answer in your own words',
-      'mission.ownPlaceholder': "Tell Kita what you'd do and why…",
+      'mission.ownPlaceholder': "Tell Atlas what you'd do and why…",
       'mission.ownHint': 'Enter to check, Shift+Enter for a new line',
-      'mission.thinking': 'Kita is reading your answer',
-      'mission.right': 'Spot on!|Nailed it!|Exactly right!',
-      'mission.partial': "Good thinking, here's the catch",
-      'mission.invalid': 'Give it one more go',
+      'mission.thinking': 'Atlas is reading your answer',
+      'mission.right': 'Correct.|That is the sound approach.|Exactly right.',
+      'mission.partial': "Reasonable, but there's a catch",
+      'mission.invalid': 'Please give it one more go',
       'mission.fallback': 'Thanks, let\'s look at the numbers',
       'mission.yourAnswer': 'Your answer: "{a}"',
       'mission.readinessPill': 'Readiness +{n}',
-      'mission.levelPill': 'Level up: {title}',
+      'mission.stagePill': 'New stage: {title}',
       'mission.zeroXp': '0 XP',
       'mission.pickOrType': 'Pick a card or type a few words first.',
       'mission.practice': 'Practice',
@@ -364,15 +435,15 @@
       'alloc.okCushion': 'Balanced. Part works long-term in a broad ETF, part stays easy to reach.',
       'alloc.tooLowCushion': 'Your cushion is covered, so keeping it all in cash lets inflation (3.5% a year in our assumptions) nibble at it. Try a bigger share.',
       'alloc.tooHighCushion': "That's most of your free cash. Keeping some in easy-to-reach savings makes dips easier to sit through. Try a little less.",
-      'alloc.okTitle': 'Smart split!',
-      'alloc.tryTitle': 'Almost, adjust the slider',
+      'alloc.okTitle': 'A sound split',
+      'alloc.tryTitle': 'Almost — adjust the slider',
 
       'myth.tag': 'Myth or reality?',
       'myth.intro': 'Plenty of beginners believe this one. Myth or reality? Tap your answer.',
       'myth.myth': 'Myth',
       'myth.reality': 'Reality',
-      'myth.rightTitle': "Right, it's a {v}!",
-      'myth.wrongTitle': "Not quite, it's a {v}",
+      'myth.rightTitle': "Correct — it's a {v}",
+      'myth.wrongTitle': "Not quite — it's a {v}",
       'myth.vMyth': 'myth',
       'myth.vReality': 'reality',
       'myth.freeze_money.s': 'Money in a broad ETF is locked away for years.',
@@ -393,16 +464,16 @@
       'spot.ter': 'Annual fee (TER)',
       'spot.div': 'Dividends',
       'spot.divVal': 'Reinvested',
-      'spot.rightTitle': "That's the one!",
+      'spot.rightTitle': "That's the one",
       'spot.right': 'The TER is taken every year, so a lower fee leaves more of the growth with you. Compare it before you buy.',
-      'spot.wrongTitle': 'Good eye, but look again',
+      'spot.wrongTitle': 'Good eye — look once more',
       'spot.wrong': 'That line barely changes your result. The annual fee (TER) is charged every year, so it is the one to compare.',
 
-      'done.srTitle': 'Mission complete',
-      'done.title': 'Day {d} complete!',
-      'done.earned': 'earned today',
-      'done.levelUp': 'Level up: {title}',
-      'done.toNext': '{n} XP to Level {l}',
+      'done.srTitle': 'Day complete',
+      'done.title': 'Day {d} complete',
+      'done.earned': 'practice points today',
+      'done.levelUp': 'Milestone reached: {title}',
+      'done.toNext': '{n} XP to the next milestone',
       'done.readiness': 'Readiness',
       'done.readinessNote': 'Full readiness comes on Day 14.',
       'done.selfQ': 'How confident do you feel now?',
@@ -410,9 +481,9 @@
       'done.selfCompare': 'Before {a}/5, now {b}/5',
       'done.next': 'Continue to Day {n}',
       'done.checkpoint': 'Start Checkpoint #1',
-      'done.toMap': 'Back to the quest map',
-      'done.streak': 'Streak started. See you tomorrow!',
-      'done.badgeLabel': 'Badge unlocked',
+      'done.toMap': 'Back to my plan',
+      'done.streak': 'Practice day recorded. See you tomorrow.',
+      'done.badgeLabel': 'Milestone',
       'done.tabs': 'Day summary',
       'done.tabToday': "Today's step",
       'done.tabMore': 'Checklist, rank & After Day 14',
@@ -421,9 +492,9 @@
       'first.sub': "Small, safe and today. That's how confidence turns into action.",
       'first.challenge': "Today's real-world challenge",
       'first.accept': "I'll do it (+{n} XP)",
-      'first.accepted': 'Challenge accepted!',
+      'first.accepted': 'Challenge accepted',
       'first.checklist': 'Your starter checklist',
-      'first.allDone': 'All set. Now try the first step in the bank.',
+      'first.allDone': 'All set. You can now preview the first step in the bank.',
       'first.toBank': 'Open my sample plan at Commerzbank',
 
       'bankcard.title': 'Sample plan at Commerzbank',
@@ -443,9 +514,9 @@
 
       'board.title': 'Friends leaderboard',
       'board.demo': 'Sample friends (demo)',
-      'board.levelUp': 'Level up!',
-      'board.gap': '{n} XP behind first place. Tomorrow can close the gap!',
-      'board.lead': "You're leading. Keep the streak going tomorrow!",
+      'board.levelUp': 'Milestone',
+      'board.gap': '{n} XP behind first place. Tomorrow can close the gap.',
+      'board.lead': "You're leading. Keep your practice going tomorrow.",
       'board.challenge': 'Challenge a friend',
       'board.copied': 'Invite copied. Send it to a friend!',
       'board.copyFail': "Couldn't copy. Here's the invite: {text}",
@@ -460,13 +531,15 @@
       'bank.optB': 'Option B: sample plan for Day 14',
       'bank.optBSavings': 'Cushion: {amount}/mo to a savings account. ETF later (example {etf}/mo).',
       'bank.kyc': 'In production: suitability test, identity check (KYC), cost and risk information.',
-      'bank.simulate': 'Simulate this step in the bank (demo)',
-      'bank.success': 'Nice! Your Day {d} step is done. Your streak continues, see you tomorrow!',
+      'bank.noTransfer': 'Educational simulation — no money will be transferred.',
+      'bank.simulate': 'Simulate this step (demo, no transfer)',
+      'bank.success': 'Your Day {d} step is recorded. See you tomorrow.',
       'bank.successNote': 'Simulated: {what}. Nothing was executed in the demo.',
       'bank.nextGen': 'Try another generation (demo)',
       'bank.whatA': 'transfer of {amount} to {account}',
       'bank.whatB': 'sample plan of {amount}/mo',
 
+      'cp.srTitle': 'Checkpoint #1',
       'cp.title': 'Checkpoint #1',
       'cp.sub': 'Four quick questions on Days 1–4. Score 75% to earn the Foundation Ready badge.',
       'cp.q': 'Question {i} of {n}',
@@ -474,13 +547,13 @@
       'cp.submit': 'Check my answers',
       'cp.score': '{n}% correct',
       'cp.retry': 'Try the quiz again',
-      'cp.back': 'Back to the quest map',
+      'cp.back': 'Back to my plan',
       'cp.unavailable': "Checkpoint #1 isn't available on this server yet.",
       'cp.correct': 'Correct',
       'cp.incorrect': 'Not quite',
 
-      'cora.ask': 'Ask Kita',
-      'cora.title': 'Ask Kita',
+      'cora.ask': 'Ask Atlas',
+      'cora.title': 'Ask Atlas',
       'cora.sub': 'Plain words, a real-life example and a 10-second check.',
       'cora.label': 'What feels unclear?',
       'cora.placeholder': 'For example: why does cash lose value?',
@@ -492,7 +565,7 @@
       'cora.right': 'Correct!',
       'cora.wrong': 'Not quite.',
       'cora.offline': 'Offline explanation',
-      'cora.thinking': 'Kita is thinking',
+      'cora.thinking': 'Atlas is preparing an answer',
       'cora.again': 'Ask something else',
       'cora.topic.inflation': 'Inflation',
       'cora.topic.etf': "What's an ETF?",
@@ -506,9 +579,7 @@
       'judges.jumpDay4': 'Jump to Day 4',
       'judges.openCp': 'Open Checkpoint #1',
       'judges.noMultiDay': "This server doesn't have Days 2–4 yet.",
-      'judges.demoHint': 'Sample life stages and presenter shortcuts live in Demo, top right.',
-      'demo.toggle': 'Demo',
-      'demo.title': 'Demo mode',
+      'judges.demoHint': 'Sample life stages and presenter shortcuts are in Settings (the gear, top right).',
       'demo.stages': 'Sample life stage',
       'demo.shortcuts': 'Presenter shortcuts',
       'demo.needProfile': 'Pick a life stage first.',
@@ -520,6 +591,46 @@
       'toast.answerLength': 'Answers can be 1 to 600 characters.',
       'toast.sessionLost': "Couldn't restore your session. Pick a life stage again.",
       'toast.lessonDone': '+{n} XP for a lesson',
+
+      // Tap-to-define glossary (one plain sentence each)
+      'define.see': 'See real-life example (Ask Atlas)',
+      'define.etf.t': 'ETF (exchange-traded fund)',
+      'define.etf.d': 'A fund you buy on the stock exchange like a single share, but it holds many companies at once, so one purchase spreads your money widely.',
+      'define.ter.t': 'TER (total expense ratio)',
+      'define.ter.d': "A fund's yearly fee, taken as a small percentage of your money; the lower it is, the more of the growth stays with you.",
+      'define.inflation.t': 'Real inflation',
+      'define.inflation.d': 'Prices rising over time, so money that earns 0% buys a little less every year.',
+      'define.cushion.t': 'Emergency fund',
+      'define.cushion.d': 'Money for surprises, usually 3–6 months of costs, kept easy to reach and separate from investments.',
+      'define.diversification.t': 'Diversification',
+      'define.diversification.d': 'Spreading money across many companies, sectors and countries, so one stumble matters less; risk shrinks but does not vanish.',
+      'define.mifid.t': 'MiFID II',
+      'define.mifid.d': 'EU rules that protect investors: a bank must check that a product suits you and explain its costs and risks.',
+      'define.mifid.q': 'What is MiFID II?',
+
+      // Panic vs Discipline (consequences of the -20% decision)
+      'pvd.title': 'Panic vs Discipline',
+      'pvd.lead': 'The same plan of {amount}/mo, two reactions to the -20% dip in year 3, compared over {years}:',
+      'pvd.panic': 'Panic: sell in the dip',
+      'pvd.panicSell': 'Sold in year 3 for',
+      'pvd.panicLocked': 'The -20% is locked in',
+      'pvd.panicRest': 'Next payments go to a 0% account',
+      'pvd.discipline': 'Discipline: keep the plan',
+      'pvd.disciplineHold': 'Paper value in the dip',
+      'pvd.disciplineNote': 'Not sold, so not lost',
+      'pvd.disciplineRest': 'Payments continue as planned',
+      'pvd.total': "After {years}, in today's money",
+      'pvd.gap': 'Discipline: about {amount} more in today\'s money',
+      'pvd.note': 'Illustrative: same assumptions as the time machine (5.7% a year after costs, 3.5% inflation, today\'s PLN). The dip is an educational scenario; history does not guarantee the future.',
+
+      'level.1': 'Observer',
+      'level.2': 'Confident Start',
+      'level.3': 'Steady Builder',
+      'unit.currency': 'PLN',
+      'unit.thousand': 'k',
+      'unit.year1': 'year',
+      'unit.year2': 'years',
+      'unit.yearN': 'years',
     },
 
     pl: {
@@ -533,33 +644,45 @@
       'entry.available': 'Dostępne saldo · dane przykładowe',
       'entry.transaction1': 'Wynagrodzenie · przykład',
       'entry.transaction2': 'Czynsz · przykład',
+      'entry.transactions': 'Ostatnie przykładowe transakcje',
       'entry.cta': 'Stwórz swój plan inwestycyjny i zacznij inwestować w 14 dni',
       'entry.note': 'Nic nie zostanie wykonane. To prowadzona symulacja edukacyjna.',
       'entry.whyTitle': 'Spokojniejszy start',
-      'entry.whyText': 'Kita zamienia dużą decyzję finansową w jeden mały, jasny krok naraz.',
+      'entry.whyText': 'Atlas, przewodnik finansowy Commerzbanku, zamienia dużą decyzję finansową w jeden jasny krok naraz.',
       'intro.next': 'Dalej', 'intro.skip': 'Pomiń',
       'intro.1.title': 'Inflacja działa po cichu, ale naprawdę.', 'intro.1.copy': 'Konto 0% trzyma tę samą liczbę, gdy ceny idą w górę. Wiedza finansowa pomaga chronić to, co możesz kupić za swoje pieniądze.',
-      'intro.2.title': 'Bez wielkich kwot i żargonu.', 'intro.2.copy': 'Wystarczy 5 minut i jeden prosty nawyk. Kita mówi po ludzku i prowadzi przez praktyczne kroki.',
+      'intro.2.title': 'Bez wielkich kwot i żargonu.', 'intro.2.copy': 'Wystarczy 5 minut i jeden prosty nawyk. Atlas mówi prostym językiem i prowadzi przez praktyczne kroki.',
       'intro.3.title': 'Więcej spokoju. Więcej kontroli.', 'intro.3.copy': 'Wiesz, co zrobić przy awarii albo spadkach na rynku. Pewność rośnie, gdy kolejny krok jest jasny.',
-      'name.badge': 'Poznaj Kitę', 'name.title': 'Jak mam się do Ciebie zwracać?', 'name.copy': 'Imię pomoże mi dopasować tę podróż do Ciebie.', 'name.label': 'Twoje imię', 'name.placeholder': 'Na przykład Ania', 'name.skip': 'Pomiń na razie', 'name.continue': 'Dalej',
+      'name.badge': 'Twój plan osobisty', 'name.title': 'Jak mamy się do Ciebie zwracać?', 'name.copy': 'Atlas przygotuje Twój plan.', 'name.label': 'Imię', 'name.placeholder': 'Na przykład Ania', 'name.note': 'Służy wyłącznie do personalizacji planu i podsumowań.', 'name.skip': 'Pomiń na razie', 'name.continue': 'Dalej',
 
       'hud.home': 'Finance Quest, strona główna',
       'hud.day': 'Dzień',
       'hud.dayTitle': 'Dzień Twojego 14-dniowego sprintu',
-      'hud.streakTitle': 'Seria dni',
+      'hud.streakTitle': 'Dni praktyki',
+      'hud.practiceLabel': 'Dni praktyki:',
+      'hud.xpTitle': 'Punkty praktyki (XP)',
+      'hud.stageTitle': 'Etap kompetencji',
+      'hud.stageShort': 'Etap {n}/5',
+      'hud.stageLong': 'Etap {n}: {title}',
       'hud.readiness': 'Gotowość',
+      'hud.readinessCalm': 'Gotowość i ochrona kapitału',
       'hud.sound': 'Efekty dźwiękowe',
+      'hud.calm': 'Większa czcionka / Calm UI',
+      'hud.calmOn': 'Większa czcionka i spokojny układ są włączone.',
+      'hud.calmOff': 'Przywrócono standardową wielkość tekstu.',
       'hud.language': 'Język',
       'hud.reset': 'Reset / Profil',
       'hud.judges': 'Dla jury',
-      'hud.menu': 'Więcej opcji',
-      'hud.lvl': 'Poz. {n}',
+      'settings.title': 'Ustawienia',
+      'settings.soundSub': 'Domyślnie wyłączone',
+      'settings.calmSub': 'Automatycznie od 45. roku życia',
       'hud.soundOn': 'Dźwięk włączony',
       'hud.soundOff': 'Dźwięk wyłączony',
 
       'onb.title': 'Zbuduj pewność inwestycyjną w 14 dni.',
-      'onb.lead': 'Po 5 minut dziennie. Wybierz etap życia, a Kita wytnie całą teorię, której jeszcze nie potrzebujesz.',
-      'onb.bubble': 'Cześć, jestem Kita, Twój codzienny AI Coach. Kliknij etap życia, który najbardziej do Ciebie pasuje.',
+      'onb.lead': 'Po 5 minut dziennie. Wybierz etap życia, a Atlas pominie całą teorię, której jeszcze nie potrzebujesz.',
+      'onb.bubble': 'Nazywam się Atlas, jestem przewodnikiem finansowym Commerzbanku. Wybierz etap życia, który najlepiej do Ciebie pasuje.',
+      'onb.bubbleName': 'Witamy, {name}. Wybierz etap życia, który najlepiej do Ciebie pasuje, a przygotuję Twój plan.',
       'onb.stagesTitle': 'Na jakim etapie życia jesteś?',
       'onb.stagesHint': 'Jedno kliknięcie układa Twój plan.',
       'onb.tailorToggle': 'To nie do końca Ty? Odpowiedz na 6 szybkich pytań',
@@ -601,7 +724,7 @@
       'concern.lose_money': 'Boję się, że stracę pieniądze',
       'concern.too_late': 'Chyba za późno na start',
 
-      'hub.srTitle': 'Twoja mapa misji',
+      'hub.srTitle': 'Twój 14-dniowy plan',
       'hub.horizon': 'Horyzont: {n}',
       'hub.worry': 'Obawa: {x}',
       'hub.phase': 'Faza {n}',
@@ -616,49 +739,87 @@
       'hub.checkpointSub': 'Szybki test wiedzy',
       'hub.checkpoint2': 'kończy się Checkpointem #2',
       'hub.finale': 'kończy się finałem sprintu',
-      'hub.start': 'START',
-      'hub.resume': 'WRACAM',
-      'hub.startMission': 'Zacznij misję Dnia {n}',
-      'hub.resumeMission': 'Kontynuuj Dzień {n}',
+      'hub.start': 'Dziś',
+      'hub.resume': 'W toku',
+      'hub.startMission': 'Zacznij symulację Dnia {n} · ~5 min',
+      'hub.resumeMission': 'Kontynuuj symulację Dnia {n}',
       'hub.nextDay': 'Zacznij Dzień {n}',
       'hub.openCheckpoint': 'Zacznij Checkpoint #1',
       'hub.reviewDay': 'Wyniki Dnia {n}',
       'hub.locked': 'Odblokujesz po Dniu {n}',
       'hub.lockedCp': 'Odblokujesz po Dniu 4',
-      'hub.tomorrow': 'Dzień {n} otworzy się jutro. Wróć, żeby utrzymać serię!',
+      'hub.tomorrow': 'Dzień {n} otworzy się jutro. Wróć, żeby kontynuować praktykę.',
       'hub.after14.title': 'Po Dniu 14: ucz się dalej',
       'hub.after14.sub': 'Sprint daje start. Krótkie comiesięczne sesje utrzymują nawyk.',
       'hub.done': 'Zaliczone',
-      'hub.steps': 'Dzisiejszy plan',
-      'hub.step1': 'Twój plan',
-      'hub.step2': 'Symulator: co jeśli?',
-      'hub.step3': 'Lekcje Dnia {n}',
-      'hub.next': 'Dalej',
-      'hub.back': 'Wstecz',
+      'hub.phaseDone': '{a} z {b} ukończone',
+      'hub.ctaLessons': 'Zacznij od lekcji Dnia {n} ({a}/{b})',
+      'hub.ctaCheckin': 'Check-in z Atlasem, potem start Dnia {n}',
+
+      'quest.eyebrow': 'Zadania dnia',
+      'quest.title': 'Dzień {d} z 14',
+      'tool.railTitle': 'Twój sprint',
+      'tool.back': 'Wróć do zadań dnia',
+      'tool.nextTo': 'Dalej: {title}',
+      'tool.quests.title': 'Zadania dnia',
+      'tool.quests.sub': 'Dzień {d} z 14 · {a} z {b} ukończone',
+      'tool.plan.title': 'Twój plan',
+      'tool.plan.split': 'Poduszka {a} · ETF {b}',
+      'tool.plan.range': '{a}–{b} w szerokim ETF',
+      'tool.plan.savings': 'Najpierw poduszka {a}',
+      'tool.sim.title': 'Symulator: co jeśli?',
+      'tool.sim.sub': '{amount}/mies. przez {years}',
+      'tool.lessons.title': 'Lekcje Dnia {n}',
+      'tool.lessons.sub': 'Zaliczone: {a} z {b}',
+      'tool.lessons.ready': 'Wszystko zaliczone, check-in gotowy',
+      'tool.lessons.badge': 'Teraz',
+      'tool.roadmap.title': 'Cały sprint i po Dniu 14',
+      'tool.roadmap.sub': 'Fazy 2–3 i dalsza nauka',
+      'tool.ask.title': 'Zapytaj Atlasa',
+      'tool.ask.sub': 'Prosto i na przykładzie z życia',
+
+      // Krótkie obawy do pigułki kontekstu na karcie Zadań dnia
+      'worry.freeze_money': 'zamrożone pieniądze',
+      'worry.no_time': 'brak czasu na giełdę',
+      'worry.lose_money': 'strata pieniędzy',
+      'worry.too_late': 'za późno na start',
+
+      // Tytuły dni należą do UI, więc zawsze podążają za przełącznikiem EN | PL
+      'day.20+.1': 'Inflacja, płynność i start',
+      'day.20+.4': 'Symulator pierwszego spadku -15%',
+      'day.20+.9': 'Jak wybrać tani, szeroki ETF?',
+      'day.20+.14': 'Twoja pierwsza inwestycja',
+      'day.30-50.1': 'Inflacja i inwestowanie w tle',
+      'day.30-50.4': 'Automatyzacja bez patrzenia w wykresy',
+      'day.30-50.9': 'Bezpieczne proporcje dla rodziny',
+      'day.30-50.14': 'Start automatycznego planu ETF',
+      'day.50+.1': 'Tarcza antyinflacyjna w każdym wieku',
+      'day.50+.4': 'Spokojne reagowanie na wahania',
+      'day.50+.9': 'Prosty portfel ochrony kapitału',
+      'day.50+.14': 'Świadomy start w Commerzbanku',
       'hub.soon': 'Dostępne w pełnym 14-dniowym sprincie. Najpierw ukończ Dni 1–4 i Checkpoint #1.',
       'hub.pebble': 'Dzień {n}, część pełnego 14-dniowego sprintu',
       'hub.checkpoint2Short': 'Checkpoint #2',
       'hub.finaleShort': 'Finał sprintu',
 
-      'garden.title': 'Sad Kity',
-      'garden.stageLabel': 'Etap {stage}/5',
-      'garden.stage1': 'Nasionko w doniczce',
-      'garden.stage2': 'Pierwszy kiełek',
-      'garden.stage3': 'Młode drzewko',
-      'garden.stage4': 'Kwitnące drzewo',
-      'garden.stage5': 'Złoty sad Kity',
-      'garden.toNext': 'Brakuje tylko {xp} XP do etapu {title}!',
-      'garden.complete': 'Sad Kity jest kompletny — pielęgnuj go dalej!',
-      'garden.progress': 'Postęp XP',
-      'garden.grew': 'Roślina urosła! {from} → {to}',
-      'garden.noGrowth': 'Kita pielęgnuje Twój ogród',
+      'garden.title': 'Etap kompetencji',
+      'garden.stageLabel': 'Etap {stage} z 5',
+      'garden.stage1': 'Fundamenty planu',
+      'garden.stage2': 'Kontrola płynności',
+      'garden.stage3': 'Spokój na spadkach',
+      'garden.stage4': 'Architekt planu',
+      'garden.stage5': 'Gotowość do startu',
+      'garden.toNext': '{xp} XP praktyki do kolejnego etapu: {title}',
+      'garden.complete': 'Wszystkie pięć etapów osiągnięte. Utrzymuj comiesięczne check-iny.',
+      'garden.progress': 'Postęp etapów',
+      'garden.grew': 'Nowy etap: {from} → {to}',
       'garden.current': 'Obecny etap',
-      'garden.quote1': 'Każdy mocny nawyk zaczyna się od maleńkiego nasionka.',
-      'garden.quote2': 'Małe kroki zaczynają już być widoczne.',
-      'garden.quote3': 'Regularna praktyka pomaga Ci rosnąć.',
-      'garden.quote4': 'Twoja konsekwencja pięknie kwitnie.',
-      'garden.quote5': 'Wyhodowałeś sad pewności — dbaj o niego dalej!',
-      'garden.svgLabel': 'Rosnąca roślina, etap {stage} z 5',
+      'garden.quote1': 'Znasz punkt wyjścia: dochód, wolne środki i poduszkę.',
+      'garden.quote2': 'Poduszka jest pierwsza, więc nagły rachunek nie zmusza do sprzedaży.',
+      'garden.quote3': 'Spadek -20% to wahanie, nie strata — dopóki nie sprzedasz.',
+      'garden.quote4': 'Planujesz kwotą, horyzontem i kosztami — a nie zgadywaniem.',
+      'garden.quote5': 'Fundamenty potwierdzone. Możesz zrobić pierwszy, mały krok.',
+      'garden.svgLabel': 'Wykres filarów kapitału, etap {stage} z 5',
 
       'plan.title': 'Twój przykładowy podział',
       'plan.label': 'Przykładowa kwota docelowa miesięcznie',
@@ -681,11 +842,11 @@
       'lessons.check': 'Szybki sprawdzian',
       'lessons.right': 'Dobrze, lekcja zaliczona',
       'lessons.wrong': 'Jeszcze nie to. Spójrz jeszcze raz na najważniejszą myśl.',
-      'lessons.askKita': 'Poproś Kitę o wyjaśnienie',
-      'hub.gateLessons': 'Najpierw zalicz mini-checki lekcji ({a}/{b}) i check-in z Kitą',
-      'hub.gateCheckin': 'Najpierw check-in z Kitą',
-      'checkin.title': 'Check-in z Kitą',
-      'checkin.q': 'Czy ten dział jest zrozumiały, czy chciałbyś, żebym coś jeszcze wytłumaczyła przed zadaniem?',
+      'lessons.askGuide': 'Poproś Atlasa o wyjaśnienie',
+      'hub.gateLessons': 'Najpierw zalicz mini-checki lekcji ({a}/{b}) i check-in z Atlasem',
+      'hub.gateCheckin': 'Najpierw check-in z Atlasem',
+      'checkin.title': 'Check-in z Atlasem',
+      'checkin.q': 'Czy ten dział jest zrozumiały, czy mam coś jeszcze wyjaśnić przed zadaniem?',
       'checkin.yes': 'Tak, wytłumacz coś jeszcze',
       'checkin.start': 'Wszystko jasne: zacznij wyzwanie Dnia {n}',
       'checkin.done': 'Check-in zaliczony. Wyzwanie Dnia {n} odblokowane.',
@@ -717,33 +878,42 @@
       'tm.planNote': 'Twój przykładowy plan: {plan}/mies. Przesuń, by sprawdzić inną kwotę.',
       'tm.whatIfNote': 'Co jeśli: {amount}/mies. zamiast przykładowych {plan}/mies. Te same założenia co niżej.',
 
-      'compliance.mifid': 'Aplikacja Finance Quest ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.',
-      'ai.disclaimer': 'AI Coach Kita może popełniać błędy. Symulacja wyłącznie edukacyjna — to nie jest porada inwestycyjna.',
+      'cow.title': 'Koszt czekania (erozja inflacyjna)',
+      'cow.lead': 'Przez {years} przy {amount}/mies. — horyzont Twojego pokolenia — w dzisiejszych złotych:',
+      'cow.paid': 'Wpłacasz łącznie',
+      'cow.cash': 'Trzymane na koncie 0%',
+      'cow.cashLoss': 'Utrata siły nabywczej: {amount}',
+      'cow.etf': 'Szeroki ETF (ilustracyjnie)',
+      'cow.etfGain': 'O {amount} więcej niż gotówka',
+      'cow.note': 'Te same założenia co na wykresie: 5,7% rocznie po kosztach, inflacja 3,5%. Ilustracja, a nie prognoza ani gwarancja.',
 
-      'mission.srTitle': 'Misja',
-      'mission.close': 'Zamknij misję',
-      'mission.progress': 'Postęp misji',
+      'compliance.mifid': 'Aplikacja Finance Quest ma charakter wyłącznie edukacyjny i symulacyjny. Wyliczenia opierają się na uproszczonych założeniach i danych historycznych, nie uwzględniają podatku od zysków, opłat ani ryzyka walutowego, nie gwarantują przyszłych wyników i nie stanowią doradztwa inwestycyjnego ani rekomendacji w rozumieniu dyrektywy MiFID II. Inwestowanie wiąże się z ryzykiem utraty części lub całości kapitału.',
+      'ai.disclaimer': 'Atlas to przewodnik AI i może popełniać błędy. Symulacja wyłącznie edukacyjna — to nie jest porada inwestycyjna.',
+
+      'mission.srTitle': 'Symulacja decyzji',
+      'mission.close': 'Zamknij symulację',
+      'mission.progress': 'Postęp symulacji',
       'mission.explain': 'Wyjaśnij prościej',
-      'mission.check': 'Sprawdź',
-      'mission.checking': 'Sprawdzam…',
+      'mission.check': 'Sprawdź moją odpowiedź',
+      'mission.checking': 'Sprawdzam odpowiedź…',
       'mission.continue': 'Dalej',
       'mission.tryAgain': 'Spróbuj jeszcze raz',
       'mission.finish': 'Zobacz wyniki',
       'mission.dayChip': 'Dzień {d} z 14',
       'mission.stepChip': 'Krok {s} z {t}',
       'mission.portfolio': 'Portfel w symulacji: {amount}',
-      'mission.coraWho': 'Kita, Twój codzienny AI Coach',
+      'mission.coraWho': 'Atlas, przewodnik finansowy Commerzbanku',
       'mission.ownLabel': 'Albo odpowiedz własnymi słowami',
-      'mission.ownPlaceholder': 'Napisz Kicie, co robisz i dlaczego…',
+      'mission.ownPlaceholder': 'Napisz Atlasowi, co robisz i dlaczego…',
       'mission.ownHint': 'Enter sprawdza, Shift+Enter to nowa linia',
-      'mission.thinking': 'Kita czyta Twoją odpowiedź',
-      'mission.right': 'Trafione!|Brawo!|Dokładnie tak!',
-      'mission.partial': 'Dobry trop, ale jest haczyk',
-      'mission.invalid': 'Spróbuj jeszcze raz',
+      'mission.thinking': 'Atlas czyta Twoją odpowiedź',
+      'mission.right': 'Dobrze.|To rozsądne podejście.|Dokładnie tak.',
+      'mission.partial': 'Rozsądnie, ale jest haczyk',
+      'mission.invalid': 'Spróbuj, proszę, jeszcze raz',
       'mission.fallback': 'Dzięki, spójrzmy na liczby',
       'mission.yourAnswer': 'Twoja odpowiedź: „{a}”',
       'mission.readinessPill': 'Gotowość +{n}',
-      'mission.levelPill': 'Awans: {title}',
+      'mission.stagePill': 'Nowy etap: {title}',
       'mission.zeroXp': '0 XP',
       'mission.pickOrType': 'Wybierz kartę albo napisz kilka słów.',
       'mission.practice': 'Ćwiczenie',
@@ -763,15 +933,15 @@
       'alloc.okCushion': 'Wyważone. Część pracuje długo w szerokim ETF, część zostaje pod ręką.',
       'alloc.tooLowCushion': 'Poduszkę masz, więc trzymanie wszystkiego w gotówce oddaje pole inflacji (3,5% rocznie w naszych założeniach). Spróbuj większej części.',
       'alloc.tooHighCushion': 'To większość wolnych środków. Gdy część zostaje pod ręką, łatwiej przetrwać spadki. Spróbuj trochę mniej.',
-      'alloc.okTitle': 'Mądry podział!',
-      'alloc.tryTitle': 'Prawie, popraw suwak',
+      'alloc.okTitle': 'Rozsądny podział',
+      'alloc.tryTitle': 'Prawie — popraw suwak',
 
       'myth.tag': 'Mit czy fakt?',
       'myth.intro': 'Wielu początkujących w to wierzy. Mit czy fakt? Kliknij odpowiedź.',
       'myth.myth': 'Mit',
       'myth.reality': 'Fakt',
-      'myth.rightTitle': 'Tak, to {v}!',
-      'myth.wrongTitle': 'Nie do końca, to {v}',
+      'myth.rightTitle': 'Dobrze — to {v}',
+      'myth.wrongTitle': 'Nie do końca — to {v}',
       'myth.vMyth': 'mit',
       'myth.vReality': 'fakt',
       'myth.freeze_money.s': 'Pieniądze w szerokim ETF są zamrożone na lata.',
@@ -792,16 +962,16 @@
       'spot.ter': 'Roczna opłata (TER)',
       'spot.div': 'Dywidendy',
       'spot.divVal': 'Reinwestowane',
-      'spot.rightTitle': 'To ten!',
+      'spot.rightTitle': 'To ten',
       'spot.right': 'TER pobierany jest co roku, więc niższa opłata zostawia Ci więcej wzrostu. Porównuj go przed zakupem.',
-      'spot.wrongTitle': 'Dobre oko, ale spójrz jeszcze raz',
+      'spot.wrongTitle': 'Dobre oko — spójrz jeszcze raz',
       'spot.wrong': 'Ten wiersz prawie nie zmienia wyniku. Roczna opłata (TER) pobierana jest co roku, więc to ją warto porównać.',
 
-      'done.srTitle': 'Misja ukończona',
-      'done.title': 'Dzień {d} zaliczony!',
-      'done.earned': 'zdobyte dziś',
-      'done.levelUp': 'Awans: {title}',
-      'done.toNext': 'Do Poziomu {l} brakuje {n} XP',
+      'done.srTitle': 'Dzień ukończony',
+      'done.title': 'Dzień {d} zaliczony',
+      'done.earned': 'punktów praktyki dziś',
+      'done.levelUp': 'Osiągnięty kamień milowy: {title}',
+      'done.toNext': 'Do kolejnego kamienia milowego: {n} XP',
       'done.readiness': 'Gotowość',
       'done.readinessNote': 'Pełną gotowość da dopiero Dzień 14.',
       'done.selfQ': 'Jak pewnie czujesz się teraz?',
@@ -809,9 +979,9 @@
       'done.selfCompare': 'Przed: {a}/5, teraz: {b}/5',
       'done.next': 'Przejdź do Dnia {n}',
       'done.checkpoint': 'Zacznij Checkpoint #1',
-      'done.toMap': 'Wróć do mapy',
-      'done.streak': 'Seria rozpoczęta. Do jutra!',
-      'done.badgeLabel': 'Odznaka odblokowana',
+      'done.toMap': 'Wróć do planu',
+      'done.streak': 'Dzień praktyki zapisany. Do jutra.',
+      'done.badgeLabel': 'Kamień milowy',
       'done.tabs': 'Podsumowanie dnia',
       'done.tabToday': 'Dzisiejszy krok',
       'done.tabMore': 'Checklista, ranking i Po Dniu 14',
@@ -820,9 +990,9 @@
       'first.sub': 'Mały, bezpieczny i dziś. Tak pewność zamienia się w działanie.',
       'first.challenge': 'Dzisiejsze realne wyzwanie',
       'first.accept': 'Podejmuję wyzwanie (+{n} XP)',
-      'first.accepted': 'Wyzwanie przyjęte!',
+      'first.accepted': 'Wyzwanie przyjęte',
       'first.checklist': 'Twoja checklista na start',
-      'first.allDone': 'Komplet. Teraz zrób pierwszy krok w banku.',
+      'first.allDone': 'Komplet. Możesz teraz podejrzeć pierwszy krok w banku.',
       'first.toBank': 'Otwórz przykładowy plan w Commerzbanku',
 
       'bankcard.title': 'Przykładowy plan w Commerzbanku',
@@ -842,9 +1012,9 @@
 
       'board.title': 'Ranking znajomych',
       'board.demo': 'Przykładowi znajomi (demo)',
-      'board.levelUp': 'Awans!',
-      'board.gap': 'Do 1. miejsca brakuje Ci {n} XP. Jutro możesz to nadrobić!',
-      'board.lead': 'Prowadzisz w rankingu. Utrzymaj serię jutro!',
+      'board.levelUp': 'Kamień milowy',
+      'board.gap': 'Do 1. miejsca brakuje Ci {n} XP. Jutro możesz to nadrobić.',
+      'board.lead': 'Prowadzisz w rankingu. Kontynuuj praktykę jutro.',
       'board.challenge': 'Wyzwij znajomego',
       'board.copied': 'Zaproszenie skopiowane. Wyślij je znajomemu!',
       'board.copyFail': 'Nie udało się skopiować. Treść zaproszenia: {text}',
@@ -859,13 +1029,15 @@
       'bank.optB': 'Opcja B: przykładowy plan na Dzień 14',
       'bank.optBSavings': 'Poduszka: {amount}/mies. na konto oszczędnościowe. ETF później (przykład {etf}/mies.).',
       'bank.kyc': 'W wersji produkcyjnej: test odpowiedniości, weryfikacja tożsamości (KYC), informacja o kosztach i ryzyku.',
-      'bank.simulate': 'Symuluj wykonanie kroku w banku (demo)',
-      'bank.success': 'Brawo! Krok Dnia {d} zaliczony. Twoja seria trwa, widzimy się jutro!',
+      'bank.noTransfer': 'Symulacja edukacyjna — nic nie zostanie przelane.',
+      'bank.simulate': 'Symuluj ten krok (demo, bez przelewu)',
+      'bank.success': 'Krok Dnia {d} zapisany. Do zobaczenia jutro.',
       'bank.successNote': 'Symulacja: {what}. W wersji demo nic nie zostało wykonane.',
       'bank.nextGen': 'Przetestuj inne pokolenie (demo)',
       'bank.whatA': 'przelew {amount} na {account}',
       'bank.whatB': 'przykładowy plan {amount}/mies.',
 
+      'cp.srTitle': 'Checkpoint #1',
       'cp.title': 'Checkpoint #1',
       'cp.sub': 'Cztery szybkie pytania z Dni 1–4. Zdobądź 75%, a odblokujesz odznakę Fundamenty Opanowane.',
       'cp.q': 'Pytanie {i} z {n}',
@@ -873,13 +1045,13 @@
       'cp.submit': 'Sprawdź odpowiedzi',
       'cp.score': '{n}% poprawnych',
       'cp.retry': 'Spróbuj quizu jeszcze raz',
-      'cp.back': 'Wróć do mapy',
+      'cp.back': 'Wróć do planu',
       'cp.unavailable': 'Checkpoint #1 nie jest jeszcze dostępny na tym serwerze.',
       'cp.correct': 'Dobrze',
       'cp.incorrect': 'Nie do końca',
 
-      'cora.ask': 'Zapytaj Kitę',
-      'cora.title': 'Zapytaj Kitę',
+      'cora.ask': 'Zapytaj Atlasa',
+      'cora.title': 'Zapytaj Atlasa',
       'cora.sub': 'Prosto, na przykładzie z życia i z 10-sekundowym sprawdzianem.',
       'cora.label': 'Co jest niejasne?',
       'cora.placeholder': 'Na przykład: dlaczego gotówka traci wartość?',
@@ -891,7 +1063,7 @@
       'cora.right': 'Dobrze!',
       'cora.wrong': 'Nie do końca.',
       'cora.offline': 'Wyjaśnienie offline',
-      'cora.thinking': 'Kita myśli',
+      'cora.thinking': 'Atlas przygotowuje odpowiedź',
       'cora.again': 'Zapytaj o coś innego',
       'cora.topic.inflation': 'Inflacja',
       'cora.topic.etf': 'Co to ETF?',
@@ -905,9 +1077,7 @@
       'judges.jumpDay4': 'Skocz do Dnia 4',
       'judges.openCp': 'Otwórz Checkpoint #1',
       'judges.noMultiDay': 'Ten serwer nie ma jeszcze Dni 2–4.',
-      'judges.demoHint': 'Przykładowe etapy życia i skróty dla prowadzącego są w zakładce Demo, w prawym górnym rogu.',
-      'demo.toggle': 'Demo',
-      'demo.title': 'Tryb demo',
+      'judges.demoHint': 'Przykładowe etapy życia i skróty dla prowadzącego są w Ustawieniach (zębatka w prawym górnym rogu).',
       'demo.stages': 'Przykładowy etap życia',
       'demo.shortcuts': 'Skróty dla prowadzącego',
       'demo.needProfile': 'Najpierw wybierz etap życia.',
@@ -919,6 +1089,46 @@
       'toast.answerLength': 'Odpowiedź może mieć od 1 do 600 znaków.',
       'toast.sessionLost': 'Nie udało się odtworzyć sesji. Wybierz etap życia jeszcze raz.',
       'toast.lessonDone': '+{n} XP za lekcję',
+
+      // Słowniczek „Dotknij, by zdefiniować” (jedno proste zdanie)
+      'define.see': 'Zobacz przykład z życia (Zapytaj Atlasa)',
+      'define.etf.t': 'ETF (fundusz notowany na giełdzie)',
+      'define.etf.d': 'Fundusz kupowany na giełdzie jak jedna akcja, który ma w sobie wiele firm naraz, więc jeden zakup szeroko rozkłada pieniądze.',
+      'define.ter.t': 'TER (łączny wskaźnik kosztów)',
+      'define.ter.d': 'Roczna opłata funduszu liczona jako mały procent Twoich pieniędzy; im niższa, tym więcej wzrostu zostaje u Ciebie.',
+      'define.inflation.t': 'Inflacja realna',
+      'define.inflation.d': 'Wzrost cen w czasie, przez który pieniądze na 0% co roku kupują trochę mniej.',
+      'define.cushion.t': 'Poduszka finansowa',
+      'define.cushion.d': 'Pieniądze na niespodzianki, zwykle 3–6 miesięcy wydatków, trzymane pod ręką i osobno od inwestycji.',
+      'define.diversification.t': 'Dywersyfikacja',
+      'define.diversification.d': 'Rozłożenie pieniędzy na wiele firm, branż i krajów, żeby wpadka jednej mniej bolała; ryzyko maleje, ale nie znika.',
+      'define.mifid.t': 'MiFID II',
+      'define.mifid.d': 'Unijne przepisy chroniące inwestorów: bank musi sprawdzić, czy produkt do Ciebie pasuje, i wyjaśnić jego koszty oraz ryzyko.',
+      'define.mifid.q': 'Czym jest MiFID II?',
+
+      // Panika vs Dyscyplina (konsekwencje decyzji przy spadku -20%)
+      'pvd.title': 'Panika vs Dyscyplina',
+      'pvd.lead': 'Ten sam plan {amount}/mies., dwie reakcje na spadek -20% w roku 3, w horyzoncie {years}:',
+      'pvd.panic': 'Panika: sprzedaż w dołku',
+      'pvd.panicSell': 'Sprzedane w roku 3 za',
+      'pvd.panicLocked': 'Spadek -20% staje się stratą',
+      'pvd.panicRest': 'Kolejne wpłaty trafiają na konto 0%',
+      'pvd.discipline': 'Dyscyplina: trzymam plan',
+      'pvd.disciplineHold': 'Wartość na papierze w dołku',
+      'pvd.disciplineNote': 'Bez sprzedaży nie ma straty',
+      'pvd.disciplineRest': 'Wpłaty idą dalej zgodnie z planem',
+      'pvd.total': 'Po {years}, w dzisiejszych złotych',
+      'pvd.gap': 'Dyscyplina: ok. {amount} więcej w dzisiejszych złotych',
+      'pvd.note': 'Ilustracja przy tych samych założeniach co Wehikuł czasu (5,7% rocznie po kosztach, inflacja 3,5%, dzisiejsze złote). Spadek to scenariusz edukacyjny; historia nie gwarantuje przyszłości.',
+
+      'level.1': 'Obserwator',
+      'level.2': 'Świadomy Start',
+      'level.3': 'Konsekwentny Start',
+      'unit.currency': 'zł',
+      'unit.thousand': 'tys.',
+      'unit.year1': 'rok',
+      'unit.year2': 'lata',
+      'unit.yearN': 'lat',
     },
   };
 
@@ -933,25 +1143,26 @@
         { icon: 'check', tone: 'green', title: 'How it proves understanding',
           list: ['Every free-text answer is graded optimal, partial or invalid. Gibberish earns 0 XP and the step repeats.',
             'Mixed formats: scenario decisions, a cash-split slider, myth vs reality, spotting the fee that matters.',
-            '"Explain simpler" gives a real-life analogy plus a 3-option check.',
-            'Readiness and a before/after confidence score make progress visible.'] },
-        { icon: 'flame', tone: 'paper', title: 'How it keeps people coming back',
-          list: ['XP, levels, a streak and a friends leaderboard.', 'A real-world micro challenge every day, starting at 5 PLN.',
-            'Kita reacts to every answer, with sound and confetti on wins.', '~5 minutes a day for 14 days, then monthly check-ins.'] },
+            '"Explain simpler" and tap-to-define terms give a real-life analogy plus a 3-option check.',
+            'The -20% step shows Panic vs Discipline in PLN from the learner\'s own plan.',
+            'Readiness, five competence stages and a before/after confidence score make progress visible.'] },
+        { icon: 'repeat', tone: 'paper', title: 'How it keeps people coming back',
+          list: ['Five competence stages, practice days and a friends leaderboard — measured, not noisy.', 'A real-world micro challenge every day, starting at 5 PLN.',
+            'Atlas answers every choice with a calm, specific explanation. Sound is off by default.', '~5 minutes a day for 14 days, then monthly check-ins.'] },
         { icon: 'peak', tone: 'paper', title: 'Innovations for all generations',
-          text: 'Gen Z starts with a 200 PLN/mo practice plan and a 15-year horizon; 55+ gets a calmer tone, a 7-year horizon and the "is it too late?" scenario. One engine, four framings.' },
+          text: 'Gen Z starts with a 200 PLN/mo practice plan and a 15-year horizon. From age 45 the app switches to larger text and a calm layout, shows the cost of waiting in PLN and, for 55+, uses a 7-year horizon and the "is it too late?" scenario. Anyone can toggle "Larger text / Calm UI".' },
         { icon: 'shield', tone: 'paper', title: 'Honest by design',
-          text: 'No promised returns and no tickers. Every number shows its assumptions (5.7% after costs, 3.5% inflation, today\'s PLN). Kita is labelled as an AI that can make mistakes.' },
+          text: 'No promised returns and no tickers. Every number shows its assumptions (5.7% after costs, 3.5% inflation, today\'s PLN). Atlas is labelled as an AI guide that can make mistakes.' },
         { icon: 'landmark', tone: 'yellow', title: 'Value for Commerzbank', wide: true,
           text: 'Day 1 ends with a first deposit, Day 2 opens a brokerage or demo account, Day 3 sets up a standing order. That means deposits, assets under management and retention through a channel outside apps cannot reach.' },
         { icon: 'play', tone: 'sky', title: 'Try it in 60 seconds', wide: true,
-          text: 'Tap "First paycheck", then START. Type "asdf" in step 1 and watch Kita reject it with 0 XP. Switch EN | PL in the header at any time.' },
+          text: 'Tap "First paycheck", pass the three lesson checks and start the Day 1 simulation. Type "asdf" in step 1 and watch Atlas reject it with 0 XP. Switch EN | PL in the header at any time.' },
       ],
       after14: [
         { id: 'rebalancing', icon: 'scale', title: 'Portfolio & rebalancing', description: 'Once a quarter, check your proportions and calmly return to your plan.', cadence: 'Quarterly, ~10 min' },
         { id: 'tax_accounts', icon: 'shield', title: 'Tax-advantaged accounts (IKE / IKZE)', description: 'Learn the rules and check whether they fit you. Educational only.', cadence: 'Yearly, ~15 min' },
         { id: 'bonds', icon: 'coins', title: 'Bonds & diversification', description: 'How bonds can steady part of a portfolio.', cadence: 'Yearly, ~10 min' },
-        { id: 'checkins', icon: 'chat', title: 'Monthly AI check-ins with Kita', description: 'A short talk about progress, emotions and your plan.', cadence: 'Monthly, ~5 min' },
+        { id: 'checkins', icon: 'chat', title: 'Monthly AI check-ins with Atlas', description: 'A short talk about progress, emotions and your plan.', cadence: 'Monthly, ~5 min' },
       ],
     },
     pl: {
@@ -963,30 +1174,31 @@
         { icon: 'check', tone: 'green', title: 'Jak sprawdzamy zrozumienie',
           list: ['Każda własna odpowiedź dostaje ocenę: optymalna, częściowa albo nieważna. Bełkot daje 0 XP i krok się powtarza.',
             'Różne formaty: decyzje w scenariuszach, suwak podziału gotówki, mit czy fakt, wskazanie opłaty, która ma znaczenie.',
-            '„Wyjaśnij prościej” daje analogię z życia i 3-opcyjny sprawdzian.',
-            'Gotowość i samoocena pewności przed/po pokazują postęp.'] },
-        { icon: 'flame', tone: 'paper', title: 'Co sprawia, że się wraca',
-          list: ['XP, poziomy, seria dni i ranking znajomych.', 'Codzienne realne mikro-wyzwanie, od 5 zł.',
-            'Kita reaguje na każdą odpowiedź, a sukcesom towarzyszy dźwięk i konfetti.', '~5 minut dziennie przez 14 dni, potem comiesięczne check-iny.'] },
+            '„Wyjaśnij prościej” i klikalne definicje pojęć dają analogię z życia i 3-opcyjny sprawdzian.',
+            'Krok ze spadkiem -20% pokazuje Panikę vs Dyscyplinę w złotych, na liczbach z planu użytkownika.',
+            'Gotowość, pięć etapów kompetencji i samoocena pewności przed/po pokazują postęp.'] },
+        { icon: 'repeat', tone: 'paper', title: 'Co sprawia, że się wraca',
+          list: ['Pięć etapów kompetencji, dni praktyki i ranking znajomych — mierzalnie, bez hałasu.', 'Codzienne realne mikro-wyzwanie, od 5 zł.',
+            'Atlas odpowiada na każdy wybór spokojnym, konkretnym wyjaśnieniem. Dźwięk jest domyślnie wyłączony.', '~5 minut dziennie przez 14 dni, potem comiesięczne check-iny.'] },
         { icon: 'peak', tone: 'paper', title: 'Innowacje dla wszystkich pokoleń',
-          text: 'Pokolenie Z zaczyna od treningu 200 zł/mies. i horyzontu 15 lat; 55+ dostaje spokojniejszy ton, horyzont 7 lat i scenariusz „czy to nie za późno?”. Jeden silnik, cztery historie.' },
+          text: 'Pokolenie Z zaczyna od treningu 200 zł/mies. i horyzontu 15 lat. Od 45. roku życia aplikacja przełącza się na większą czcionkę i spokojny układ, pokazuje koszt czekania w złotych, a dla 55+ używa horyzontu 7 lat i scenariusza „czy to nie za późno?”. Każdy może włączyć „Większa czcionka / Calm UI”.' },
         { icon: 'shield', tone: 'paper', title: 'Uczciwie od podstaw',
-          text: 'Zero obietnic zysku i zero tickerów. Każda liczba pokazuje założenia (5,7% po kosztach, inflacja 3,5%, dzisiejsze złote). Kita jest oznaczona jako AI, które może się mylić.' },
+          text: 'Zero obietnic zysku i zero tickerów. Każda liczba pokazuje założenia (5,7% po kosztach, inflacja 3,5%, dzisiejsze złote). Atlas jest oznaczony jako przewodnik AI, który może się mylić.' },
         { icon: 'landmark', tone: 'yellow', title: 'Wartość dla Commerzbanku', wide: true,
           text: 'Dzień 1 kończy się pierwszą wpłatą, Dzień 2 otwiera konto maklerskie lub demo, Dzień 3 ustawia zlecenie stałe. To depozyty, aktywa w zarządzaniu i retencja w kanale niedostępnym dla zewnętrznych aplikacji.' },
         { icon: 'play', tone: 'sky', title: 'Sprawdź w 60 sekund', wide: true,
-          text: 'Kliknij „Pierwsza wypłata”, potem START. W kroku 1 wpisz „asdf” i zobacz, jak Kita odrzuca to za 0 XP. W nagłówku w każdej chwili przełączysz EN | PL.' },
+          text: 'Kliknij „Pierwsza wypłata”, zalicz trzy mini-checki lekcji i zacznij symulację Dnia 1. W kroku 1 wpisz „asdf” i zobacz, jak Atlas odrzuca to za 0 XP. W nagłówku w każdej chwili przełączysz EN | PL.' },
       ],
       after14: [
         { id: 'rebalancing', icon: 'scale', title: 'Portfel i rebalansowanie', description: 'Raz na kwartał sprawdzasz proporcje i spokojnie wracasz do planu.', cadence: 'Co kwartał, ~10 min' },
         { id: 'tax_accounts', icon: 'shield', title: 'Konta z ulgą podatkową (IKE / IKZE)', description: 'Poznaj zasady i sprawdź, czy pasują do Ciebie. Wyłącznie edukacyjnie.', cadence: 'Raz w roku, ~15 min' },
         { id: 'bonds', icon: 'coins', title: 'Obligacje i dywersyfikacja', description: 'Jak obligacje mogą stabilizować część portfela.', cadence: 'Raz w roku, ~10 min' },
-        { id: 'checkins', icon: 'chat', title: 'Comiesięczne check-iny z Kitą', description: 'Krótka rozmowa o postępach, emocjach i planie.', cadence: 'Co miesiąc, ~5 min' },
+        { id: 'checkins', icon: 'chat', title: 'Comiesięczne check-iny z Atlasem', description: 'Krótka rozmowa o postępach, emocjach i planie.', cadence: 'Co miesiąc, ~5 min' },
       ],
     },
   };
 
-  // Offline bank for "Ask Kita" — used only when /api/coach/explain is unreachable
+  // Offline bank for "Ask Atlas" — used only when /api/coach/explain is unreachable
   // (route not deployed yet, no network). The backend has its own, richer fallback bank.
   const EXPLAIN_LOCAL = {
     en: {
@@ -1025,6 +1237,11 @@
         q: 'What usually comes first for a beginner?',
         o: ['Picking a hot stock', 'Investing all savings at once', 'Building an emergency cushion'], c: 2,
         f: 'Right. With a cushion in place you never have to sell investments for everyday surprises.' },
+      mifid: { s: 'MiFID II is a set of EU rules that protect people who invest. Before you buy, a bank has to check that a product suits you and show its costs and risks.',
+        e: 'Like a pharmacist who asks what else you take before selling a medicine: the question is there to protect you, not to slow you down.',
+        q: 'Why does a bank ask about your experience and goals before you invest?',
+        o: ['To check that the product suits you', 'To guarantee you a profit', 'To pick a popular stock for you'], c: 0,
+        f: 'Right. The suitability check protects you; it never guarantees a return.' },
     },
     pl: {
       inflation: { s: 'Inflacja to wzrost cen w czasie, więc te same pieniądze co roku kupują trochę mniej. Gotówka na koncie 0% za tym nie nadąża.',
@@ -1062,6 +1279,11 @@
         q: 'Od czego zwykle zaczyna początkujący?',
         o: ['Od gorącej spółki', 'Od zainwestowania wszystkich oszczędności naraz', 'Od zbudowania poduszki finansowej'], c: 2,
         f: 'Tak. Z poduszką nigdy nie musisz sprzedawać inwestycji z powodu codziennych niespodzianek.' },
+      mifid: { s: 'MiFID II to unijne przepisy, które chronią osoby inwestujące. Zanim coś kupisz, bank musi sprawdzić, czy produkt do Ciebie pasuje, i pokazać koszty oraz ryzyko.',
+        e: 'Jak farmaceuta, który pyta, jakie leki już bierzesz, zanim sprzeda nowy: pytanie ma Cię chronić, a nie spowalniać.',
+        q: 'Dlaczego bank pyta o doświadczenie i cele, zanim zainwestujesz?',
+        o: ['Żeby sprawdzić, czy produkt do Ciebie pasuje', 'Żeby zagwarantować Ci zysk', 'Żeby wybrać dla Ciebie popularną spółkę'], c: 0,
+        f: 'Tak. Badanie odpowiedniości Cię chroni, ale nigdy nie gwarantuje zysku.' },
     },
   };
   const EXPLAIN_TOPICS = ['inflation', 'etf', 'cushion', 'dip', 'diversification', 'fees'];
@@ -1072,7 +1294,9 @@
     ['diversification', /divers|dywersyf|one compan|jedn(ej|a) (firm|spół)|koszyk/i],
     ['inflation', /inflat|inflac|cash|gotówk|purchasing|siła nabywcz/i],
     ['etf', /etf|fund|fundusz|index|indeks/i],
+    ['mifid', /mifid/i],
   ];
+  const LOCAL_ONLY_TOPICS = ['mifid'];   // the backend fallback bank has no entry for these
 
   const state0 = { lang: 'en' };
   function t(key, vars) {
@@ -1089,57 +1313,64 @@
   function blocks() { return I18N_BLOCKS[state0.lang] || I18N_BLOCKS.en; }
 
   // ------------------------------------------------------------------------
-  // 3. Icons (2-tone, 2px petrol outline), Kita the monkey, badge art
+  // 3. Icons (monochrome line icons, 1.75px, currentColor), Atlas the guide, milestone seal
   // ------------------------------------------------------------------------
-  const S = 'stroke="#082933" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
+  function st(w) { return 'stroke="currentColor" stroke-width="' + (w || 1.75) + '" stroke-linecap="round" stroke-linejoin="round"'; }
+  const S = st();
+  const CAL = '<rect x="3.75" y="5" width="16.5" height="15.25" rx="2.5" ' + S + '/><path d="M3.75 9.5h16.5M8 3v4M16 3v4" ' + S + '/>';
+  const SPEAKER = '<path d="M4.5 9.5h3l4.5-4v13l-4.5-4h-3z" ' + S + '/>';
   const ICON_PATHS = {
-    brand: '<path d="M4.5 16.5l4.5-4.5 3.5 3 7-7.5" ' + S + ' stroke-width="2.8"/><circle cx="19.5" cy="7.5" r="1.8" fill="#082933"/>',
-    calendar: '<path d="M6.5 5h11a3 3 0 0 1 3 3v1.5h-17V8a3 3 0 0 1 3-3z" fill="#FFCC00"/><rect x="3.5" y="5" width="17" height="15.5" rx="3" ' + S + '/><path d="M3.5 9.5h17M8 3v4M16 3v4" ' + S + '/><circle cx="8.5" cy="14.5" r="1.1" fill="#082933"/><circle cx="12" cy="14.5" r="1.1" fill="#082933"/><circle cx="15.5" cy="14.5" r="1.1" fill="#082933"/>',
-    flame: '<path d="M12 2.8c2.6 3 6.2 5.7 6.2 10.4a6.2 6.2 0 0 1-12.4 0c0-2.6 1.3-4.4 2.6-5.6.2 1.8.9 3 2 3.6-.2-3.2.4-6 1.6-8.4z" fill="#FF8A00" ' + S + '/><path d="M12 12.4c1.3 1.2 2.5 2.4 2.5 4.1a2.5 2.5 0 0 1-5 0c0-1.6 1.1-2.8 2.5-4.1z" fill="#FFCC00" ' + S + ' stroke-width="1.6"/>',
-    bolt: '<path d="M13.5 2.5 5 13.5h6l-1 8 8.5-11h-6z" fill="#FFCC00" ' + S + '/>',
-    soundOn: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#FFCC00" ' + S + '/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" ' + S + '/>',
-    soundOff: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="#EEEADF" ' + S + '/><path d="M16 9.5l5 5M21 9.5l-5 5" ' + S + '/>',
+    brand: '<circle cx="12" cy="12" r="8.5" ' + S + '/><path d="M12 4.75l2.35 7.25h-4.7z" fill="currentColor"/><path d="M12 19.25l2.35-7.25h-4.7z" ' + st(1.4) + '/>',
+    calendar: CAL,
+    'calendar-check': CAL + '<path d="M9 14.75l2 2 4-4" ' + S + '/>',
+    soundOn: SPEAKER + '<path d="M15.5 9.2a4 4 0 0 1 0 5.6M18.2 6.6a7.6 7.6 0 0 1 0 10.8" ' + S + '/>',
+    soundOff: SPEAKER + '<path d="M16 9.75l4.5 4.5M20.5 9.75l-4.5 4.5" ' + S + '/>',
     reset: '<path d="M5 12.5A7 7 0 1 0 7.6 6.8" ' + S + '/><path d="M8.2 3.4 7.6 6.9 4.1 7.3" ' + S + '/>',
-    clipboard: '<rect x="5" y="4.5" width="14" height="16.5" rx="2.5" fill="#DDF1FD" ' + S + '/><rect x="8.5" y="2.8" width="7" height="3.6" rx="1.2" fill="#FFCC00" ' + S + '/><path d="M8.5 12l2 2 4.5-4.5M8.5 17.5h7" ' + S + '/>',
-    menu: '<circle cx="5.5" cy="12" r="1.8" fill="#082933"/><circle cx="12" cy="12" r="1.8" fill="#082933"/><circle cx="18.5" cy="12" r="1.8" fill="#082933"/>',
-    x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11" ' + S + ' stroke-width="2.6"/>',
-    'arrow-right': '<path d="M4.5 12h14M13 6.5l5.5 5.5-5.5 5.5" ' + S + ' stroke-width="2.4"/>',
-    'chevron-down': '<path d="M6 9.5l6 6 6-6" ' + S + ' stroke-width="2.4"/>',
-    check: '<path d="M5 12.5l4.5 4.5L19 7.5" ' + S + ' stroke-width="2.8"/>',
-    lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="#CBC3B0" ' + S + '/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" ' + S + '/><circle cx="12" cy="15.5" r="1.5" fill="#082933"/>',
-    star: '<path d="M12 2.8l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.6l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z" fill="#FFCC00" ' + S + '/><path d="M9.3 11.6l1.9 1.9 3.6-3.7" ' + S + '/>',
-    trophy: '<path d="M7 6H4.5a3 3 0 0 0 3 4.3M17 6h2.5a3 3 0 0 1-3 4.3" ' + S + '/><path d="M7 3.5h10V9a5 5 0 0 1-10 0z" fill="#FFCC00" ' + S + '/><path d="M12 14v3.5" ' + S + '/><rect x="8" y="17.5" width="8" height="3.5" rx="1.2" fill="#FF8A00" ' + S + '/>',
-    shield: '<path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.2 7.5 9.5 4.3-1.3 7.5-4.9 7.5-9.5V6z" fill="#29A9F5" ' + S + '/><path d="M8.7 12l2.3 2.3 4.3-4.6" ' + S + '/>',
-    piggy: '<path d="M4.5 12.5c0-3.6 3.4-6 7.5-6 1.4 0 2.7.3 3.8.8l2.7-1.3-.4 3a5.6 5.6 0 0 1 1.5 2.4H21v3.2h-1.6a6.4 6.4 0 0 1-2.4 2.6V20h-3v-1.3h-3.2V20H7.8v-2.1a5.8 5.8 0 0 1-3.3-5.4z" fill="#FDE4E2" ' + S + '/><circle cx="16" cy="11" r="1.1" fill="#082933"/><path d="M10 7.3h3" ' + S + '/>',
-    sprout: '<path d="M12 21v-8" ' + S + '/><path d="M12 13c0-4-3-6.5-7.5-6.5 0 4.2 3 6.5 7.5 6.5z" fill="#12B76A" ' + S + '/><path d="M12 11c0-3.6 2.6-6 6.8-6 0 3.9-2.6 6-6.8 6z" fill="#12B76A" ' + S + '/><path d="M7.5 21h9" ' + S + '/>',
-    building: '<rect x="5" y="3.5" width="14" height="17.5" rx="2" fill="#EEEADF" ' + S + '/><path d="M9 7.5h2M13 7.5h2M9 11h2M13 11h2M9 14.5h2M13 14.5h2M10.5 21v-3h3v3" ' + S + '/>',
-    wallet: '<rect x="3.5" y="6" width="17" height="13.5" rx="3" fill="#DDF1FD" ' + S + '/><path d="M15 11h5.5v4.5H15a2.25 2.25 0 0 1 0-4.5z" fill="#FFCC00" ' + S + '/><path d="M6 6l9-2.5 1 2.5" ' + S + '/>',
-    coins: '<path d="M5 7v10c0 1.7 3.1 3 7 3s7-1.3 7-3V7" fill="#E0B200"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7" ' + S + '/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5" ' + S + '/><ellipse cx="12" cy="7" rx="7" ry="3" fill="#FFCC00" ' + S + '/>',
-    snowflake: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5" ' + S + '/><circle cx="12" cy="12" r="2.4" fill="#29A9F5" ' + S + '/>',
-    clock: '<circle cx="12" cy="12" r="8.5" fill="#DDF1FD" ' + S + '/><path d="M12 7.5V12l3 2" ' + S + '/>',
-    hourglass: '<path d="M7.5 3c0 4.5 4.5 5.5 4.5 9s-4.5 4.5-4.5 9h9c0-4.5-4.5-5.5-4.5-9s4.5-4.5 4.5-9z" fill="#fff" ' + S + '/><path d="M9.3 19.6c.6-1.8 2.7-2.6 2.7-3.6 0 1 2.1 1.8 2.7 3.6z" fill="#FFCC00"/><path d="M6.5 3h11M6.5 21h11" ' + S + '/>',
-    'trend-down': '<path d="M3.5 7l6 6 3.5-3.5 7.5 7.5" stroke="#F0544F" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M14.5 17h6v-6" ' + S + '/>',
-    eye: '<path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" fill="#fff" ' + S + '/><circle cx="12" cy="12" r="3" fill="#29A9F5" ' + S + '/>',
+    clipboard: '<rect x="5" y="4.5" width="14" height="16.5" rx="2.25" ' + S + '/><rect x="8.5" y="2.75" width="7" height="3.5" rx="1.1" ' + S + '/><path d="M8.75 12l2 2 4.5-4.5M8.75 17.25h6.5" ' + S + '/>',
+    menu: '<circle cx="5.5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor"/>',
+    x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11" ' + S + '/>',
+    'arrow-right': '<path d="M4.5 12h15M13.5 6.5l5.5 5.5-5.5 5.5" ' + S + '/>',
+    'chevron-down': '<path d="M6 9.5l6 6 6-6" ' + S + '/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5" ' + st(2.1) + '/>',
+    lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.25" ' + S + '/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" ' + S + '/>',
+    trophy: '<circle cx="12" cy="9.25" r="5.75" ' + S + '/><path d="M9 14.25 7.5 21l4.5-2.5 4.5 2.5-1.5-6.75" ' + S + '/><path d="M9.6 9.3l1.6 1.6 3.2-3.2" ' + S + '/>',
+    shield: '<path d="M12 3.25 5 6v5.25c0 4.4 3 7.9 7 9.25 4-1.35 7-4.85 7-9.25V6z" ' + S + '/><path d="M9 12l2.1 2.1L15.2 10" ' + S + '/>',
+    piggy: '<path d="M5 12.5c0-3.5 3.2-5.75 7-5.75 1.3 0 2.5.25 3.6.75l2.4-1.2-.35 2.75A5.4 5.4 0 0 1 19 11.25h1.5v3.25H19a6.2 6.2 0 0 1-2.25 2.5v2.75H14v-1.5h-3.5v1.5H7.75V17.5A5.6 5.6 0 0 1 5 12.5z" ' + S + '/><circle cx="15.75" cy="11" r=".9" fill="currentColor"/>',
+    sprout: '<path d="M12 21v-8" ' + S + '/><path d="M12 13c0-3.9-2.9-6.4-7.25-6.4 0 4.1 2.9 6.4 7.25 6.4zM12 11c0-3.5 2.5-5.8 6.6-5.8 0 3.8-2.5 5.8-6.6 5.8z" ' + S + '/>',
+    building: '<rect x="5" y="3.5" width="14" height="17.5" rx="1.75" ' + S + '/><path d="M9 7.5h2M13 7.5h2M9 11h2M13 11h2M9 14.5h2M13 14.5h2M10.5 21v-3h3v3" ' + S + '/>',
+    wallet: '<rect x="3.5" y="6" width="17" height="13.5" rx="2.5" ' + S + '/><path d="M15.5 11h5v4.5h-5a2.25 2.25 0 0 1 0-4.5zM6 6l9-2.5.9 2.5" ' + S + '/>',
+    coins: '<ellipse cx="12" cy="7" rx="7" ry="3" ' + S + '/><path d="M5 7v5c0 1.66 3.13 3 7 3s7-1.34 7-3V7M5 12v5c0 1.66 3.13 3 7 3s7-1.34 7-3v-5" ' + S + '/>',
+    snowflake: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.5 12 7l2.5-2.5M9.5 19.5 12 17l2.5 2.5" ' + S + '/>',
+    clock: '<circle cx="12" cy="12" r="8.5" ' + S + '/><path d="M12 7.5V12l3 2" ' + S + '/>',
+    hourglass: '<path d="M7 3h10M7 21h10M8 3c0 4.5 4 5.5 4 9s-4 4.5-4 9M16 3c0 4.5-4 5.5-4 9s4 4.5 4 9" ' + S + '/>',
+    'trend-down': '<path d="M3.5 7l6 6 3.5-3.5 7.5 7.5M14.5 17h6v-6" ' + S + '/>',
+    'trend-up': '<path d="M3.5 17l6-6 3.5 3.5 7.5-7.5M14.5 7h6v6" ' + S + '/>',
+    eye: '<path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z" ' + S + '/><circle cx="12" cy="12" r="2.75" ' + S + '/>',
     repeat: '<path d="M17 3.5 20 6.5l-3 3M4 11.5V10a3.5 3.5 0 0 1 3.5-3.5H20M7 20.5 4 17.5l3-3M20 12.5V14a3.5 3.5 0 0 1-3.5 3.5H4" ' + S + '/>',
-    pause: '<rect x="6" y="5" width="4" height="14" rx="1.5" fill="#FFCC00" ' + S + '/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="#FFCC00" ' + S + '/>',
-    help: '<path d="M4 6.5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7.5a3 3 0 0 1-3 3h-5.5L7 21v-4a3 3 0 0 1-3-3z" fill="#DDF1FD" ' + S + '/><path d="M10 8.6a2 2 0 1 1 2.8 1.8c-.5.3-.8.7-.8 1.2v.4" ' + S + '/><circle cx="12" cy="14.4" r="1.1" fill="#082933"/>',
-    info: '<circle cx="12" cy="12" r="9" ' + S + '/><path d="M12 11v5.5" ' + S + '/><circle cx="12" cy="7.8" r="1.2" fill="#082933"/>',
-    landmark: '<path d="M3.5 9.5 12 4l8.5 5.5z" fill="#FFCC00" ' + S + '/><path d="M5.5 10.5v7M10 10.5v7M14 10.5v7M18.5 10.5v7M3.5 20.5h17" ' + S + '/>',
-    users: '<circle cx="9" cy="8.5" r="3.5" fill="#FFCC00" ' + S + '/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" ' + S + '/><circle cx="17" cy="9.5" r="2.7" fill="#fff" ' + S + '/><path d="M16 14.2c2.9.2 5 2.5 5 5.4" ' + S + '/>',
-    target: '<circle cx="12" cy="12" r="8.5" fill="#fff" ' + S + '/><circle cx="12" cy="12" r="5" fill="#F0544F" ' + S + '/><circle cx="12" cy="12" r="1.8" fill="#fff" ' + S + '/>',
-    bulb: '<path d="M8.5 15.5c-1.6-1.2-2.7-3-2.7-5.2a6.2 6.2 0 0 1 12.4 0c0 2.2-1.1 4-2.7 5.2v2h-7z" fill="#FFCC00" ' + S + '/><path d="M9.5 20.5h5" ' + S + '/>',
-    chart: '<path d="M4 4v16h16" ' + S + '/><path d="M7.5 15l3.5-4 3 2.5 5-6" stroke="#12B76A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>',
-    search: '<circle cx="10.5" cy="10.5" r="6.5" fill="#DDF1FD" ' + S + '/><path d="M15.5 15.5l5 5" ' + S + ' stroke-width="2.6"/>',
-    banknote: '<rect x="2.5" y="6" width="19" height="12" rx="2.5" fill="#12B76A" ' + S + '/><circle cx="12" cy="12" r="2.8" fill="#FFCC00" ' + S + '/><path d="M6 9.5v5M18 9.5v5" ' + S + '/>',
-    house: '<path d="M5.5 9.5V20h13V9.5L12 4.3z" fill="#FFCC00" ' + S + '/><path d="M3.5 11 12 4l8.5 7" ' + S + '/><rect x="10" y="14" width="4" height="6" fill="#fff" ' + S + '/>',
-    peak: '<path d="M2.5 20 9 8.5l3.5 5.5 2.5-3.5 6.5 9.5z" fill="#29A9F5" ' + S + '/><path d="M9 8.5V3.5l4 1.5-4 1.5" fill="#FFCC00" ' + S + '/>',
-    sunset: '<path d="M5.5 16a6.5 6.5 0 0 1 13 0z" fill="#FF8A00" ' + S + '/><path d="M3 16h18M7 20h10M12 4.5v2.5M5.3 8.3l1.6 1.6M18.7 8.3l-1.6 1.6" ' + S + '/>',
-    user: '<circle cx="12" cy="8" r="4" fill="#FFCC00" ' + S + '/><path d="M4.5 20.5c0-4 3.4-7 7.5-7s7.5 3 7.5 7" ' + S + '/>',
-    scale: '<path d="M12 4v16M7 20h10M5 7h14" ' + S + '/><path d="M5 7l-2.5 6a2.5 2.5 0 0 0 5 0z" fill="#DDF1FD" ' + S + '/><path d="M19 7l-2.5 6a2.5 2.5 0 0 0 5 0z" fill="#DDF1FD" ' + S + '/>',
-    chat: '<path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-6l-4.5 4v-4H7a3 3 0 0 1-3-3z" fill="#DCF5E7" ' + S + '/><path d="M8.5 9.5h7M8.5 12.5h4" ' + S + '/>',
-    play: '<path d="M8 5.5v13l10.5-6.5z" fill="#FFCC00" ' + S + '/>',
-    send: '<path d="M3.5 11.5 20.5 4l-6.5 16.5-3-6.5z" fill="#FFCC00" ' + S + '/><path d="M11 14l9.5-10" ' + S + '/>',
-    flag: '<path d="M6 21V4" ' + S + '/><path d="M6 4.5h11l-2.5 4 2.5 4H6z" fill="#FFCC00" ' + S + '/>',
+    pause: '<path d="M9 5.5v13M15 5.5v13" ' + st(2.2) + '/>',
+    help: '<circle cx="12" cy="12" r="8.75" ' + S + '/><path d="M9.75 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-.95.8-.95 1.4v.3" ' + S + '/><circle cx="12" cy="16.4" r=".95" fill="currentColor"/>',
+    info: '<circle cx="12" cy="12" r="8.75" ' + S + '/><path d="M12 11v5.5" ' + S + '/><circle cx="12" cy="7.9" r="1" fill="currentColor"/>',
+    landmark: '<path d="M3.5 9.5 12 4l8.5 5.5z" ' + S + '/><path d="M5.75 10.5v7M10 10.5v7M14 10.5v7M18.25 10.5v7M3.5 20.5h17" ' + S + '/>',
+    users: '<circle cx="9" cy="8.5" r="3.25" ' + S + '/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" ' + S + '/><circle cx="17" cy="9.5" r="2.5" ' + S + '/><path d="M16.5 14.3c2.6.3 4.5 2.5 4.5 5.2" ' + S + '/>',
+    target: '<circle cx="12" cy="12" r="8.5" ' + S + '/><circle cx="12" cy="12" r="4.75" ' + S + '/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>',
+    bulb: '<path d="M8.75 15.5c-1.6-1.15-2.75-3-2.75-5.2a6 6 0 0 1 12 0c0 2.2-1.15 4.05-2.75 5.2v2h-6.5z" ' + S + '/><path d="M9.75 20.75h4.5" ' + S + '/>',
+    chart: '<path d="M4 4v16h16" ' + S + '/><path d="M7.5 15l3.5-4 3 2.5 5-6" ' + S + '/>',
+    search: '<circle cx="10.5" cy="10.5" r="6.25" ' + S + '/><path d="M15.25 15.25l5 5" ' + S + '/>',
+    banknote: '<rect x="2.75" y="6" width="18.5" height="12" rx="2" ' + S + '/><circle cx="12" cy="12" r="2.6" ' + S + '/><path d="M6 9.5v5M18 9.5v5" ' + S + '/>',
+    house: '<path d="M5.5 10v10h13V10M3.5 11.5 12 4l8.5 7.5M10 20v-5.5h4V20" ' + S + '/>',
+    peak: '<path d="M2.75 20 9 9l3.5 5.5 2.5-3.5 6.25 9z" ' + S + '/><path d="M9 9V4l3.75 1.5L9 7" ' + S + '/>',
+    sunset: '<path d="M6 16a6 6 0 0 1 12 0M3 16h18M7 20h10M12 4.5v2.5M5.3 8.3l1.6 1.6M18.7 8.3l-1.6 1.6" ' + S + '/>',
+    user: '<circle cx="12" cy="8" r="3.75" ' + S + '/><path d="M4.75 20.25c0-3.9 3.25-6.75 7.25-6.75s7.25 2.85 7.25 6.75" ' + S + '/>',
+    scale: '<path d="M12 4v16M7 20h10M5 7h14" ' + S + '/><path d="M5 7l-2.5 6a2.5 2.5 0 0 0 5 0zM19 7l-2.5 6a2.5 2.5 0 0 0 5 0z" ' + S + '/>',
+    chat: '<path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-6l-4.5 4v-4H7a3 3 0 0 1-3-3z" ' + S + '/><path d="M8.5 9.5h7M8.5 12.5h4" ' + S + '/>',
+    play: '<path d="M8 5.5v13l10.5-6.5z" ' + S + '/>',
+    send: '<path d="M3.5 11.5 20.5 4l-6.5 16.5-3-6.5zM11 14l9.5-10" ' + S + '/>',
+    flag: '<path d="M6 21V4M6 4.5h11l-2.5 4 2.5 4H6" ' + S + '/>',
+    pillars: '<path d="M4 20.25h16" ' + S + '/><path d="M6.5 20v-4.5M10 20v-7.5M13.5 20V9.5M17.5 20V5.5" ' + st(2.2) + '/>',
+    'text-size': '<path d="M3.5 18.5 8 6.5l4.5 12M5.1 14.5h5.8M14 18.5l3-8 3 8M15 16h4" ' + S + '/>',
+    filter: '<path d="M4 5.5h16l-6.25 7.25v5.5l-3.5 1.75v-7.25z" ' + S + '/>',
+    gear: '<circle cx="12" cy="12" r="6" ' + S + '/><circle cx="12" cy="12" r="2.4" ' + S + '/><path d="M12 2.75v2.6M12 18.65v2.6M2.75 12h2.6M18.65 12h2.6M5.46 5.46l1.84 1.84M16.7 16.7l1.84 1.84M5.46 18.54l1.84-1.84M16.7 7.3l1.84-1.84" ' + st(2.4) + '/>',
+    map: '<path d="M3.5 6.5 9 4l6 2.5 5.5-2.5v13.5L15 20l-6-2.5-5.5 2.5z" ' + S + '/><path d="M9 4v13.5M15 6.5V20" ' + S + '/>',
   };
   function icon(name, cls) {
     const inner = ICON_PATHS[name] || ICON_PATHS.bulb;
@@ -1154,87 +1385,24 @@
     });
   }
 
-  // --- Kita: bespoke flat-vector monkey (viewBox 160×160, 2.5px petrol outline) ---
-  const SW = 2.5;
-  function limb(d, w) {
-    const width = w || 8;
-    return '<path d="' + d + '" stroke="' + C.ink + '" stroke-width="' + (width + 5) + '" stroke-linecap="round" fill="none"/>' +
-      '<path d="' + d + '" stroke="' + C.fur + '" stroke-width="' + width + '" stroke-linecap="round" fill="none"/>';
-  }
-  function paw(cx, cy, r) {
-    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r || 6.5) + '" fill="' + C.cream + '" stroke="' + C.ink + '" stroke-width="' + SW + '"/>';
-  }
-  function coraFace(opts) {
-    const o = opts || {};
-    const st = 'stroke="' + C.ink + '" stroke-width="' + SW + '"';
-    return (
-      '<g class="c-ear-l"><circle cx="48" cy="66" r="12" fill="' + C.fur + '" ' + st + '/><circle cx="48" cy="66" r="6.5" fill="' + C.cream + '"/></g>' +
-      '<g class="c-ear-r"><circle cx="112" cy="66" r="12" fill="' + C.fur + '" ' + st + '/><circle cx="112" cy="66" r="6.5" fill="' + C.cream + '"/></g>' +
-      '<circle cx="80" cy="62" r="32" fill="' + C.fur + '" ' + st + '/>' +
-      '<path d="M72 32 Q 75 23 80 30 Q 84 22 89 32" fill="none" ' + st + ' stroke-linecap="round" stroke-linejoin="round"/>' +
-      // face mask: outlined union (stroked shapes, then the same fills on top)
-      '<g fill="' + C.cream + '" ' + st + '><circle cx="68" cy="58" r="13"/><circle cx="92" cy="58" r="13"/><ellipse cx="80" cy="75" rx="21" ry="15"/></g>' +
-      '<g fill="' + C.cream + '"><circle cx="68" cy="58" r="13"/><circle cx="92" cy="58" r="13"/><ellipse cx="80" cy="75" rx="21" ry="15"/></g>' +
-      '<circle cx="61" cy="75" r="4.5" fill="' + C.coral + '" opacity=".35"/><circle cx="99" cy="75" r="4.5" fill="' + C.coral + '" opacity=".35"/>' +
-      // eyes by mood
-      '<g class="c-eyes" data-pose="' + (o.peek ? 'idle thinking coaching celebrating confident' : 'idle coaching confident') + '">' +
-        '<ellipse cx="69" cy="59" rx="4.6" ry="5.6" fill="' + C.ink + '"/><ellipse cx="91" cy="59" rx="4.6" ry="5.6" fill="' + C.ink + '"/>' +
-        '<circle cx="70.8" cy="56.8" r="1.7" fill="#fff"/><circle cx="92.8" cy="56.8" r="1.7" fill="#fff"/></g>' +
-      (o.peek ? '' :
-        '<g class="c-eyes" data-pose="thinking"><ellipse cx="70" cy="56" rx="4.4" ry="5.4" fill="' + C.ink + '"/><ellipse cx="92" cy="56" rx="4.4" ry="5.4" fill="' + C.ink + '"/>' +
-          '<circle cx="71.6" cy="53.8" r="1.6" fill="#fff"/><circle cx="93.6" cy="53.8" r="1.6" fill="#fff"/></g>' +
-        '<g data-pose="celebrating"><path d="M63.5 60 Q 69 52.5 74.5 60M85.5 60 Q 91 52.5 96.5 60" fill="none" stroke="' + C.ink + '" stroke-width="3" stroke-linecap="round"/></g>' +
-        '<g data-pose="coaching"><path d="M62 47 Q 68 43.5 74 46.5M86 46.5 Q 92 43.5 98 47" fill="none" ' + st + ' stroke-linecap="round"/></g>' +
-        '<g data-pose="thinking"><path d="M86 44.5 Q 92 40 98 43" fill="none" ' + st + ' stroke-linecap="round"/></g>') +
-      '<ellipse cx="76.5" cy="70" rx="1.7" ry="1.3" fill="' + C.ink + '"/><ellipse cx="83.5" cy="70" rx="1.7" ry="1.3" fill="' + C.ink + '"/>' +
-      // mouths by mood
-      (o.peek
-        ? '<path d="M71 77 Q 80 85 89 77" fill="none" ' + st + ' stroke-linecap="round"/>'
-        : '<g data-pose="idle"><path d="M71 77 Q 80 85.5 89 77" fill="none" ' + st + ' stroke-linecap="round"/></g>' +
-          '<g data-pose="thinking"><path d="M75.5 80.5 Q 80 78.5 84.5 80.5" fill="none" ' + st + ' stroke-linecap="round"/></g>' +
-          '<g data-pose="coaching"><path d="M72.5 78 Q 80 83.5 87.5 78" fill="none" ' + st + ' stroke-linecap="round"/></g>' +
-          '<g data-pose="celebrating"><path d="M69 76 Q 80 93 91 76 Z" fill="' + C.ink + '" ' + st + ' stroke-linejoin="round"/><path d="M74 84 Q 80 80.5 86 84 Q 80 89.5 74 84 Z" fill="' + C.coral + '"/></g>' +
-          '<g data-pose="confident"><path d="M70 76 Q 80 89 90 76 Q 80 81 70 76 Z" fill="#fff" ' + st + ' stroke-linejoin="round"/></g>')
-    );
-  }
+  // --- Atlas: Commerzbank financial guide — a precise compass (viewBox 64×64) ---
+  // Petrol case, white dial, 1.75px ticks, canary north needle. At rest nothing moves; the
+  // needle turns only on purpose (moods in styles.css §8: thinking / celebrating / coaching).
   function coraSVG() {
-    const st = 'stroke="' + C.ink + '" stroke-width="' + SW + '"';
+    const major = [0, 90, 180, 270].map((a) => '<path d="M32 9.5v3.5" transform="rotate(' + a + ' 32 32)"/>').join('');
+    const minor = [45, 135, 225, 315].map((a) => '<path d="M32 10v2" transform="rotate(' + a + ' 32 32)"/>').join('');
     return (
-      '<svg viewBox="0 0 160 160" aria-hidden="true" focusable="false">' +
-      '<g class="c-body">' +
-        '<g class="c-tail">' + limb('M100 132 C 128 138, 144 112, 131 98 C 123 89, 110 96, 117 104', 7) + '</g>' +
-        '<ellipse cx="66" cy="146" rx="11" ry="7" fill="' + C.furDark + '" ' + st + '/><ellipse cx="94" cy="146" rx="11" ry="7" fill="' + C.furDark + '" ' + st + '/>' +
-        '<ellipse cx="80" cy="122" rx="27" ry="26" fill="' + C.fur + '" ' + st + '/>' +
-        '<ellipse cx="80" cy="128" rx="17" ry="15.5" fill="' + C.cream + '"/>' +
-        // back arms (behind the head)
-        '<g data-pose="idle">' + limb('M58 110 Q 49 122 54 134') + paw(55, 136) +
-          '<g class="c-wave">' + limb('M102 108 Q 122 100 130 84') + paw(131, 80) + '</g></g>' +
-        '<g data-pose="thinking coaching">' + limb('M58 110 Q 49 122 54 134') + paw(55, 136) + '</g>' +
-        '<g data-pose="celebrating">' + limb('M58 108 Q 40 98 30 80') + paw(28, 76) + limb('M102 108 Q 120 98 130 80') + paw(132, 76) +
-          '<g class="c-lines" fill="none" stroke="' + C.ink + '" stroke-width="2.5" stroke-linecap="round"><path d="M15 64l-7-5M13 77H5M145 64l7-5M147 77h8"/></g></g>' +
-        '<g data-pose="confident">' + limb('M58 110 Q 43 120 55 131') + paw(57, 131) + '</g>' +
-        // neckerchief with coin pin
-        '<path d="M57 95 L103 95 L80 117 Z" fill="' + C.yellow + '" ' + st + ' stroke-linejoin="round"/>' +
-        '<circle cx="80" cy="98.5" r="5" fill="' + C.yellowPress + '" ' + st + '/>' +
-        '<circle cx="89.5" cy="104" r="4.3" fill="' + C.yellowPress + '" stroke="' + C.ink + '" stroke-width="2"/><circle cx="89.5" cy="104" r="1.7" fill="none" stroke="' + C.ink + '" stroke-width="1.4"/>' +
-        '<g class="c-head">' + coraFace() + '</g>' +
-        // front arms (over the face / chest)
-        '<g data-pose="thinking coaching">' + limb('M102 110 Q 120 104 100 91') + paw(97, 89) + '</g>' +
-        '<g data-pose="confident"><g class="c-thumb">' + limb('M102 110 Q 118 111 120 100') +
-          '<rect x="116.5" y="76" width="7.5" height="15" rx="3.75" fill="' + C.cream + '" ' + st + '/>' +
-          '<rect x="112" y="88" width="17" height="15" rx="5.5" fill="' + C.cream + '" ' + st + '/></g></g>' +
-        '<g data-pose="thinking" class="c-dots" fill="' + C.ink + '"><circle cx="121" cy="34" r="3.2"/><circle cx="131" cy="25" r="3.7"/><circle cx="142" cy="15" r="4.2"/></g>' +
-      '</g></svg>'
-    );
-  }
-  // Head + paws gripping a card edge (viewBox 160×108)
-  function coraPeekSVG() {
-    return (
-      '<svg viewBox="0 0 160 108" aria-hidden="true" focusable="false">' +
-        '<g class="c-head">' + coraFace({ peek: true }) + '</g>' +
-        '<rect x="40" y="92" width="24" height="15" rx="7" fill="' + C.cream + '" stroke="' + C.ink + '" stroke-width="' + SW + '"/>' +
-        '<rect x="96" y="92" width="24" height="15" rx="7" fill="' + C.cream + '" stroke="' + C.ink + '" stroke-width="' + SW + '"/>' +
-        '<path d="M48 94v6M56 94v6M104 94v6M112 94v6" stroke="' + C.ink + '" stroke-width="2" stroke-linecap="round"/>' +
+      '<svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">' +
+        '<circle cx="32" cy="32" r="29.5" fill="' + C.ink + '"/>' +
+        '<circle cx="32" cy="32" r="25.5" fill="#FFFFFF"/>' +
+        '<circle class="c-ring" cx="32" cy="32" r="17.5" fill="none" stroke="' + C.rule + '" stroke-width="1"/>' +
+        '<g stroke="' + C.ink + '" stroke-width="1.75" stroke-linecap="round">' + major + '</g>' +
+        '<g stroke="' + C.ink + '" stroke-width="1.25" stroke-linecap="round" opacity=".45">' + minor + '</g>' +
+        '<g class="c-needle">' +
+          '<path d="M32 13.5 35.75 32h-7.5z" fill="' + C.yellow + '" stroke="' + C.ink + '" stroke-width="1.75" stroke-linejoin="round"/>' +
+          '<path d="M32 50.5 35.75 32h-7.5z" fill="' + C.ink + '" stroke="' + C.ink + '" stroke-width="1.75" stroke-linejoin="round"/>' +
+        '</g>' +
+        '<circle cx="32" cy="32" r="2.6" fill="#FFFFFF" stroke="' + C.ink + '" stroke-width="1.75"/>' +
       '</svg>'
     );
   }
@@ -1250,34 +1418,56 @@
       if (!el.dataset.mood) el.dataset.mood = el.dataset.cora || 'idle';
     });
     (root || document).querySelectorAll('[data-cora-face]').forEach((el) => {
-      if (!el.querySelector('svg')) el.innerHTML = coraPeekSVG();
+      if (!el.querySelector('svg')) el.innerHTML = coraSVG();
     });
   }
 
-  // Level badge (medal + ribbon)
+  // Milestone seal (Checkpoint #1, milestones): thin rings and a check, tinted by level.
   function badgeSVG(level) {
-    const fills = { 1: C.stone, 2: C.yellow, 3: C.green };
+    const fills = { 1: C.paper2, 2: C.yellow, 3: C.green };
     const fill = fills[level] || C.yellow;
-    const st = 'stroke="' + C.ink + '" stroke-width="3" stroke-linejoin="round"';
     return (
-      '<svg viewBox="0 0 120 132" aria-hidden="true" focusable="false">' +
-        '<path d="M38 82 L26 124 L42 116 L50 130 L60 90 Z" fill="' + C.sky + '" ' + st + '/>' +
-        '<path d="M82 82 L94 124 L78 116 L70 130 L60 90 Z" fill="' + C.coral + '" ' + st + '/>' +
-        '<circle cx="60" cy="56" r="46" fill="' + fill + '" ' + st + '/>' +
-        '<circle cx="60" cy="56" r="34" fill="#fff" ' + st + '/>' +
-        '<path d="M60 31l7 14.2 15.6 2.3-11.3 11 2.7 15.6L60 66.7l-14 7.4 2.7-15.6-11.3-11 15.6-2.3z" fill="' + C.yellow + '" ' + st + '/>' +
-        '<text x="60" y="61" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="15" fill="' + C.ink + '">' + level + '</text>' +
+      '<svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">' +
+        '<circle cx="60" cy="60" r="54" fill="#FFFFFF" stroke="' + C.ink + '" stroke-width="1.75"/>' +
+        '<circle cx="60" cy="60" r="46" fill="none" stroke="' + C.rule + '" stroke-width="1" stroke-dasharray="2 3"/>' +
+        '<circle cx="60" cy="60" r="34" fill="' + fill + '"/>' +
+        '<path d="M45 61l10 10 21-22" fill="none" stroke="' + C.ink + '" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
       '</svg>'
     );
+  }
+
+  // Backend copy (luna_message, feedback, explanations, After Day 14) may still name the
+  // former coach. The UI maps every form to Atlas so one guide speaks throughout.
+  const COACH_NAME_RULES = [
+    [/(?<!\p{L})(?:Kita|Cora)(?!\p{L})/gu, 'Atlas'],
+    [/(?<!\p{L})(?:Kity|Kitę|Cory|Corę)(?!\p{L})/gu, 'Atlasa'],
+    [/(?<!\p{L})(?:Kitą|Corą)(?!\p{L})/gu, 'Atlasem'],
+    [/(?<!\p{L})(?:Kicie|Corze)(?!\p{L})/gu, 'Atlasowi'],
+    [/(?<!\p{L})(?:Kito|Coro)(?!\p{L})/gu, 'Atlasie'],
+  ];
+  function normalizeCoachText(str) {
+    if (typeof str !== 'string' || !/Kit|Kici|Cor/.test(str)) return str;
+    return COACH_NAME_RULES.reduce((s, rule) => s.replace(rule[0], rule[1]), str);
+  }
+  function normalizeCoachDeep(value) {
+    if (typeof value === 'string') return normalizeCoachText(value);
+    if (Array.isArray(value)) return value.map(normalizeCoachDeep);
+    if (value && typeof value === 'object') {
+      const out = {};
+      Object.keys(value).forEach((k) => { out[k] = normalizeCoachDeep(value[k]); });
+      return out;
+    }
+    return value;
   }
 
   // ------------------------------------------------------------------------
   // 4. Sound — zero-asset Web Audio utility; fails silently when blocked.
   // ------------------------------------------------------------------------
+  // Quiet Mastery: muted by default — the user can switch it on with the HUD sound button.
   const Sound = (function () {
     let ctx = null;
-    let muted = false;
-    try { muted = window.localStorage.getItem(LS_MUTED) === '1'; } catch (e) { muted = false; }
+    let muted = true;
+    try { muted = window.localStorage.getItem(LS_SOUND) !== '1'; } catch (e) { muted = true; }
     function audio() {
       if (muted) return null;
       try {
@@ -1314,7 +1504,7 @@
       isMuted: () => muted,
       setMuted(value) {
         muted = !!value;
-        try { window.localStorage.setItem(LS_MUTED, muted ? '1' : '0'); } catch (e) { /* ignore */ }
+        try { window.localStorage.setItem(LS_SOUND, muted ? '0' : '1'); } catch (e) { /* ignore */ }
       },
       click() { tone(620, 0, 0.045, 'triangle', 0.05); tone(180, 0, 0.03, 'sine', 0.04); },
       correct() { tone(784, 0, 0.14, 'sine', 0.11); tone(1175, 0.11, 0.26, 'sine', 0.1); },
@@ -1349,7 +1539,7 @@
     return sign + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, sep);
   }
   function money(value) {
-    return formatNumber(value) + NBSP + (state0.lang === 'pl' ? 'zł' : 'PLN');
+    return formatNumber(value) + NBSP + t('unit.currency');
   }
   function pluralPL(n, one, few, many) {
     const abs = Math.abs(n);
@@ -1359,7 +1549,10 @@
     return d >= 2 && d <= 4 && !(dd >= 12 && dd <= 14) ? few : many;
   }
   function years(n) {
-    return state0.lang === 'pl' ? n + NBSP + pluralPL(n, 'rok', 'lata', 'lat') : n + NBSP + (n === 1 ? 'year' : 'years');
+    const word = state0.lang === 'pl'
+      ? pluralPL(n, t('unit.year1'), t('unit.year2'), t('unit.yearN'))
+      : (n === 1 ? t('unit.year1') : t('unit.yearN'));
+    return n + NBSP + word;
   }
   function replayClass(el, cls) {
     if (!el) return;
@@ -1418,6 +1611,50 @@
   function storageGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function storageSet(key, value) { try { window.localStorage.setItem(key, value); } catch (e) { /* ignore */ } }
 
+  // Tap-to-define: wrap the first mention of each key term in a plain-text string with a
+  // button that opens a one-sentence definition. Returns escaped HTML.
+  const TERM_KEYS = ['etf', 'ter', 'inflation', 'cushion', 'diversification', 'mifid'];
+  const TERM_PATTERNS = {
+    en: {
+      etf: /(?<!\p{L})ETFs?(?!\p{L})/u,
+      ter: /(?<!\p{L})TER(?!\p{L})/u,
+      inflation: /(?<!\p{L})(?:real )?inflation(?!\p{L})/iu,
+      cushion: /(?<!\p{L})(?:emergency (?:cushion|fund)|safety cushion|cushion)(?!\p{L})/iu,
+      diversification: /(?<!\p{L})diversif\p{L}*/iu,
+      mifid: /MiFID(?: II)?/u,
+    },
+    pl: {
+      etf: /(?<!\p{L})ETF(?!\p{L})/u,
+      ter: /(?<!\p{L})TER(?!\p{L})/u,
+      inflation: /(?<!\p{L})inflac\p{L}*(?: realn\p{L}*)?/iu,
+      cushion: /(?<!\p{L})poduszk\p{L}*(?: finansow\p{L}*)?/iu,
+      diversification: /(?<!\p{L})dywersyfik\p{L}*/iu,
+      mifid: /MiFID(?: II)?/u,
+    },
+  };
+  // Topics of the "Ask Atlas" fallback bank that match each term.
+  const TERM_TOPIC = { etf: 'etf', ter: 'fees', inflation: 'inflation', cushion: 'cushion', diversification: 'diversification', mifid: 'mifid' };
+  function defineTerms(text) {
+    const src = String(text == null ? '' : text);
+    const patterns = TERM_PATTERNS[state0.lang] || TERM_PATTERNS.en;
+    const hits = [];
+    TERM_KEYS.forEach((key) => {
+      const m = patterns[key].exec(src);
+      if (m) hits.push({ key, start: m.index, end: m.index + m[0].length });
+    });
+    hits.sort((a, b) => a.start - b.start);
+    let out = '';
+    let pos = 0;
+    hits.forEach((h) => {
+      if (h.start < pos) return;   // overlapping match: keep the earlier one
+      out += escapeHtml(src.slice(pos, h.start)) +
+        '<button type="button" class="term" data-action="define" data-term="' + h.key + '" aria-haspopup="dialog" aria-expanded="false">' +
+        escapeHtml(src.slice(h.start, h.end)) + '</button>';
+      pos = h.end;
+    });
+    return out + escapeHtml(src.slice(pos));
+  }
+
   // ------------------------------------------------------------------------
   // 6. API + silent session recovery (docs/02 §5)
   // ------------------------------------------------------------------------
@@ -1443,7 +1680,7 @@
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new ApiError(res.status, data, 'http');
-      return data;
+      return normalizeCoachDeep(data);
     } catch (err) {
       if (err instanceof ApiError) throw err;
       throw new ApiError(0, null, err && err.name === 'AbortError' ? 'timeout' : 'network');
@@ -1500,7 +1737,7 @@
     practiceXp: 0,           // local XP from practice beats
     completedLessons: new Set(),
     lessonChecks: {},        // lessonId -> { wrong: [option indices] } (mini-check attempts)
-    checkinDays: new Set(),  // days whose Kita check-in was confirmed
+    checkinDays: new Set(),  // days whose Atlas check-in was confirmed
     gateBypass: new Set(),   // days opened through the Demo shortcuts (no gating)
     dayLessons: [],
     log: [],                 // server actions to replay after a lost session
@@ -1512,9 +1749,12 @@
     summary: null,
     cp: null,
     cora: { busy: false, result: null, picked: null, question: '' },
-    hubTab: 1,               // Quest Hub briefing step: 1 plan · 2 what-if simulator · 3 lessons
+    hubView: 'quests',       // Quest Hub: 'quests' (default) or a rail tool: plan · sim · lessons · roadmap
     tmAmount: null,          // what-if monthly amount; null = the sample plan amount
     plantStageAtStart: 1,
+    calm: false,             // "Larger text / Calm UI" (body.is-senior-friendly)
+    calmManual: false,       // true once the user toggled it; a new profile re-applies the age rule
+    celebratedDays: new Set(), // confetti fires once per completed day
   });
 
   const els = {};
@@ -1563,28 +1803,33 @@
   // ------------------------------------------------------------------------
   function readyWidgets() { return [els.hudReady, els.hudReadyMobile].filter(Boolean); }
 
+  // Readiness and the competence stage lead; XP and practice days stay deliberately quiet.
   function renderHud(opts) {
     const animate = !opts || opts.animate !== false;
     const gs = g();
     const xp = displayedXp();
     const prev = state.rendered;
+    const hasSession = !!state.session;
+    document.body.classList.toggle('has-session', hasSession);
+    if (els.hudStats) els.hudStats.hidden = !hasSession;
     els.hudDayNum.textContent = String(state.day);
     els.hudDayTotal.textContent = String(TOTAL_DAYS);
     els.hudStreak.textContent = String(gs.streak_days || 1);
-    els.hudLevel.textContent = t('hud.lvl', { n: gs.level });
-    if (animate && prev.xp != null && xp > prev.xp) {
-      animateNumber(els.hudXp, prev.xp, xp);
-      replayClass(els.hudXpPill, 'bump');
-    } else {
-      setNumber(els.hudXp, xp);
-    }
-    if (animate && prev.level != null && gs.level > prev.level) replayClass(els.hudXpPill, 'bump');
+    const ps = plantState(xp, state.checkpointPassed);
+    els.hudLevel.innerHTML =
+      '<span class="stat__short">' + escapeHtml(t('hud.stageShort', { n: ps.stage })) + '</span>' +
+      '<span class="stat__long">' + escapeHtml(t('hud.stageLong', { n: ps.stage, title: ps.title })) + '</span>';
+    if (animate && prev.stage != null && ps.stage > prev.stage && els.hudStage) replayClass(els.hudStage, 'flash');
+    if (animate && prev.xp != null && xp > prev.xp) animateNumber(els.hudXp, prev.xp, xp);
+    else setNumber(els.hudXp, xp);
 
     const show = !!state.turn && state.screen !== SCREENS.ONBOARDING;
     const ready = show ? clamp(Number(state.turn.confidence_score) || 0, 0, 100) : 0;
     if (els.hudReadyRow) els.hudReadyRow.hidden = !show;
     readyWidgets().forEach((w) => {
       w.hidden = !show;
+      const label = w.querySelector('[data-ready-label]');
+      if (label) label.textContent = t(state.calm ? 'hud.readinessCalm' : 'hud.readiness');
       const val = w.querySelector('[data-ready-val]');
       const fill = w.querySelector('.meter__fill');
       const bar = w.querySelector('.meter');
@@ -1596,12 +1841,38 @@
       if (bar) bar.setAttribute('aria-valuenow', String(ready));
     });
     if (els.mXp) setNumber(els.mXp, xp);
-    state.rendered = { xp, level: gs.level, ready: show ? ready : prev.ready };
+    state.rendered = { xp, stage: ps.stage, ready: show ? ready : prev.ready };
   }
-  function resetHudBaseline() { state.rendered = { xp: null, level: null, ready: null }; }
+  function resetHudBaseline() { state.rendered = { xp: null, stage: null, ready: null }; }
+
+  // "Innovations for all generations": larger text, bigger targets and a calm layout without
+  // small practice counters. On automatically from age 45; anyone can switch it.
+  function applyCalm(on) {
+    state.calm = !!on;
+    document.body.classList.toggle('is-senior-friendly', state.calm);
+    document.documentElement.classList.toggle('is-senior-friendly', state.calm);
+    document.querySelectorAll('[data-action="toggle-calm"]').forEach((b) => b.setAttribute('aria-checked', String(state.calm)));
+    renderHud({ animate: false });
+    if (state.session && state.screen === SCREENS.HUB) {
+      renderGardenCard();
+      renderHubRail();
+      syncAmountControls();
+      updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false });
+      if (tmChart) tmChart.resize();
+    }
+  }
+  function calmForAge(age) {
+    if (state.calmManual) return;
+    applyCalm(Number(age) >= CALM_AGE);
+  }
+  function toggleCalm() {
+    state.calmManual = true;
+    applyCalm(!state.calm);
+    toast(t(state.calm ? 'hud.calmOn' : 'hud.calmOff'), 'info', 2400);
+  }
 
   function xpFloat(amount, anchor, tone) {
-    if (!amount) return;
+    if (!amount || state.calm) return;
     const el = document.createElement('div');
     el.className = 'xp-float' + (tone === 'green' ? ' xp-float--green' : '');
     el.textContent = '+' + amount + ' XP';
@@ -1614,11 +1885,32 @@
     setTimeout(() => el.remove(), 1400);
   }
 
+  // Sound lives in Settings as a switch row (role="switch").
   function renderSoundButton() {
     const muted = Sound.isMuted();
-    els.hudSound.innerHTML = icon(muted ? 'soundOff' : 'soundOn');
-    els.hudSound.setAttribute('aria-pressed', String(muted));
+    if (!els.hudSound) return;
+    const ico = els.hudSound.querySelector('[data-sound-icon]');
+    if (ico) ico.innerHTML = icon(muted ? 'soundOff' : 'soundOn');
+    els.hudSound.setAttribute('aria-checked', String(!muted));
     els.hudSound.title = muted ? t('hud.soundOff') : t('hud.soundOn');
+  }
+
+  // Settings popover behind the gear: language, sound, calm mode, reset, judges, demo.
+  function toggleSettings(force) {
+    if (!els.settingsPop) return;
+    const open = force != null ? !!force : els.settingsPop.hidden;
+    if (open) renderDemoMenus();
+    els.settingsPop.hidden = !open;
+    if (els.settingsBtn) els.settingsBtn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      const first = els.settingsPop.querySelector('.seg button[aria-pressed="true"]') || els.settingsPop.querySelector('button');
+      if (first) first.focus({ preventScroll: true });
+    }
+  }
+  function closeSettings(restoreFocus) {
+    if (!els.settingsPop || els.settingsPop.hidden) return;
+    toggleSettings(false);
+    if (restoreFocus && els.settingsBtn) els.settingsBtn.focus({ preventScroll: true });
   }
 
   // ------------------------------------------------------------------------
@@ -1634,7 +1926,7 @@
       if (active) replayClass(el, 'screen-enter');
     });
     document.body.dataset.screen = id;
-    closeMenu();
+    closeSettings();
     if (!opts || opts.scroll !== false) window.scrollTo(0, 0);
     const title = target.querySelector('[data-screen-title]');
     if (title) title.focus({ preventScroll: true });
@@ -1642,6 +1934,7 @@
   }
 
   const INTRO_SLIDES = [1, 2, 3];
+  const INTRO_ICONS = { 1: 'chart', 2: 'clock', 3: 'shield' };
   function renderIntro() {
     const i = state.introIndex;
     const step = document.getElementById('intro-step');
@@ -1649,7 +1942,9 @@
     const copy = document.getElementById('intro-copy');
     const progress = document.getElementById('intro-progress');
     const next = document.getElementById('intro-next');
+    const ico = document.getElementById('intro-icon');
     if (!step || !title || !copy || !progress || !next) return;
+    if (ico) ico.innerHTML = icon(INTRO_ICONS[i] || 'chart');
     step.textContent = i + '/3';
     title.textContent = t('intro.' + i + '.title');
     copy.textContent = t('intro.' + i + '.copy');
@@ -1675,11 +1970,11 @@
     storageSet(LS_INTRO_SEEN, '1');
     closeModal('modal_name');
     showScreen(SCREENS.ONBOARDING);
-    renderKitaWelcome();
+    renderGuideWelcome();
   }
-  function renderKitaWelcome() {
-    const bubble = document.querySelector('#screen_onboarding [data-i18n="onb.bubble"]');
-    if (bubble && state.userName) bubble.textContent = state.lang === 'pl' ? 'Cześć, ' + state.userName + '! Kliknij etap życia, który najbardziej do Ciebie pasuje.' : 'Hi, ' + state.userName + '! Tap the life stage that sounds most like you.';
+  function renderGuideWelcome() {
+    const bubble = document.getElementById('onb-bubble');
+    if (bubble) bubble.textContent = state.userName ? t('onb.bubbleName', { name: state.userName }) : t('onb.bubble');
   }
   function skipIntro() { storageSet(LS_INTRO_SEEN, '1'); openNameModal(); }
   function nextIntro() {
@@ -1727,9 +2022,9 @@
       '</button>'
     ).join('');
     return (
-      '<p class="demo-title">' + escapeHtml(t('demo.stages')) + '</p>' +
+      '<p class="settings__label">' + escapeHtml(t('demo.stages')) + '</p>' +
       '<div class="demo-stages">' + stages + '</div>' +
-      '<p class="demo-title">' + escapeHtml(t('demo.shortcuts')) + '</p>' +
+      '<p class="settings__label">' + escapeHtml(t('demo.shortcuts')) + '</p>' +
       '<div class="demo-shortcuts">' +
         '<button type="button" class="tool-btn" data-action="demo-day4"' + (has ? '' : ' disabled') + '>' + icon('target', 'ic--sm') + escapeHtml(t('judges.jumpDay4')) + '</button>' +
         '<button type="button" class="tool-btn" data-action="demo-cp"' + (has ? '' : ' disabled') + '>' + icon('trophy', 'ic--sm') + escapeHtml(t('judges.openCp')) + '</button>' +
@@ -1738,16 +2033,8 @@
     );
   }
   function renderDemoMenus() {
-    if (els.demoPop) els.demoPop.innerHTML = '<p class="demo-head">' + escapeHtml(t('demo.title')) + '</p>' + demoGroupHTML();
-    if (els.demoMobile) els.demoMobile.innerHTML = demoGroupHTML();
+    if (els.settingsDemo) els.settingsDemo.innerHTML = demoGroupHTML();
   }
-  function toggleDemo(force) {
-    const open = force != null ? force : els.demoPop.hidden;
-    if (open) { closeMenu(); renderDemoMenus(); }
-    els.demoPop.hidden = !open;
-    document.querySelectorAll('[data-action="toggle-demo"]').forEach((b) => b.setAttribute('aria-expanded', String(open)));
-  }
-  function closeDemo() { if (els.demoPop && !els.demoPop.hidden) toggleDemo(false); }
 
   function setStageBusy(stageId, busy) {
     document.querySelectorAll('[data-stage]').forEach((btn) => {
@@ -1946,25 +2233,28 @@
     state.log = [];
     state.tm = { year: null, point: null };
     state.tmAmount = null;
-    state.hubTab = 1;
+    state.hubView = 'quests';
     state.mission = freshMissionState();
     state.plantStageAtStart = state.mission.plantStageAtStart;
     state.summary = freshSummary();
     state.cp = null;
+    state.celebratedDays = new Set();
     closeModal();
     closeCora();
+    closeTermPop();
     resetHudBaseline();
   }
 
   function selectStage(stageId) {
     const stage = stageById(stageId);
     if (!stage || state.busy) return;
-    closeDemo();
-    closeMenu();
+    closeSettings();
     state.stageId = stageId;
     const profile = stageProfile(stage);
     fillForm(profile);
     renderStageCards();
+    state.calmManual = false;   // a new profile re-applies the 45+ rule
+    calmForAge(profile.age);
     analyzeProfile(profile, { stageId });
   }
   function submitForm() {
@@ -1973,6 +2263,8 @@
     if (!profile) { toast(t('err.fixForm'), 'warn'); return; }
     state.stageId = null;
     renderStageCards();
+    state.calmManual = false;
+    calmForAge(profile.age);
     analyzeProfile(profile, { fromForm: true });
   }
   function onFormInput(event) {
@@ -1996,11 +2288,16 @@
     state.cp = null;
     state.userName = '';
     state.introIndex = 0;
+    state.celebratedDays = new Set();
     try { window.localStorage.removeItem(LS_INTRO_SEEN); window.localStorage.removeItem(LS_USER_NAME); } catch (e) { /* ignore */ }
     closeModal();
     closeCora();
     closeDrawer();
-    closeDemo();
+    closeSettings();
+    closeTermPop();
+    state.calmManual = false;
+    applyCalm(false);
+    renderGuideWelcome();
     resetHudBaseline();
     renderStageCards();
     renderDemoMenus();
@@ -2024,7 +2321,7 @@
     return dayDone(4) ? 'active' : 'locked';
   }
 
-  // Issue #45: a day's mission opens only after its lesson mini-checks and the Kita check-in.
+  // Issue #45: a day's mission opens only after its lesson mini-checks and the Atlas check-in.
   function lessonProgress() {
     const ls = state.dayLessons || [];
     return { done: ls.filter((l) => state.completedLessons.has(l.id)).length, total: ls.length };
@@ -2038,220 +2335,301 @@
     const p = lessonProgress();
     return p.done < p.total ? t('hub.gateLessons', { a: p.done, b: p.total }) : t('hub.gateCheckin');
   }
+  // The quest-card CTA is always an inviting next step: start the day or — while the lesson
+  // gate is still closed — open the lessons that unlock it (the gate itself stays enforced).
   function hubPrimary() {
     if (!dayDone(state.day)) {
       const resuming = state.mission && state.mission.started;
-      if (!resuming && !dayReady()) return { label: gateLabel(), action: 'goto-lessons', locked: true };
+      if (!resuming && !dayReady()) {
+        const p = lessonProgress();
+        return {
+          label: p.done < p.total ? t('hub.ctaLessons', { n: state.day, a: p.done, b: p.total }) : t('hub.ctaCheckin', { n: state.day }),
+          lockedLabel: gateLabel(), action: 'goto-lessons', gated: true,
+        };
+      }
       return { label: t(resuming ? 'hub.resumeMission' : 'hub.startMission', { n: state.day }), action: 'open-mission' };
     }
     if (state.day < PLAYABLE_DAYS) return { label: t('hub.nextDay', { n: state.day + 1 }), action: 'start-day', day: state.day + 1 };
     if (!state.checkpointPassed) return { label: t('hub.openCheckpoint'), action: 'open-checkpoint' };
     return { label: t('hub.reviewDay', { n: state.day }), action: 'open-done' };
   }
-  function primaryButton(cls) {
+  // variant 'lessons': inside the lessons tool a closed gate reads as a locked button with the
+  // exact condition, because the lessons are already on screen.
+  function primaryButton(cls, variant) {
     const p = hubPrimary();
+    const locked = p.gated && variant === 'lessons';
     return '<button type="button" class="btn btn--primary btn--lg js-primary ' + (cls || '') + '" data-action="' + p.action + '"' +
-      (p.day ? ' data-day="' + p.day + '"' : '') + (p.locked ? ' aria-disabled="true"' : '') + '>' +
-      escapeHtml(p.label) + icon(p.locked ? 'lock' : 'arrow-right') + '</button>';
+      (variant ? ' data-variant="' + variant + '"' : '') + (p.day ? ' data-day="' + p.day + '"' : '') + (locked ? ' aria-disabled="true"' : '') + '>' +
+      escapeHtml(locked ? p.lockedLabel : p.label) + icon(locked ? 'lock' : p.gated ? 'bulb' : 'arrow-right') + '</button>';
   }
   function refreshPrimary() {
     document.querySelectorAll('.js-primary').forEach((b) => {
       const extra = b.classList.contains('btn--block') ? 'btn--block' : '';
-      b.outerHTML = primaryButton(extra);
+      b.outerHTML = primaryButton(extra, b.dataset.variant);
     });
+    renderHubRail();
   }
   function gateBlocked(btn) {
-    if (btn) replayClass(btn, 'shake');
-    toast(gateLabel(), 'info', 3400, { kita: true });
-    if (state.screen === SCREENS.HUB) showHubTab(3, { scroll: true });
+    if (btn) replayClass(btn, 'attn');
+    toast(gateLabel(), 'info', 3400, { guide: true });
+    if (state.screen === SCREENS.HUB) openHubTool('lessons');
   }
 
   function renderHub() {
     if (!state.session) return;
     renderDemoMenus();
     renderPathColumn();
+    renderRoadmap();
     renderPlanCard();
     renderGardenCard();
     renderSkippedCard();
     renderLessonsCard();
     setupTimeMachine();
-    renderHubSteps();
+    renderHubTools();
     els.hubMobileCta.innerHTML = '<div class="wrap" style="padding:0">' + primaryButton('btn--block') + '</div>';
   }
 
-  // Today's briefing as three calm steps: plan -> what-if simulator -> lessons (Issue #44).
-  const HUB_STEPS = 3;
-  function hubStepLabel(n) {
-    return n === 1 ? t('hub.step1') : n === 2 ? t('hub.step2') : t('hub.step3', { n: state.day });
-  }
-  function renderHubSteps() {
-    const cur = clamp(state.hubTab || 1, 1, HUB_STEPS);
-    els.hubSteps.innerHTML = [1, 2, 3].map((n) =>
-      '<button type="button" class="step-tab" role="tab" id="hub-tab-' + n + '" aria-controls="hub-panel-' + n + '" aria-selected="' + (n === cur) + '"' +
-        (n === cur ? '' : ' tabindex="-1"') + ' data-action="hub-tab" data-tab="' + n + '">' +
-        '<span class="step-tab__n">' + n + '</span><span class="step-tab__label">' + escapeHtml(hubStepLabel(n)) + '</span></button>'
-    ).join('');
-    for (let n = 1; n <= HUB_STEPS; n++) {
-      const panel = document.getElementById('hub-panel-' + n);
-      if (panel) panel.hidden = n !== cur;
-      const nav = document.querySelector('[data-step-nav="' + n + '"]');
-      if (!nav) continue;
-      const back = n > 1
-        ? '<button type="button" class="btn btn--ghost" data-action="hub-tab" data-tab="' + (n - 1) + '" data-scroll="1">' + icon('arrow-right', 'ic--flip') + escapeHtml(t('hub.back')) + '</button>'
-        : '<span></span>';
-      const next = n < HUB_STEPS
-        ? '<button type="button" class="btn btn--primary" data-action="hub-tab" data-tab="' + (n + 1) + '" data-scroll="1">' +
-            escapeHtml(t('hub.next') + ': ' + hubStepLabel(n + 1)) + icon('arrow-right') + '</button>'
-        : primaryButton('');
-      nav.innerHTML = back + next;
+  // ---- Left tool rail: feature buttons whose content opens only on click ----
+  const HUB_TOOLS = [
+    { id: 'quests', icon: 'flag', tone: 'petrol' },
+    { id: 'plan', icon: 'wallet', tone: 'gold', panel: 1 },
+    { id: 'sim', icon: 'chart', tone: 'sky', panel: 2 },
+    { id: 'lessons', icon: 'bulb', tone: 'mint', panel: 3 },
+    { id: 'roadmap', icon: 'map', tone: 'apricot', panel: 4 },
+  ];
+  const TOOL_FLOW = ['plan', 'sim', 'lessons'];   // guided order inside the tool view
+  function hubTool(id) { return HUB_TOOLS.find((x) => x.id === id) || HUB_TOOLS[0]; }
+  function toolTitle(id) { return id === 'lessons' ? t('tool.lessons.title', { n: state.day }) : t('tool.' + id + '.title'); }
+  function phaseDoneCount() { return [1, 2, 3, 4].filter(dayDone).length; }
+  function toolSub(id) {
+    const s = state.session;
+    if (id === 'quests') return t('tool.quests.sub', { d: state.day, a: phaseDoneCount(), b: PLAYABLE_DAYS });
+    if (id === 'plan') {
+      const a = s.safe_investment || {};
+      if (a.plan_type === 'split') return t('tool.plan.split', { a: money(a.emergency_savings_monthly), b: money(a.training_etf_monthly) });
+      if (a.plan_type === 'invest') return t('tool.plan.range', { a: formatNumber(a.min_monthly), b: money(a.max_monthly) });
+      return t('tool.plan.savings', { a: money(a.emergency_savings_monthly) });
     }
+    if (id === 'sim') return t('tool.sim.sub', { amount: money(currentAmount()), years: years(state.tm.year || s.default_horizon_years) });
+    if (id === 'lessons') {
+      const p = lessonProgress();
+      const ready = p.total && p.done >= p.total && (state.checkinDays.has(state.day) || state.gateBypass.has(state.day));
+      return ready ? t('tool.lessons.ready') : t('tool.lessons.sub', { a: p.done, b: p.total });
+    }
+    if (id === 'roadmap') return t('tool.roadmap.sub');
+    return '';
   }
-  function showHubTab(n, opts) {
+  function lessonsAreNext() { return !dayDone(state.day) && !(state.mission && state.mission.started) && !dayReady(); }
+
+  function renderHubRail() {
+    if (!els.hubRail || !state.session) return;
+    const btn = (tool) => {
+      const cur = state.hubView === tool.id;
+      const next = tool.id === 'lessons' && lessonsAreNext();
+      const end = next ? '<span class="rail-btn__badge">' + escapeHtml(t('tool.lessons.badge')) + '</span>' : icon('arrow-right', 'ic--sm');
+      return '<button type="button" class="rail-btn rail-btn--' + tool.id + (next ? ' is-next' : '') + '" data-action="hub-tool" data-tool="' + tool.id + '"' +
+          ' aria-current="' + cur + '" aria-controls="' + (tool.panel ? 'hub-panel-' + tool.panel : 'hub-view-quests') + '">' +
+        '<span class="tile-ic tile-ic--' + tool.tone + '">' + icon(tool.icon) + '</span>' +
+        '<span class="rail-btn__copy"><span class="rail-btn__title">' + escapeHtml(toolTitle(tool.id)) + '</span>' +
+          '<span class="rail-btn__sub">' + escapeHtml(toolSub(tool.id)) + '</span></span>' +
+        '<span class="rail-btn__end">' + end + '</span></button>';
+    };
+    const ask = '<button type="button" class="rail-btn rail-btn--ask" data-action="open-cora">' +
+      '<span class="tile-ic">' + coraSVG() + '</span>' +
+      '<span class="rail-btn__copy"><span class="rail-btn__title">' + escapeHtml(t('tool.ask.title')) + '</span>' +
+        '<span class="rail-btn__sub">' + escapeHtml(t('tool.ask.sub')) + '</span></span>' +
+      '<span class="rail-btn__end">' + icon('arrow-right', 'ic--sm') + '</span></button>';
+    els.hubRail.innerHTML = '<p class="eyebrow rail__title">' + escapeHtml(t('tool.railTitle')) + '</p>' +
+      '<div class="rail__list">' + HUB_TOOLS.map(btn).join('') + '<div class="rail__sep" role="presentation"></div>' + ask + '</div>';
+  }
+
+  function renderHubTools() {
+    const tool = hubTool(state.hubView);
+    state.hubView = tool.id;
+    renderHubRail();
+    const inTool = tool.id !== 'quests';
+    if (els.hubViewQuests) els.hubViewQuests.hidden = inTool;
+    if (els.hubViewTool) els.hubViewTool.hidden = !inTool;
+    if (els.hubToolTitle) {
+      els.hubToolTitle.innerHTML = inTool
+        ? '<span class="tile-ic tile-ic--' + tool.tone + '">' + icon(tool.icon) + '</span><span>' + escapeHtml(toolTitle(tool.id)) + '</span>'
+        : '';
+    }
+    for (let n = 1; n <= 4; n++) {
+      const panel = document.getElementById('hub-panel-' + n);
+      if (panel) panel.hidden = !(inTool && tool.panel === n);
+    }
+    HUB_TOOLS.forEach((x) => {
+      if (!x.panel) return;
+      const nav = document.querySelector('[data-step-nav="' + x.panel + '"]');
+      if (!nav) return;
+      const i = TOOL_FLOW.indexOf(x.id);
+      const prevId = i > 0 ? TOOL_FLOW[i - 1] : 'quests';
+      const back = '<button type="button" class="btn btn--ghost" data-action="hub-tool" data-tool="' + prevId + '">' +
+        icon('arrow-right', 'ic--flip') + escapeHtml(prevId === 'quests' ? t('tool.back') : toolTitle(prevId)) + '</button>';
+      let next = '';
+      if (i >= 0 && i < TOOL_FLOW.length - 1) {
+        next = '<button type="button" class="btn btn--primary" data-action="hub-tool" data-tool="' + TOOL_FLOW[i + 1] + '">' +
+          escapeHtml(t('tool.nextTo', { title: toolTitle(TOOL_FLOW[i + 1]) })) + icon('arrow-right') + '</button>';
+      } else if (x.id === 'lessons') {
+        next = primaryButton('', 'lessons');
+      }
+      nav.innerHTML = back + next;
+    });
+  }
+
+  // Switch the main column between Daily quests and a tool, with a clear way back.
+  function openHubTool(id, opts) {
     const o = opts || {};
-    state.hubTab = clamp(Number(n) || 1, 1, HUB_STEPS);
-    renderHubSteps();
-    if (state.hubTab === 2) {
+    if (!state.session) return;
+    state.hubView = hubTool(id).id;
+    closeTermPop();
+    renderHubTools();
+    if (state.hubView === 'sim') {
       // The chart and slider pills live in a panel that was hidden: re-measure once visible.
       syncAmountControls();
       updateTimeMachine(state.tm.year || state.session.default_horizon_years, { animate: false });
       if (tmChart) tmChart.resize();
     }
-    if (o.scroll) {
-      const top = els.hubSteps.getBoundingClientRect().top + window.scrollY - 90;
-      if (window.scrollY > top) window.scrollTo({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    // Scroll to the hub's top edge: on phones that keeps the tool pill bar in view.
+    const hubEl = els.hubMain && els.hubMain.closest('.hub');
+    if (o.scroll !== false && hubEl) {
+      const hud = document.getElementById('hud');
+      const top = hubEl.getBoundingClientRect().top + window.scrollY - ((hud ? hud.offsetHeight : 70) + 12);
+      if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     }
+    // Mobile pill bar: keep the active pill visible.
+    const cur = els.hubRail && els.hubRail.querySelector('[aria-current="true"]');
+    const list = cur && cur.parentElement;
+    if (cur && list && list.scrollWidth > list.clientWidth) list.scrollTo({ left: Math.max(0, cur.offsetLeft - 16), behavior: 'auto' });
     if (o.focus) {
-      const tab = document.getElementById('hub-tab-' + state.hubTab);
-      if (tab) tab.focus({ preventScroll: true });
+      const target = state.hubView === 'quests' ? document.querySelector('#hub-path-col .quest__title') : els.hubToolTitle;
+      if (target) target.focus({ preventScroll: true });
     }
   }
+  // Older call sites (gates, shortcuts) still speak in briefing steps 1–3.
+  function showHubTab(n, opts) { openHubTool(TOOL_FLOW[clamp(Number(n) || 1, 1, TOOL_FLOW.length) - 1], opts); }
 
   function milestoneFor(day) {
     return (state.session.roadmap_milestones || []).find((m) => m.day === day) || null;
   }
+  // Day titles come from the UI dictionary (per age group), so the Daily quests card never
+  // mixes the session's language with the EN | PL switch. The backend title is a fallback only.
   function dayTitle(d) {
-    const m = milestoneFor(d);
-    if (m && m.title) return m.title;
     if (d === 2) return t('hub.day2Title');
     if (d === 3) return t('hub.day3Title');
-    return '';
+    const key = 'day.' + (state.session && state.session.age_group) + '.' + d;
+    if (I18N.en[key] != null) return t(key);
+    const m = milestoneFor(d);
+    return m && m.title ? m.title : '';
   }
 
+  // Daily quests — the hero of the hub: profile context, a petrol phase banner with progress,
+  // the Days 1–4 + Checkpoint #1 timeline and one wide CTA.
   function renderPathColumn() {
     const s = state.session;
     const nodes = [1, 2, 3, 4].map((d) => ({ key: String(d), day: d, st: nodeState(d) }));
     nodes.push({ key: 'cp', day: null, st: checkpointState() });
-    const xs = [30, 70, 30, 70, 50];
-    const top = 104;   // room for the START bubble above the first node
-    const gap = 124;
-    const height = top + gap * (nodes.length - 1) + 110;
-    const ys = nodes.map((_, i) => top + gap * i);
-
-    let d = 'M' + xs[0] + ' ' + ys[0];
-    for (let i = 1; i < nodes.length; i++) {
-      const my = (ys[i - 1] + ys[i]) / 2;
-      d += ' C' + xs[i - 1] + ' ' + my + ' ' + xs[i] + ' ' + my + ' ' + xs[i] + ' ' + ys[i];
-    }
-    let reach = 0;
-    nodes.forEach((n, i) => { if (n.st === 'done' || n.st === 'active' || n.st === 'next') reach = i; });
-    let dDone = 'M' + xs[0] + ' ' + ys[0];
-    for (let i = 1; i <= reach; i++) {
-      const my = (ys[i - 1] + ys[i]) / 2;
-      dDone += ' C' + xs[i - 1] + ' ' + my + ' ' + xs[i] + ' ' + my + ' ' + xs[i] + ' ' + ys[i];
-    }
-
     const resuming = state.mission && state.mission.started;
-    const slots = nodes.map((n, i) => {
+    const rows = nodes.map((n) => {
       const isCp = n.key === 'cp';
-      const ico = n.st === 'done' ? 'star' : n.st === 'locked' ? 'lock' : isCp ? 'trophy' : DAY_ICONS[n.day];
-      const side = isCp ? 'below' : xs[i] < 50 ? 'right' : 'left';
+      const ico = n.st === 'done' ? 'check' : isCp ? 'flag' : n.st === 'locked' ? 'lock' : DAY_ICONS[n.day];
       const dayLabel = isCp ? t('hub.checkpoint') : t('hub.day', { n: n.day });
       const sub = isCp ? t('hub.checkpointSub') : dayTitle(n.day);
       const lockedHint = n.st === 'locked' ? (isCp ? t('hub.lockedCp') : t('hub.locked', { n: n.day - 1 })) : '';
       const aria = dayLabel + (sub ? ': ' + sub : '') + (n.st === 'done' ? ', ' + t('hub.done') : lockedHint ? ', ' + lockedHint : '');
       const live = n.st === 'active' || n.st === 'next';
-      const bubble = live ? '<span class="start-bubble">' + escapeHtml(resuming && n.st === 'active' && !isCp ? t('hub.resume') : t('hub.start')) + '</span>' : '';
-      const cora = live ? coraHTML('idle', 'path-cora path-cora--' + (side === 'right' ? 'left' : side === 'left' ? 'right' : 'right')) : '';
+      const tag = live
+        ? '<span class="tl__tag">' + escapeHtml(resuming && n.st === 'active' && !isCp ? t('hub.resume') : t('hub.start')) + '</span>'
+        : n.st === 'done' ? '<span class="tl__tag">' + icon('check', 'ic--sm') + escapeHtml(t('hub.done')) + '</span>' : '';
       return (
-        '<div class="node-slot node-slot--' + n.st + '" style="left:' + xs[i] + '%;top:' + ys[i] + 'px">' +
-          bubble + cora +
-          '<button type="button" class="node node--' + n.st + (isCp ? ' node--checkpoint' : '') + '" data-action="node" data-node="' + n.key + '" aria-label="' + escapeHtml(aria) + '"' +
-            (n.st === 'locked' ? ' aria-disabled="true"' : '') + '>' + icon(ico) + '</button>' +
-          '<span class="node-label node-label--' + side + '"><span class="node-label__day">' + escapeHtml(dayLabel) + '</span>' +
-            (sub ? '<span class="node-label__title">' + escapeHtml(sub) + '</span>' : '') +
-            (lockedHint ? '<span class="node-label__title">' + escapeHtml(lockedHint) + '</span>' : '') + '</span>' +
-        '</div>'
+        '<li class="tl tl--' + n.st + (isCp ? ' tl--cp' : '') + '">' +
+          '<button type="button" class="tl__btn" data-action="node" data-node="' + n.key + '" aria-label="' + escapeHtml(aria) + '"' +
+            (n.st === 'locked' ? ' aria-disabled="true"' : '') + '>' +
+            '<span class="tl__marker">' + icon(ico) + '</span>' +
+            '<span class="tl__body"><span class="tl__day">' + escapeHtml(dayLabel) + '</span>' +
+              (sub ? '<span class="tl__title">' + escapeHtml(sub) + '</span>' : '') +
+              (lockedHint ? '<span class="tl__hint">' + icon('lock', 'ic--sm') + escapeHtml(lockedHint) + '</span>' : '') + '</span>' +
+            tag +
+          '</button>' +
+        '</li>'
       );
     }).join('');
 
-    // Phases 2–3: live-looking day pebbles (no grey locks). Tapping one explains, with Kita,
-    // that it belongs to the full sprint — no call to a mission backend that does not exist yet.
-    const m9 = milestoneFor(9);
-    const m14 = milestoneFor(14);
-    const phaseCard = (num, from, to, range, title, milestone, endIcon, endLabel) => {
+    const done = phaseDoneCount();
+    const pct = Math.round((done / PLAYABLE_DAYS) * 100);
+    const horizon = state.lang === 'pl' ? years(s.default_horizon_years) : s.default_horizon_years;
+    els.hubPathCol.innerHTML =
+      '<div class="card quest">' +
+        '<div class="quest__head">' +
+          '<div><p class="eyebrow">' + escapeHtml(t('quest.eyebrow')) + '</p>' +
+            '<h3 class="quest__title" tabindex="-1">' + escapeHtml(t('quest.title', { d: state.day })) + '</h3></div>' +
+          '<span class="chip chip--sky">' + icon('clock', 'ic--sm') + escapeHtml(t('hub.perDay')) + '</span>' +
+        '</div>' +
+        '<div class="learner">' +
+          '<span class="chip chip--ink">' + icon('user', 'ic--sm') + escapeHtml(t('group.' + s.age_group)) + '</span>' +
+          '<span class="chip chip--horizon">' + icon('hourglass', 'ic--sm') + escapeHtml(t('hub.horizon', { n: horizon })) + '</span>' +
+          '<span class="chip chip--worry">' + icon('info', 'ic--sm') + escapeHtml(t('hub.worry', { x: t('worry.' + s.main_concern) })) + '</span>' +
+        '</div>' +
+        '<div class="phase-banner">' +
+          '<span class="phase-banner__num">1</span>' +
+          '<div><p class="phase-banner__meta">' + escapeHtml(t('hub.phase', { n: 1 }) + ' · ' + t('hub.phase1.range')) + '</p>' +
+            '<p class="phase-banner__title">' + escapeHtml(t('hub.phase1.title')) + '</p></div>' +
+          '<div class="phase-banner__progress">' +
+            '<span class="phase-banner__count">' + escapeHtml(t('hub.phaseDone', { a: done, b: PLAYABLE_DAYS })) + '</span>' +
+            '<div class="phase-banner__bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + PLAYABLE_DAYS + '" aria-valuenow="' + done + '" aria-label="' + escapeHtml(t('hub.phaseDone', { a: done, b: PLAYABLE_DAYS })) + '">' +
+              '<span style="width:' + pct + '%"></span></div>' +
+          '</div>' +
+        '</div>' +
+        '<ol class="timeline" data-group="' + escapeHtml(s.age_group) + '">' + rows + '</ol>' +
+        '<div class="hub-cta-desktop">' + primaryButton('btn--block') + '</div>' +
+      '</div>';
+  }
+
+  // Full sprint (Phases 2–3) + After Day 14 — opened from the rail. Day pebbles explain, with
+  // Atlas, that they belong to the full sprint (no call to a mission backend that does not exist).
+  function renderRoadmap() {
+    const phaseCard = (num, from, to, range, title, milestoneDay, endIcon, endLabel) => {
       let pebbles = '';
       for (let d = from; d <= to; d++) {
         pebbles += '<button type="button" class="pebble" data-action="soon-day" data-day="' + d + '" aria-label="' + escapeHtml(t('hub.pebble', { n: d })) + '">' +
           '<span class="pebble__n">' + d + '</span></button>';
       }
       pebbles += '<button type="button" class="pebble pebble--goal" data-action="soon-day" data-day="' + to + '" aria-label="' + escapeHtml(endLabel) + '" title="' + escapeHtml(endLabel) + '">' + icon(endIcon) + '</button>';
+      const milestone = dayTitle(milestoneDay);
       return (
         '<div class="phase-card phase-card--' + num + '">' +
           '<div class="phase-card__head"><span class="phase__num">' + num + '</span>' +
-            '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: num }) + ', ' + t(range) + ', ' + t('hub.perDay')) + '</p>' +
+            '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: num }) + ' · ' + t(range) + ' · ' + t('hub.perDay')) + '</p>' +
             '<p class="phase__title">' + escapeHtml(t(title)) + '</p>' +
-            (milestone ? '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(milestone.title) + '</p>' : '') + '</div></div>' +
+            (milestone ? '<p class="small" style="color:var(--ink-2);margin-top:2px">' + escapeHtml(milestone) + '</p>' : '') + '</div></div>' +
           '<div class="pebbles">' + pebbles + '</div>' +
         '</div>'
       );
     };
-
     const after = after14Paths().map((p) =>
-      '<div class="after14__tile">' + icon(p.icon || 'chat') + '<h4 style="margin-top:8px">' + escapeHtml(p.title) + '</h4><p>' + escapeHtml(p.cadence || '') + '</p></div>'
+      '<div class="after14__tile"><span class="tile-ic">' + icon(p.icon || 'chat') + '</span><h4>' + escapeHtml(p.title) + '</h4>' +
+        '<p>' + escapeHtml(p.description || '') + '</p><p class="after14__cad">' + escapeHtml(p.cadence || '') + '</p></div>'
     ).join('');
-
-    const g0 = s.age_group;
-    els.hubPathCol.innerHTML =
-      '<div class="card">' +
-        '<div class="learner">' +
-          '<span class="chip chip--ink">' + icon('user', 'ic--sm') + escapeHtml(s.persona_label) + '</span>' +
-          '<span class="chip">' + icon('hourglass', 'ic--sm') + escapeHtml(t('hub.horizon', { n: state.lang === 'pl' ? years(s.default_horizon_years) : s.default_horizon_years })) + '</span>' +
-          '<span class="chip chip--soft">' + escapeHtml(t('hub.worry', { x: t('concern.' + s.main_concern) })) + '</span>' +
-        '</div>' +
-        '<div class="phase" style="margin-top:16px">' +
-          '<span class="phase__num">1</span>' +
-          '<div><p class="phase__meta">' + escapeHtml(t('hub.phase', { n: 1 }) + ', ' + t('hub.phase1.range') + ', ' + t('hub.perDay')) + '</p>' +
-          '<p class="phase__title">' + escapeHtml(t('hub.phase1.title')) + '</p></div>' +
-        '</div>' +
-        '<div class="path" data-group="' + escapeHtml(g0) + '" style="height:' + height + 'px">' +
-          '<svg class="path__svg" viewBox="0 0 100 ' + height + '" preserveAspectRatio="none" aria-hidden="true">' +
-            '<path class="path__trail" d="' + d + '"/>' + (reach > 0 ? '<path class="path__done" d="' + dDone + '"/>' : '') +
-          '</svg>' + slots +
-        '</div>' +
-        '<div class="hub-cta-desktop" style="margin-top:6px">' + primaryButton('btn--block') + '</div>' +
-      '</div>';
     els.hubMoreCol.innerHTML =
-      phaseCard(2, 5, 9, 'hub.phase2.range', 'hub.phase2.title', m9, 'trophy', t('hub.checkpoint2Short')) +
-      phaseCard(3, 10, 14, 'hub.phase3.range', 'hub.phase3.title', m14, 'flag', t('hub.finaleShort')) +
-      '<div class="card after14 after14--spotlight">' +
-        '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3>' + icon('sunset', 'ic--lg') + '</div>' +
+      phaseCard(2, 5, 9, 'hub.phase2.range', 'hub.phase2.title', 9, 'trophy', t('hub.checkpoint2Short')) +
+      phaseCard(3, 10, 14, 'hub.phase3.range', 'hub.phase3.title', 14, 'flag', t('hub.finaleShort')) +
+      '<div class="card after14">' +
+        '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('hub.after14.title')) + '</h3><span class="tile-ic tile-ic--apricot">' + icon('sunset') + '</span></div>' +
         '<p class="small" style="color:var(--ink-2);margin-top:4px">' + escapeHtml(t('hub.after14.sub')) + '</p>' +
         '<div class="after14__grid">' + after + '</div></div>';
   }
 
   function onSoonDay(btn) {
-    replayClass(btn, 'bump');
+    replayClass(btn, 'flash');
     Sound.pop();
-    toast(t('hub.soon'), 'info', 3800, { kita: true });
+    toast(t('hub.soon'), 'info', 3800, { guide: true });
   }
 
+  // After Day 14 paths always come from the UI dictionary (same ids as the backend's
+  // post_14_paths), so they follow the EN | PL switch even mid-session.
   function after14Paths() {
-    const server = (state.turn && state.turn.post_14_paths) || (state.session && state.session.post_14_paths) || [];
-    const local = blocks().after14;
-    if (Array.isArray(server) && server.length) {
-      return server.map((p, i) => Object.assign({ icon: (local.find((l) => l.id === p.id) || local[i % local.length] || {}).icon }, p));
-    }
-    return local;
+    return blocks().after14;
   }
 
   function renderPlanCard() {
@@ -2265,9 +2643,9 @@
       body =
         '<div class="split">' +
           '<div class="split__box split__box--cushion"><p class="split__label">' + icon('shield', 'ic--sm') + escapeHtml(t('plan.cushion')) + '</p>' +
-            '<p class="split__value"><span data-count="' + cushion + '">0</span> <small>' + (state.lang === 'pl' ? 'zł' : 'PLN') + escapeHtml(t('plan.mo')) + '</small></p></div>' +
+            '<p class="split__value"><span data-count="' + cushion + '">0</span> <small>' + escapeHtml(t('unit.currency')) + escapeHtml(t('plan.mo')) + '</small></p></div>' +
           '<div class="split__box split__box--etf"><p class="split__label">' + icon('sprout', 'ic--sm') + escapeHtml(t('plan.etf')) + '</p>' +
-            '<p class="split__value"><span data-count="' + etf + '">0</span> <small>' + (state.lang === 'pl' ? 'zł' : 'PLN') + escapeHtml(t('plan.mo')) + '</small></p></div>' +
+            '<p class="split__value"><span data-count="' + etf + '">0</span> <small>' + escapeHtml(t('unit.currency')) + escapeHtml(t('plan.mo')) + '</small></p></div>' +
         '</div>' +
         '<div class="split__bar" aria-hidden="true"><span style="width:' + pc + '%"></span><span></span></div>' +
         '<p class="tiny muted" style="margin-top:6px">' + escapeHtml(t('plan.shares', { a: pc, b: 100 - pc })) + '</p>';
@@ -2275,24 +2653,26 @@
       body =
         '<div class="split" style="grid-template-columns:1fr">' +
           '<div class="split__box split__box--etf"><p class="split__label">' + icon('sprout', 'ic--sm') + escapeHtml(t('plan.range')) + '</p>' +
-            '<p class="split__value"><span data-count="' + a.min_monthly + '">0</span>–<span data-count="' + a.max_monthly + '">0</span> <small>' + (state.lang === 'pl' ? 'zł' : 'PLN') + escapeHtml(t('plan.mo')) + '</small></p></div>' +
+            '<p class="split__value"><span data-count="' + a.min_monthly + '">0</span>–<span data-count="' + a.max_monthly + '">0</span> <small>' + escapeHtml(t('unit.currency')) + escapeHtml(t('plan.mo')) + '</small></p></div>' +
         '</div>' +
         '<p class="small" style="margin-top:8px;color:var(--ink-2)">' + escapeHtml(t('plan.sim', { amount: money(a.recommended_monthly) })) + '</p>';
     } else {
       body =
         '<div class="split" style="grid-template-columns:1fr">' +
           '<div class="split__box split__box--cushion"><p class="split__label">' + icon('shield', 'ic--sm') + escapeHtml(t('plan.cushion')) + '</p>' +
-            '<p class="split__value"><span data-count="' + cushion + '">0</span> <small>' + (state.lang === 'pl' ? 'zł' : 'PLN') + escapeHtml(t('plan.mo')) + '</small></p></div>' +
+            '<p class="split__value"><span data-count="' + cushion + '">0</span> <small>' + escapeHtml(t('unit.currency')) + escapeHtml(t('plan.mo')) + '</small></p></div>' +
         '</div>' +
         '<p class="chip chip--soft" style="margin-top:10px">' + icon('clock', 'ic--sm') + escapeHtml(t('plan.etfLater', { amount: money(a.recommended_monthly) })) + '</p>';
     }
     els.cardPlan.innerHTML =
       '<h3 class="card__title">' + escapeHtml(t('plan.title')) + '</h3>' +
       '<p class="tiny muted" style="margin-top:2px">' + escapeHtml(t('plan.label')) + '</p>' + body +
-      '<p class="small" style="margin-top:14px;color:var(--ink-2)">' + escapeHtml(a.reasoning || '') + '</p>';
+      '<p class="small" style="margin-top:14px;color:var(--ink-2)">' + defineTerms(a.reasoning || '') + '</p>';
     els.cardPlan.querySelectorAll('[data-count]').forEach((el) => animateNumber(el, 0, Number(el.dataset.count), { duration: 900 }));
   }
 
+  // Competence stage card: five capital pillars, the stage name and what it means. In calm
+  // mode the XP bar gives way to "Readiness & Capital Protection".
   function renderGardenCard(opts) {
     if (!els.cardGarden) return;
     if (!state.session) { els.cardGarden.hidden = true; return; }
@@ -2306,17 +2686,22 @@
       ? t('garden.complete')
       : t('garden.toNext', { xp: cur.toNext, title: cur.nextTitle });
     const extra = opts && opts.grow ? ' plant--grow' : '';
+    const ready = state.turn ? clamp(Number(state.turn.confidence_score) || 0, 0, 100) : 0;
+    const progress = state.calm
+      ? '<div class="garden__ready"><span class="ready__label"><span>' + escapeHtml(t('hud.readinessCalm')) + '</span> <b>' + ready + '%</b></span>' +
+          '<div class="meter" style="margin-top:6px" aria-hidden="true"><div class="meter__fill" style="width:' + ready + '%"></div></div></div>'
+      : '<div class="garden__bar" aria-hidden="true"><span style="width:' + cur.pct + '%"></span></div>' +
+        '<p class="garden__incentive">' + escapeHtml(incentive) + '</p>';
     els.cardGarden.innerHTML =
       '<div class="card__head"><h3 class="card__title">' + escapeHtml(t('garden.title')) + '</h3>' +
-        '<span class="chip chip--soft">' + escapeHtml(t('garden.stageLabel', { stage: cur.stage })) + '</span></div>' +
+        '<span class="chip chip--soft num">' + escapeHtml(t('garden.stageLabel', { stage: cur.stage })) + '</span></div>' +
       '<div class="garden__row">' +
         plantSVG(cur.stage, extra) +
         '<div class="garden__copy">' +
           '<p class="garden__stage">' + escapeHtml(cur.title) + '</p>' +
-          '<div class="garden__dots" aria-label="' + escapeHtml(t('garden.progress')) + '">' + dots + '</div>' +
-          '<div class="garden__bar"><span style="width:' + cur.pct + '%"></span></div>' +
-          '<p class="garden__incentive">' + escapeHtml(incentive) + '</p>' +
-          '<p class="tiny muted">' + escapeHtml(cur.quote) + '</p>' +
+          '<div class="garden__dots" role="img" aria-label="' + escapeHtml(t('garden.progress') + ': ' + t('garden.stageLabel', { stage: cur.stage })) + '">' + dots + '</div>' +
+          progress +
+          '<p class="garden__desc">' + escapeHtml(cur.quote) + '</p>' +
         '</div>' +
       '</div>';
   }
@@ -2325,7 +2710,7 @@
     const f = state.session.speakly_filter || { kept_topics: [], removed_topics: [] };
     const n = (f.removed_topics || []).length;
     els.cardSkipped.innerHTML =
-      '<span class="skip-badge">' + icon('bolt', 'ic--sm') + escapeHtml(t('skip.badge', { n })) + '</span>' +
+      '<span class="skip-badge">' + icon('filter', 'ic--sm') + escapeHtml(t('skip.badge', { n })) + '</span>' +
       '<div class="topics">' +
         '<div><h4>' + escapeHtml(t('skip.kept')) + '</h4><ul class="kept">' +
           (f.kept_topics || []).map((k) => '<li>' + icon('check', 'ic--sm') + '<span>' + escapeHtml(k) + '</span></li>').join('') + '</ul></div>' +
@@ -2363,7 +2748,7 @@
       ? '<p class="lcheck__note lcheck__note--ok" role="status">' + icon('check', 'ic--sm') + '<span>' + escapeHtml(t('lessons.right')) + (l.check_explanation ? ': ' + escapeHtml(l.check_explanation) : '') + '</span></p>'
       : wrong.length
         ? '<div class="lcheck__note lcheck__note--bad" role="status"><p>' + icon('bulb', 'ic--sm') + '<span>' + escapeHtml(t('lessons.wrong')) + (l.check_explanation ? ' ' + escapeHtml(l.check_explanation) : '') + '</span></p>' +
-            '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.askKita')) + '</button></div>'
+            '<button type="button" class="btn btn--ghost btn--sm" data-action="open-cora" data-topic="' + escapeHtml(l.title) + '">' + icon('help', 'ic--sm') + escapeHtml(t('lessons.askGuide')) + '</button></div>'
         : '';
     return '<div class="lcheck"><p class="lcheck__q"><span class="chip chip--soft">' + escapeHtml(t('lessons.check')) + '</span> ' + escapeHtml(l.check_question) + '</p>' +
       '<div class="lcheck__opts">' + opts + '</div>' + note + '</div>';
@@ -2374,8 +2759,8 @@
     return (
       '<article class="lesson' + (done ? ' lesson--done' : '') + '" data-lesson="' + escapeHtml(l.id) + '">' +
         '<div class="lesson__head"><h4 class="lesson__title">' + escapeHtml(l.title) + '</h4><span class="lesson__time">' + escapeHtml(t('lessons.sec', { n: l.duration_sec || 20 })) + '</span></div>' +
-        '<p class="lesson__body">' + escapeHtml(l.summary) + '</p>' +
-        '<p class="lesson__key">' + icon('bulb', 'ic--sm') + '<span>' + escapeHtml(l.key_takeaway) + '</span></p>' +
+        '<p class="lesson__body">' + defineTerms(l.summary) + '</p>' +
+        '<p class="lesson__key">' + icon('bulb', 'ic--sm') + '<span>' + defineTerms(l.key_takeaway) + '</span></p>' +
         (checked ? lessonCheckHTML(l, done) : '') +
         '<div class="lesson__actions">' +
           (done
@@ -2386,7 +2771,7 @@
       '</article>'
     );
   }
-  // End-of-block check-in with Kita (Issue #45): shown once every lesson of the day is passed.
+  // End-of-block check-in with Atlas (Issue #45): shown once every lesson of the day is passed.
   function checkinHTML() {
     const p = lessonProgress();
     if (p.done < p.total || !p.total) return '';
@@ -2394,10 +2779,10 @@
       return '<p class="checkin-done chip chip--green">' + icon('check', 'ic--sm') + escapeHtml(t('checkin.done', { n: state.day })) + '</p>';
     }
     return (
-      '<div class="checkin" id="kita-checkin">' +
-        '<div class="cora checkin__kita" data-cora="coaching" aria-hidden="true"></div>' +
+      '<div class="checkin" id="guide-checkin">' +
+        '<div class="cora checkin__guide" data-cora="confident" aria-hidden="true"></div>' +
         '<div class="checkin__body"><p class="checkin__title">' + escapeHtml(t('checkin.title')) + '</p>' +
-          '<div class="bubble bubble--left"><p>' + escapeHtml(t('checkin.q')) + '</p></div>' +
+          '<div class="bubble"><p>' + escapeHtml(t('checkin.q')) + '</p></div>' +
           '<div class="checkin__actions">' +
             '<button type="button" class="btn btn--ghost" data-action="checkin-explain">' + icon('help', 'ic--sm') + escapeHtml(t('checkin.yes')) + '</button>' +
             '<button type="button" class="btn btn--primary" data-action="checkin-start">' + escapeHtml(t('checkin.start', { n: state.day })) + icon('arrow-right') + '</button>' +
@@ -2436,7 +2821,7 @@
     Sound.retry();
     renderLessonsCard();
     const card = els.cardLessons.querySelector('[data-lesson="' + CSS.escape(id) + '"]');
-    if (card) replayClass(card.querySelector('.lcheck'), 'shake');
+    if (card) replayClass(card.querySelector('.lcheck'), 'attn');
   }
   function checkinExplain() {
     openCora({ question: dayTitle(state.day) || t('hub.phase1.title') });
@@ -2450,10 +2835,10 @@
     refreshPrimary();
     openMission();
   }
-  function gotoLessons(btn) {
-    if (btn) replayClass(btn, 'shake');
-    showHubTab(3, { scroll: true });
-    if (els.cardLessons) replayClass(els.cardLessons, 'bump');
+  // The gated CTA is an invitation, not an error: it opens the lessons that unlock the day.
+  function gotoLessons() {
+    openHubTool('lessons', { focus: true });
+    if (els.cardLessons) replayClass(els.cardLessons, 'flash');
   }
 
   // Time machine: slider 1–20 years + what-if monthly amount, 3 KPIs in today's money,
@@ -2558,6 +2943,29 @@
     els.kpiWinText.textContent = t('tm.winText');
     state.tm = { year: y, point: p };
     renderChart(series, y);
+    renderCostOfWaiting(series);
+    if (state.screen === SCREENS.HUB) renderHubRail();   // keep the rail's "amount · years" in sync
+  }
+  // Cost of Waiting (calm 45+ mode): purchasing power lost on 0% vs a broad ETF, in PLN, over
+  // this generation's own horizon (e.g. 56y: 7 years). Same series as the chart.
+  function renderCostOfWaiting(series) {
+    if (!els.tmCow || !state.session) return;
+    const h = clamp(Number(state.session.default_horizon_years) || 10, 1, series.length);
+    const p = series[h - 1];
+    if (!p) { els.tmCow.innerHTML = ''; return; }
+    const lost = Math.max(0, p.total_paid - p.cash_real_value);
+    const gain = p.etf_real_value - p.cash_real_value;
+    els.tmCow.innerHTML =
+      '<p class="cow__title">' + icon('hourglass', 'ic--sm') + escapeHtml(t('cow.title')) + '</p>' +
+      '<p class="cow__lead">' + escapeHtml(t('cow.lead', { years: years(h), amount: money(currentAmount()) })) + '</p>' +
+      '<div class="cow__grid">' +
+        '<div class="cow__cell cow__cell--paid"><p class="cow__label">' + escapeHtml(t('cow.paid')) + '</p><p class="cow__value">' + escapeHtml(money(p.total_paid)) + '</p></div>' +
+        '<div class="cow__cell"><p class="cow__label">' + escapeHtml(t('cow.cash')) + '</p><p class="cow__value">' + escapeHtml(money(p.cash_real_value)) + '</p>' +
+          '<p class="cow__delta cow__delta--loss">' + escapeHtml(t('cow.cashLoss', { amount: '−' + money(lost) })) + '</p></div>' +
+        '<div class="cow__cell"><p class="cow__label">' + escapeHtml(t('cow.etf')) + '</p><p class="cow__value">' + escapeHtml(money(p.etf_real_value)) + '</p>' +
+          '<p class="cow__delta cow__delta--gain">' + escapeHtml(t('cow.etfGain', { amount: money(gain) })) + '</p></div>' +
+      '</div>' +
+      '<p class="cow__note">' + escapeHtml(t('cow.note')) + '</p>';
   }
   function chartData(series, year) {
     const pts = series.slice(0, year);
@@ -2570,7 +2978,7 @@
   }
   function compactMoney(v) {
     if (Math.abs(v) >= 1000) {
-      return (v / 1000).toLocaleString(state.lang === 'pl' ? 'pl-PL' : 'en-US', { maximumFractionDigits: 1 }) + (state.lang === 'pl' ? NBSP + 'tys.' : 'k');
+      return (v / 1000).toLocaleString(state.lang === 'pl' ? 'pl-PL' : 'en-US', { maximumFractionDigits: 1 }) + (state.lang === 'pl' ? NBSP : '') + t('unit.thousand');
     }
     return formatNumber(v);
   }
@@ -2591,33 +2999,34 @@
     }
     const fill = (ctx) => {
       const area = ctx.chart.chartArea;
-      if (!area) return 'rgba(18,183,106,0.15)';
+      if (!area) return 'rgba(18,183,106,0.10)';
       const grad = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-      grad.addColorStop(0, 'rgba(18,183,106,0.28)');
-      grad.addColorStop(1, 'rgba(18,183,106,0.02)');
+      grad.addColorStop(0, 'rgba(18,183,106,0.16)');
+      grad.addColorStop(1, 'rgba(18,183,106,0.01)');
       return grad;
     };
+    const hover = (color) => ({ pointRadius: 0, pointHoverRadius: 5, pointHoverBackgroundColor: '#FFFFFF', pointHoverBorderColor: color, pointHoverBorderWidth: 2 });
     tmChart = new window.Chart(els.tmChart, {
       type: 'line',
       data: {
         labels: d.labels,
         datasets: [
-          { label: t('tm.legendEtf'), data: d.etf, borderColor: C.green, backgroundColor: fill, fill: 'origin', borderWidth: 3.5, tension: 0.3, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: C.green, pointHoverBorderColor: C.ink, pointHoverBorderWidth: 2, order: 2 },
-          { label: t('tm.legendCash'), data: d.cash, borderColor: C.coral, borderDash: [8, 6], borderWidth: 3, fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: C.coral, pointHoverBorderColor: C.ink, pointHoverBorderWidth: 2, order: 1 },
-          { label: t('tm.legendStress'), data: d.stress, borderColor: C.tangerine, borderDash: [2, 5], borderWidth: 3, fill: false, tension: 0.3, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: C.tangerine, pointHoverBorderColor: C.ink, pointHoverBorderWidth: 2, order: 0 },
+          Object.assign({ label: t('tm.legendEtf'), data: d.etf, borderColor: C.green, backgroundColor: fill, fill: 'origin', borderWidth: 2.5, tension: 0.3, order: 2 }, hover(C.green)),
+          Object.assign({ label: t('tm.legendCash'), data: d.cash, borderColor: C.coral, borderDash: [7, 5], borderWidth: 2, fill: false, tension: 0.3, order: 1 }, hover(C.coral)),
+          Object.assign({ label: t('tm.legendStress'), data: d.stress, borderColor: C.amber, borderDash: [2, 4], borderWidth: 2, fill: false, tension: 0.3, order: 0 }, hover(C.amber)),
         ],
       },
       options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 380 },
+        responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
-          tooltip: { backgroundColor: C.ink, padding: 10, cornerRadius: 10, titleFont: { weight: '800' }, callbacks: { label: (ctx) => ' ' + ctx.dataset.label + ': ' + money(ctx.parsed.y) } },
+          tooltip: { backgroundColor: C.ink, padding: 10, cornerRadius: 8, titleFont: { weight: '700' }, bodyFont: { weight: '500' }, callbacks: { label: (ctx) => ' ' + ctx.dataset.label + ': ' + money(ctx.parsed.y) } },
         },
         scales: {
-          x: { grid: { display: false }, border: { color: C.ink, width: 2 }, ticks: { autoSkip: true, maxTicksLimit: 8, maxRotation: 0 } },
-          y: { beginAtZero: true, grid: { color: 'rgba(8,41,51,0.08)' }, border: { display: false },
-            title: { display: true, text: t('tm.yAxis'), font: { size: 11, weight: '700' } },
+          x: { grid: { display: false }, border: { color: C.rule, width: 1 }, ticks: { autoSkip: true, maxTicksLimit: 8, maxRotation: 0 } },
+          y: { beginAtZero: true, grid: { color: 'rgba(8,41,51,0.06)' }, border: { display: false },
+            title: { display: true, text: t('tm.yAxis'), font: { size: 11, weight: '600' } },
             ticks: { callback: (v) => compactMoney(v), maxTicksLimit: 6 } },
         },
       },
@@ -2711,7 +3120,7 @@
     const o = opts || {};
     return (
       '<div class="scene">' + coraHTML(o.mood || 'idle') +
-        '<div class="bubble bubble--left">' +
+        '<div class="bubble">' +
           '<p class="scene__who">' + escapeHtml(t('mission.coraWho')) + '</p>' +
           (o.question ? '<p class="scene__q" style="margin-top:0">' + escapeHtml(o.question) + '</p>' : '') +
           '<p class="scene__msg"' + (o.question ? ' style="margin-top:8px;font-size:1rem;font-weight:600;color:var(--ink-2)"' : '') + ' id="m-msg">' + escapeHtml(message) + '</p>' +
@@ -2842,6 +3251,7 @@
     const freeText = !payload.quick_reply_id;
     const token = state.token;
     const prevStep = tt.step_number;
+    const stageBefore = plantState(displayedXp(), state.checkpointPassed).stage;
     m.phase = 'busy';
     setCheckBusy(true);
     setAnswersDisabled(true);
@@ -2868,14 +3278,16 @@
       const picked = m.selected ? els.mStage.querySelector('.answer[data-id="' + CSS.escape(m.selected) + '"]') : null;
       const win = quality === 'optimal';
       if (picked) picked.classList.add(win ? 'is-right' : 'is-wrong');
-      if (!win) replayClass(picked || document.getElementById('m-own'), 'shake');
+      else if (!win) replayClass(document.getElementById('m-own'), 'attn');
       setMood(sceneCora(), win ? 'celebrating' : 'coaching');
 
       const gs = res.gamification || DEFAULT_G;
+      const stageNow = plantState(displayedXp(), state.checkpointPassed);
       const pills = [];
       pills.push('<span class="pill-xp">' + (gs.xp_gained ? '+' + gs.xp_gained + ' XP' : escapeHtml(t('mission.zeroXp'))) + '</span>');
       if ((res.confidence_delta || 0) > 0) pills.push('<span class="chip chip--green">' + escapeHtml(t('mission.readinessPill', { n: res.confidence_delta })) + '</span>');
-      if (gs.leveled_up) pills.push('<span class="chip chip--yellow">' + icon('trophy', 'ic--sm') + escapeHtml(t('mission.levelPill', { title: gs.level_title })) + '</span>');
+      if (stageNow.stage > stageBefore) pills.push('<span class="chip chip--yellow">' + icon('pillars', 'ic--sm') + escapeHtml(t('mission.stagePill', { title: stageNow.title })) + '</span>');
+      if (quality !== 'invalid' && isDipStep(prevStep)) showPanicVsDiscipline();
       let title;
       if (win) title = tPick('mission.right', prevStep + state.day);
       else if (quality === 'invalid') title = t('mission.invalid');
@@ -2889,9 +3301,9 @@
         pills: pills.join(''),
         cta: m.retry ? t('mission.tryAgain') : res.mission_completed ? t('mission.finish') : t('mission.continue'),
       });
+      // Quiet Mastery: no confetti on single steps — only once at the end of the day.
       if (win) { Sound.correct(); xpFloat(gs.xp_gained, els.mXpPill, 'green'); }
       else { Sound.retry(); if (gs.xp_gained) xpFloat(gs.xp_gained, els.mXpPill); }
-      if (res.trigger_confetti === true) fireConfetti('micro');
       renderMissionBar();
     } catch (err) {
       if (token !== state.token) return;
@@ -2906,6 +3318,60 @@
       updateCheck();
     }
   }
+  // Day 1, step 3 is the shared -20% dip test (docs/03 §7C).
+  function isDipStep(step) {
+    const beat = currentBeat();
+    return state.day === 1 && beat && beat.kind === 'server' && Number(step) === 3;
+  }
+  // Panic vs Discipline: what the -20% decision means in PLN for this learner's own plan, from
+  // the server projection (same assumptions as the time machine). Panic = sell in year 3 at
+  // the dip and park all later payments in a 0% account; Discipline = keep the plan.
+  function panicVsDiscipline() {
+    const s = state.session;
+    const series = (s && s.projection_series) || [];
+    if (series.length < 3) return null;
+    const amount = planAmount();
+    const h = clamp(Number(s.default_horizon_years) || 10, 4, series.length);
+    const y3 = series[2];
+    const end = series[h - 1];
+    const rInf = ((s.assumptions && Number(s.assumptions.inflation_pct)) || 3.5) / 100;
+    const dipValue = pyRound(y3.etf_nominal_value * 0.8);
+    const lockedLoss = y3.etf_nominal_value - dipValue;
+    const later = amount * 12 * (h - 3);
+    const panicReal = pyRound((dipValue + later) / Math.pow(1 + rInf, h));
+    const disciplineReal = end.etf_real_value;
+    return { amount, h, dipValue, lockedLoss, later, panicReal, disciplineReal, gap: disciplineReal - panicReal };
+  }
+  function showPanicVsDiscipline() {
+    const d = panicVsDiscipline();
+    if (!d || document.getElementById('m-pvd')) return;
+    const row = (label, value, cls) => '<p class="pvd__row' + (cls ? ' ' + cls : '') + '"><span>' + escapeHtml(label) + '</span><b>' + escapeHtml(value) + '</b></p>';
+    const html =
+      '<section class="pvd" id="m-pvd" aria-labelledby="m-pvd-title">' +
+        '<h3 class="pvd__title" id="m-pvd-title">' + escapeHtml(t('pvd.title')) + '</h3>' +
+        '<p class="pvd__lead">' + escapeHtml(t('pvd.lead', { amount: money(d.amount), years: years(d.h) })) + '</p>' +
+        '<div class="pvd__cols">' +
+          '<div class="pvd__col pvd__col--panic"><p class="pvd__head">' + icon('trend-down', 'ic--sm') + escapeHtml(t('pvd.panic')) + '</p><div class="pvd__rows">' +
+            row(t('pvd.panicSell'), money(d.dipValue)) +
+            row(t('pvd.panicLocked'), '−' + money(d.lockedLoss)) +
+            row(t('pvd.panicRest'), '+' + money(d.later)) +
+            row(t('pvd.total', { years: years(d.h) }), money(d.panicReal), 'pvd__row--total') + '</div></div>' +
+          '<div class="pvd__col pvd__col--discipline"><p class="pvd__head">' + icon('trend-up', 'ic--sm') + escapeHtml(t('pvd.discipline')) + '</p><div class="pvd__rows">' +
+            row(t('pvd.disciplineHold'), money(d.dipValue)) +
+            row(t('pvd.disciplineNote'), money(0)) +
+            row(t('pvd.disciplineRest'), '+' + money(d.later)) +
+            row(t('pvd.total', { years: years(d.h) }), money(d.disciplineReal), 'pvd__row--total') + '</div></div>' +
+        '</div>' +
+        (d.gap > 0 ? '<p class="pvd__gap">' + escapeHtml(t('pvd.gap', { amount: money(d.gap) })) + '</p>' : '') +
+        '<p class="pvd__note">' + escapeHtml(t('pvd.note')) + '</p>' +
+      '</section>';
+    const anchor = els.mStage.querySelector('.answers');
+    if (anchor) anchor.insertAdjacentHTML('afterend', html);
+    else els.mStage.insertAdjacentHTML('beforeend', html);
+    const card = document.getElementById('m-pvd');
+    if (card) setTimeout(() => card.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' }), 320);
+  }
+
   function setAnswersDisabled(disabled) {
     els.mStage.querySelectorAll('.answer, .myth__btns .btn, .fund__row').forEach((b) => { b.disabled = disabled; });
     const input = document.getElementById('m-input');
@@ -2981,7 +3447,7 @@
       pills: '<span class="pill-xp">' + (gained ? '+' + gained + ' XP' : escapeHtml(t('mission.zeroXp'))) + '</span>',
       cta: m.practiceRetry ? t('mission.tryAgain') : t('mission.continue'),
     });
-    if (ok) { Sound.correct(); fireConfetti('micro'); } else Sound.retry();
+    if (ok) Sound.correct(); else Sound.retry();
     renderMissionBar();
   }
 
@@ -3066,7 +3532,7 @@
       text = ok ? t('alloc.okCushion') : etf < lo ? t('alloc.tooLowCushion') : t('alloc.tooHighCushion');
     }
     setAnswersDisabled(true);
-    if (!ok) replayClass(els.mStage.querySelector('.alloc'), 'shake');
+    if (!ok) replayClass(els.mStage.querySelector('.alloc'), 'attn');
     practiceFeedback(ok, 'alloc', ok ? t('alloc.okTitle') : t('alloc.tryTitle'), text, true);
   }
 
@@ -3098,7 +3564,7 @@
     btn.classList.remove('btn--ghost');
     btn.classList.add(ok ? 'btn--green' : 'btn--ink', 'is-picked');
     const card = document.getElementById('m-myth');
-    replayClass(card, ok ? 'is-flip' : 'shake');
+    if (!ok) replayClass(card, 'attn');
     practiceFeedback(ok, 'myth', t(ok ? 'myth.rightTitle' : 'myth.wrongTitle', { v: verdict }), t('myth.' + mt.concern + '.e'), false);
   }
 
@@ -3132,7 +3598,7 @@
     if (btn) btn.classList.add(ok ? 'is-right' : 'is-wrong');
     if (!ok) {
       els.mStage.querySelectorAll('.fund__row[data-row^="ter-"]').forEach((b) => b.classList.add('is-right'));
-      replayClass(els.mStage.querySelector('.spot'), 'shake');
+      replayClass(els.mStage.querySelector('.spot'), 'attn');
     }
     setAnswersDisabled(true);
     practiceFeedback(ok, 'spot', t(ok ? 'spot.rightTitle' : 'spot.wrongTitle'), t(ok ? 'spot.right' : 'spot.wrong'), false);
@@ -3165,7 +3631,8 @@
     renderDone({ animate: true });
     showScreen(SCREENS.DONE);
     Sound.fanfare();
-    fireConfetti('full');
+    // Confetti exactly once per completed day (the only other moment: passing Checkpoint #1).
+    if (!state.celebratedDays.has(state.day)) { state.celebratedDays.add(state.day); fireConfetti(); }
   }
   function openDone() {
     if (!state.turn || !state.turn.mission_completed) { renderHub(); showScreen(SCREENS.HUB); return; }
@@ -3186,7 +3653,7 @@
       if (o.demo) state.gateBypass.add(state.day);
       state.turn = res.initial_mission_turn;
       state.dayLessons = res.micro_lessons || [];
-      state.hubTab = 3;   // a new day opens on its own lessons
+      state.hubView = 'quests';   // a new day opens on Daily quests; its lessons are one click away
       state.mission = freshMissionState();
       state.summary = freshSummary();
       // Jumping ahead in Demo Mode: the skipped days count as done on the map.
@@ -3209,13 +3676,13 @@
   function onNode(key, btn) {
     if (key === 'cp') {
       const st = checkpointState();
-      if (st === 'locked') { replayClass(btn, 'shake'); toast(t('hub.lockedCp'), 'info', 2600); return; }
+      if (st === 'locked') { replayClass(btn, 'attn'); toast(t('hub.lockedCp'), 'info', 2600); return; }
       openCheckpoint();
       return;
     }
     const d = Number(key);
     const st = nodeState(d);
-    if (st === 'locked') { replayClass(btn, 'shake'); toast(t('hub.locked', { n: d - 1 }), 'info', 2600); return; }
+    if (st === 'locked') { replayClass(btn, 'attn'); toast(t('hub.locked', { n: d - 1 }), 'info', 2600); return; }
     if (st === 'active') {
       if (!(state.mission && state.mission.started) && !dayDone(d) && !dayReady()) { gateBlocked(btn); return; }
       openMission();
@@ -3228,15 +3695,19 @@
   // ------------------------------------------------------------------------
   // 13. Screen 4 — mission complete & real-world action bridge
   // ------------------------------------------------------------------------
-  const LEVEL_TITLES = {
-    en: { 1: 'Observer', 2: 'Confident Start', 3: 'Steady Builder' },
-    pl: { 1: 'Obserwator', 2: 'Świadomy Start', 3: 'Konsekwentny Start' },
-  };
+  // Milestone titles mirror backend get_level_state() (docs/03 §2 pkt 4); copy lives in I18N.
   function levelFor(xp) {
-    const titles = LEVEL_TITLES[state.lang] || LEVEL_TITLES.en;
-    if (xp >= LEVEL_FLOOR[3]) return { level: 3, level_title: titles[3], next_level_xp: 500 };
-    if (xp >= LEVEL_FLOOR[2]) return { level: 2, level_title: titles[2], next_level_xp: 250 };
-    return { level: 1, level_title: titles[1], next_level_xp: 100 };
+    if (xp >= LEVEL_FLOOR[3]) return { level: 3, level_title: t('level.3'), next_level_xp: 500 };
+    if (xp >= LEVEL_FLOOR[2]) return { level: 2, level_title: t('level.2'), next_level_xp: 250 };
+    return { level: 1, level_title: t('level.1'), next_level_xp: 100 };
+  }
+  // Milestone titles arrive in the session's language (and seeded friends are stored in PL):
+  // show them in the current UI language instead.
+  const LEVEL_BY_TITLE = {};
+  [1, 2, 3].forEach((n) => ['en', 'pl'].forEach((l) => { LEVEL_BY_TITLE[I18N[l]['level.' + n].toLowerCase()] = n; }));
+  function levelTitle(title, level) {
+    const n = Number(level) || LEVEL_BY_TITLE[String(title || '').trim().toLowerCase()];
+    return n >= 1 && n <= 3 ? t('level.' + n) : String(title || '');
   }
 
   function renderDone(opts) {
@@ -3276,24 +3747,26 @@
       '<label class="tile-wrap"><input type="radio" name="self_after" value="' + n + '" class="sr-only"' + (s.selfAfter === n ? ' checked' : '') + '><span class="tile tile--center">' + n + '</span></label>'
     ).join('');
 
+    const milestone = leveled
+      ? '<div class="badge-art' + (animate ? ' badge-pop' : '') + '" style="width:56px;margin-top:14px" title="' + escapeHtml(t('done.badgeLabel') + ': ' + levelTitle(gs.level_title, gs.level)) + '">' + badgeSVG(gs.level) + '</div>' +
+        '<span class="levelup">' + icon('pillars', 'ic--sm') + escapeHtml(t('done.levelUp', { title: levelTitle(gs.level_title, gs.level) })) + '</span>'
+      : nextFloor != null && displayedXp() < nextFloor
+        ? '<span class="levelup levelup--quiet xp-detail">' + escapeHtml(t('done.toNext', { n: nextFloor - displayedXp() })) + '</span>'
+        : '';
     const hero =
       '<div class="card card--raised win">' +
         coraHTML('celebrating') +
         '<h1 class="h1 win__title">' + escapeHtml(t('done.title', { d: state.day })) + '</h1>' +
-        '<div class="garden garden--done' + (grew ? ' garden--celebrate' : '') + '">' +
+        '<div class="garden garden--done">' +
           plantSVG(curPlant.stage, grew ? 'plant--grow' : '') +
           '<div><p class="garden__label">' + escapeHtml(grew ? growthText : t('garden.current')) + '</p>' +
           '<p class="garden__stage">' + escapeHtml(curPlant.title) + '</p>' +
-          '<p class="tiny muted">' + escapeHtml(grew ? curPlant.quote : growthText) + '</p></div>' +
+          '<p class="garden__desc">' + escapeHtml(grew ? curPlant.quote : (state.calm ? curPlant.quote : growthText)) + '</p></div>' +
         '</div>' +
-        '<div class="win__xp">' + icon('bolt', 'ic--lg') + '<span><span data-earned="' + earned + '">+' + (animate ? 0 : earned) + '</span> XP</span> <span class="small" style="font-family:var(--font-ui);font-weight:700">' + escapeHtml(t('done.earned')) + '</span></div>' +
-        '<div>' + (leveled
-          ? '<span class="levelup">' + icon('trophy', 'ic--sm') + escapeHtml(t('done.levelUp', { title: gs.level_title })) + '</span>'
-          : nextFloor != null && displayedXp() < nextFloor ? '<span class="levelup" style="background:var(--paper-2)">' + escapeHtml(t('done.toNext', { n: nextFloor - displayedXp(), l: gs.level + 1 })) + '</span>' : '') + '</div>' +
+        '<div class="win__xp xp-detail">' + icon('chart', 'ic--sm') + '<span><span data-earned="' + earned + '">+' + (animate ? 0 : earned) + '</span> XP</span> <span>' + escapeHtml(t('done.earned')) + '</span></div>' +
+        '<div>' + milestone + '</div>' +
         '<div class="win__row">' +
-          '<div class="badge-art' + (animate ? ' badge-pop' : '') + '" title="' + escapeHtml(gs.level_title) + '">' + badgeSVG(gs.level) +
-            '<p class="tiny strong" style="text-align:center;margin-top:4px">' + escapeHtml(t('done.badgeLabel')) + '<br>' + escapeHtml(gs.level_title) + '</p></div>' +
-          '<div><p class="win__label">' + escapeHtml(t('done.readiness')) + '</p>' +
+          '<div><p class="win__label">' + escapeHtml(t(state.calm ? 'hud.readinessCalm' : 'done.readiness')) + '</p>' +
             '<p class="win__big">' + start + '% <span aria-hidden="true">→</span><span class="sr-only">,</span> <span data-ready-target="' + score + '">' + (animate ? start : score) + '</span>%</p>' +
             '<div class="meter meter--lg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + score + '" aria-label="' + escapeHtml(t('done.readiness')) + '" style="margin-top:8px">' +
               '<div class="meter__fill" data-ready-fill="' + score + '" style="width:' + (animate ? start : score) + '%"></div></div>' +
@@ -3303,8 +3776,8 @@
             '<p class="small strong" id="self-compare" style="margin-top:8px" aria-live="polite">' + escapeHtml(selfCompare(before, s.selfAfter)) + '</p></fieldset>' +
         '</div>' +
         '<div class="win__actions">' + nextCta +
-          '<button type="button" class="btn btn--ghost btn--lg" data-action="go-home">' + icon('peak') + escapeHtml(t('done.toMap')) + '</button></div>' +
-        '<p class="small strong done-streak">' + icon('flame', 'ic--sm') + '<span>' + escapeHtml(t('done.streak')) + '</span></p>' +
+          '<button type="button" class="btn btn--ghost btn--lg" data-action="go-home">' + icon('arrow-right', 'ic--flip') + escapeHtml(t('done.toMap')) + '</button></div>' +
+        '<p class="small done-streak">' + icon('calendar-check', 'ic--sm') + '<span>' + escapeHtml(t('done.streak')) + '</span></p>' +
       '</div>';
 
     // Below the result: two calm tabs instead of a wall of cards (Issue #44).
@@ -3388,12 +3861,11 @@
           '<div style="margin-top:14px">' + (s.accepted
             ? '<span class="chip chip--green" role="status" style="min-height:44px;padding:0 16px">' + icon('check', 'ic--sm') + escapeHtml(t('first.accepted')) + (s.reward ? ' +' + s.reward + ' XP' : '') + '</span>'
             : '<button type="button" class="btn btn--primary" data-action="accept-challenge"' + (s.challengeBusy ? ' disabled' : '') + '>' +
-                (s.challengeBusy ? '<span class="spinner"></span>' : icon('flame')) + escapeHtml(t('first.accept', { n: c.reward_xp })) + '</button>') + '</div>' +
+                (s.challengeBusy ? '<span class="spinner"></span>' : icon('check')) + escapeHtml(t('first.accept', { n: c.reward_xp })) + '</button>') + '</div>' +
         '</div>'
       : '';
     document.getElementById('done-first').innerHTML =
       '<div class="card firststep">' +
-        coraHTML('confident', 'firststep__cora') +
         '<h2 class="h2">' + escapeHtml(t('first.title')) + '</h2>' +
         '<p class="small" style="margin-top:6px;color:var(--ink-2);max-width:46ch">' + escapeHtml(t('first.sub')) + '</p>' +
         challenge + bankButton(all) +
@@ -3453,7 +3925,6 @@
       const anchor = document.querySelector('#done-first .chip--green') || els.hudXpPill;
       xpFloat(res.reward_xp, anchor, 'green');
       Sound.correct();
-      fireConfetti(crossed ? 'full' : 'micro');
     } catch (err) {
       if (token !== state.token) return;
       s.challengeBusy = false;
@@ -3469,7 +3940,6 @@
     const s = state.summary;
     if (s.checked.has(id)) s.checked.delete(id); else s.checked.add(id);
     btn.setAttribute('aria-checked', String(s.checked.has(id)));
-    replayClass(btn, 'bump');
     const root = document.getElementById('done-check');
     const done = items.filter((i) => s.checked.has(i.id)).length;
     const all = done === items.length;
@@ -3479,7 +3949,7 @@
     const bank = document.querySelector('#done-first [data-action="open-bank"]');
     if (bank) bank.classList.toggle('glow-pulse', all);
     if (s.checked.has(id)) Sound.pop();
-    if (all && !s.celebrated) { s.celebrated = true; Sound.fanfare(); fireConfetti('full'); }
+    if (all && !s.celebrated) { s.celebrated = true; Sound.fanfare(); }
   }
 
   function renderBankCard() {
@@ -3531,8 +4001,8 @@
       return '<li class="' + (isMe ? 'is-me' : '') + '"' + (isMe ? ' data-me' : '') + '>' +
         '<span class="board__rank">' + escapeHtml(r.rank) + '</span>' +
         '<span><span class="board__name">' + escapeHtml(name) + (isMe && leveled ? ' <span class="chip chip--green" style="min-height:24px;padding:0 8px;font-size:.7rem">' + escapeHtml(t('board.levelUp')) + '</span>' : '') + '</span>' +
-          '<span class="board__lvl">' + escapeHtml(r.level_title) + '</span></span>' +
-        '<span class="board__streak">' + icon('flame', 'ic--sm') + escapeHtml(r.streak_days) + '</span>' +
+          '<span class="board__lvl">' + escapeHtml(levelTitle(r.level_title)) + '</span></span>' +
+        '<span class="board__streak" title="' + escapeHtml(t('hud.streakTitle')) + '">' + icon('calendar-check', 'ic--sm') + escapeHtml(r.streak_days) + '</span>' +
         '<span class="board__xp">' + escapeHtml(formatNumber(r.xp)) + ' XP</span></li>';
     }).join('');
     const hint = me && leader && !leader.is_current_user ? t('board.gap', { n: formatNumber(leader.xp - me.xp) }) : me ? t('board.lead') : '';
@@ -3541,7 +4011,7 @@
       '<ol class="board">' + list + '</ol>' +
       (hint ? '<p class="small strong" style="margin-top:12px;color:var(--ink-2)" aria-live="polite">' + escapeHtml(hint) + '</p>' : '') +
       '<button type="button" class="btn btn--ghost btn--sm" data-action="challenge-friend" style="margin-top:12px">' + icon('users', 'ic--sm') + escapeHtml(t('board.challenge')) + '</button>';
-    if (highlight) { const row = box.querySelector('[data-me]'); if (row) replayClass(row, 'bump'); }
+    if (highlight) { const row = box.querySelector('[data-me]'); if (row) replayClass(row, 'flash'); }
   }
 
   async function copyText(text) {
@@ -3582,13 +4052,13 @@
         : c ? t('bank.whatA', { amount: money(c.amount_pln), account: c.target_account }) : '';
       box.innerHTML =
         '<div style="text-align:center" role="status">' + coraHTML('celebrating') +
-          '<p class="h3" style="margin-top:8px">' + escapeHtml(t('bank.success', { d: state.day })) + '</p>' +
+          '<p class="h3" style="margin-top:12px">' + escapeHtml(t('bank.success', { d: state.day })) + '</p>' +
           '<p class="small muted" style="margin-top:8px">' + escapeHtml(t('bank.successNote', { what })) + '</p>' +
           '<button type="button" class="btn btn--primary btn--block" data-action="next-gen" style="margin-top:20px">' + icon('users') + escapeHtml(t('bank.nextGen')) + '</button>' +
           '<button type="button" class="btn btn--ghost btn--block" data-action="close-modal" style="margin-top:10px">' + escapeHtml(t('common.close')) + '</button>' +
         '</div>';
       const cora = box.querySelector('.cora');
-      if (cora) cora.style.setProperty('--cora-size', '120px');
+      if (cora) { cora.style.setProperty('--cora-size', '56px'); cora.style.margin = '0 auto'; }
       return;
     }
     const optB = a.plan_type === 'savings_first'
@@ -3600,14 +4070,15 @@
         '<span class="small" style="display:block;margin-top:4px;font-weight:600;color:var(--ink-2)">' + body + '</span></span></span></label>';
     box.innerHTML =
       '<div class="bank-head"><span><span class="bank-head__mark">' + icon('landmark', 'ic--sm') + '</span>Commerzbank</span><span class="chip chip--yellow" style="min-height:26px">DEMO</span></div>' +
-      '<p class="tiny muted" style="margin-top:8px">' + escapeHtml(t('bank.preview')) + '</p>' +
+      '<p class="trust-note" style="margin-top:12px">' + icon('shield', 'ic--sm') + '<span>' + escapeHtml(t('bank.noTransfer')) + ' <span class="muted" style="font-weight:500">' + escapeHtml(t('bank.preview')) + '</span></span></p>' +
       '<fieldset style="margin-top:14px"><legend class="small strong">' + escapeHtml(t('bank.choose')) + '</legend><div class="tiles" style="margin-top:8px">' +
         option('a', t('bank.optA'), '<span class="chip chip--green" style="min-height:24px;padding:0 8px;font-size:.7rem">' + escapeHtml(t('bank.recommended')) + '</span>',
           c ? escapeHtml(c.amount_pln > 0 ? t('bank.transfer', { amount: money(c.amount_pln), account: c.target_account }) : c.title) : '') +
         option('b', t('bank.optB'), '', optB) +
       '</div></fieldset>' +
       '<p class="kyc">' + icon('shield', 'ic--sm') + '<span>' + escapeHtml(t('bank.kyc')) + '</span></p>' +
-      '<button type="button" class="btn btn--primary btn--block btn--lg" data-action="simulate-bank" style="margin-top:18px">' + escapeHtml(t('bank.simulate')) + '</button>';
+      '<button type="button" class="btn btn--primary btn--block btn--lg" data-action="simulate-bank" style="margin-top:18px">' + escapeHtml(t('bank.simulate')) + '</button>' +
+      '<p class="tiny muted" style="margin-top:8px;text-align:center">' + escapeHtml(t('bank.noTransfer')) + '</p>';
   }
   function openBank() {
     if (!state.turn || !state.turn.mission_completed) return;
@@ -3618,8 +4089,7 @@
   function simulateBank() {
     state.summary.bankDone = true;
     renderBankModal();
-    Sound.fanfare();
-    fireConfetti('full');
+    Sound.pop();
     const next = els.bankContent.querySelector('[data-action="next-gen"]');
     if (next) next.focus();
   }
@@ -3667,9 +4137,9 @@
           coraHTML(r.passed ? 'celebrating' : 'coaching') +
           '<p class="quiz-score" style="margin-top:8px">' + escapeHtml(r.score_pct) + '%</p>' +
           '<p class="h2" style="margin-top:6px">' + escapeHtml(r.badge_title) + '</p>' +
-          (r.passed ? '<div class="garden garden--checkpoint"><div>' + plantSVG(checkpointPlant.stage, 'plant--grow') + '</div><div><p class="garden__stage">' + escapeHtml(t('garden.stageLabel', { stage: checkpointPlant.stage })) + '</p><p class="small">' + escapeHtml(checkpointPlant.title) + '</p></div></div>' : '') +
+          (r.passed ? '<div class="badge-art badge-pop" style="margin-top:14px;width:64px">' + badgeSVG(levelFor(r.xp).level) + '</div>' : '') +
+          (r.passed ? '<div class="garden garden--checkpoint">' + plantSVG(checkpointPlant.stage, 'plant--grow') + '<div><p class="garden__label">' + escapeHtml(t('garden.stageLabel', { stage: checkpointPlant.stage })) + '</p><p class="garden__stage">' + escapeHtml(checkpointPlant.title) + '</p><p class="garden__desc">' + escapeHtml(checkpointPlant.quote) + '</p></div></div>' : '') +
           (r.reward_xp ? '<p style="margin-top:10px"><span class="pill-xp">+' + escapeHtml(r.reward_xp) + ' XP</span></p>' : '') +
-          (r.passed ? '<div class="badge-art badge-pop" style="margin-top:14px">' + badgeSVG(levelFor(r.xp).level) + '</div>' : '') +
           '<ul class="quiz-list">' + items + '</ul>' +
           '<div class="win__actions">' +
             (!r.passed ? '<button type="button" class="btn btn--primary" data-action="open-checkpoint">' + escapeHtml(t('cp.retry')) + '</button>' : '') +
@@ -3682,12 +4152,12 @@
     const last = cp.i === total - 1;
     els.cpRoot.innerHTML = top +
       '<div class="wrap wrap--narrow">' +
-        '<div class="scene">' + coraHTML('idle') + '<div class="bubble bubble--left"><p class="scene__who">' + escapeHtml(t('cp.q', { i: cp.i + 1, n: total })) + '</p>' +
+        '<div class="scene">' + coraHTML('idle') + '<div class="bubble"><p class="scene__who">' + escapeHtml(t('cp.q', { i: cp.i + 1, n: total })) + '</p>' +
           '<p class="scene__q" style="margin-top:0">' + escapeHtml(q.question) + '</p>' +
           (cp.i === 0 ? '<p class="small" style="margin-top:8px;color:var(--ink-2)">' + escapeHtml(t('cp.sub')) + '</p>' : '') + '</div></div>' +
         '<div class="answers">' + (q.options || []).map((o, i) =>
           '<button type="button" class="answer" data-action="cp-pick" data-id="' + escapeHtml(o.id) + '" aria-pressed="' + (picked === o.id) + '" style="grid-template-columns:auto 1fr">' +
-            '<span class="answer__icon" style="font-family:var(--font-display);font-weight:800">' + 'ABCD'.charAt(i) + '</span><span>' + escapeHtml(o.text) + '</span></button>').join('') + '</div>' +
+            '<span class="answer__icon">' + 'ABCD'.charAt(i) + '</span><span>' + escapeHtml(o.text) + '</span></button>').join('') + '</div>' +
         '<div style="margin-top:22px;display:flex;justify-content:flex-end">' +
           '<button type="button" class="btn btn--primary btn--lg" data-action="' + (last ? 'cp-submit' : 'cp-next') + '"' + (picked ? '' : ' disabled') + '>' +
             (cp.busy ? '<span class="spinner"></span>' : '') + escapeHtml(last ? t('cp.submit') : t('cp.next')) + '</button></div>' +
@@ -3720,7 +4190,7 @@
       }
       if (Array.isArray(res.leaderboard) && state.summary) state.summary.leaderboard = res.leaderboard;
       renderHud();
-      if (res.passed) { Sound.fanfare(); fireConfetti('full'); } else Sound.retry();
+      if (res.passed) { Sound.fanfare(); fireConfetti(); } else Sound.retry();
     } catch (err) {
       if (token !== state.token) return;
       toast(isRouteMissing(err) ? t('cp.unavailable') : describeApiError(err), 'warn');
@@ -3731,7 +4201,7 @@
   }
 
   // ------------------------------------------------------------------------
-  // 15. Ask Kita — explain simpler with a real-life example + mini drill
+  // 15. Ask Atlas — explain simpler with a real-life example + mini drill
   // ------------------------------------------------------------------------
   function localExplain(question, topicKey) {
     let key = topicKey && EXPLAIN_LOCAL.en[topicKey] ? topicKey : null;
@@ -3810,7 +4280,10 @@
     try {
       if (state.session) {
         const res = await withSessionRecovery((sid) => api.explain({ session_id: sid, question: q, topic_hint: topicKey || null, lang: state.lang, user_name: state.userName || null }));
-        if (validExplain(res)) result = res;
+        // The backend's offline bank has no entry for some glossary terms (MiFID II): its generic
+        // fallback would miss the point, so the local, on-topic explanation wins there.
+        const genericFallback = res && res.is_fallback && LOCAL_ONLY_TOPICS.indexOf(topicKey) >= 0;
+        if (validExplain(res) && !genericFallback) result = res;
       }
     } catch (err) {
       if (!isRouteMissing(err)) console.info('[Finance Quest] /api/coach/explain failed (' + err.message + '), using the offline explanation.');
@@ -3823,8 +4296,52 @@
     const c = state.cora;
     if (!c.result || c.picked != null) return;
     c.picked = i;
-    if (i === c.result.correct_option_index) { Sound.correct(); fireConfetti('micro'); } else Sound.retry();
+    if (i === c.result.correct_option_index) Sound.correct(); else Sound.retry();
     renderCoraBody();
+  }
+
+  // Tap-to-define popover: one plain sentence + a shortcut into Ask Atlas on the same term.
+  let termReturnFocus = null;
+  function openTermPop(key, anchor) {
+    const pop = els.termPop;
+    if (!pop || TERM_KEYS.indexOf(key) < 0) return;
+    if (!pop.hidden && pop.dataset.term === key) { closeTermPop(); return; }
+    closeTermPop();
+    termReturnFocus = anchor;
+    pop.dataset.term = key;
+    pop.innerHTML =
+      '<p class="term-pop__title" id="term-pop-title">' + escapeHtml(t('define.' + key + '.t')) + '</p>' +
+      '<p class="term-pop__text">' + escapeHtml(t('define.' + key + '.d')) + '</p>' +
+      '<div class="term-pop__actions">' +
+        '<button type="button" class="btn btn--ghost btn--sm" data-action="term-ask" data-term="' + key + '">' + icon('help', 'ic--sm') + escapeHtml(t('define.see')) + '</button>' +
+        '<button type="button" class="icon-btn" data-action="term-close" aria-label="' + escapeHtml(t('common.close')) + '">' + icon('x') + '</button>' +
+      '</div>';
+    pop.hidden = false;
+    if (anchor) anchor.setAttribute('aria-expanded', 'true');
+    const r = anchor ? anchor.getBoundingClientRect() : { left: 12, bottom: 80, top: 60, width: 0 };
+    const w = pop.offsetWidth;
+    const h = pop.offsetHeight;
+    const left = clamp(r.left + r.width / 2 - w / 2, 12, window.innerWidth - w - 12);
+    const below = r.bottom + 8;
+    const top = below + h > window.innerHeight - 12 ? Math.max(12, r.top - h - 8) : below;
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    const first = pop.querySelector('[data-action="term-ask"]');
+    if (first) first.focus({ preventScroll: true });
+  }
+  function closeTermPop(restoreFocus) {
+    const pop = els.termPop;
+    if (!pop || pop.hidden) return;
+    pop.hidden = true;
+    pop.dataset.term = '';
+    document.querySelectorAll('.term[aria-expanded="true"]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+    if (restoreFocus && termReturnFocus && document.contains(termReturnFocus)) termReturnFocus.focus({ preventScroll: true });
+    termReturnFocus = null;
+  }
+  function askAboutTerm(key) {
+    closeTermPop();
+    const topic = TERM_TOPIC[key] || null;
+    openCora({ topic, question: key === 'mifid' ? t('define.mifid.q') : t('define.' + key + '.t') });
   }
 
   // ------------------------------------------------------------------------
@@ -3856,23 +4373,17 @@
     ).join('');
     els.judgesContent.innerHTML =
       '<div class="judges">' + sections + '</div>' +
-      '<p class="disclaimer" style="margin-top:16px">' + icon('menu') + '<span>' + escapeHtml(t('judges.demoHint')) + '</span></p>' +
+      '<p class="disclaimer" style="margin-top:16px">' + icon('gear') + '<span>' + escapeHtml(t('judges.demoHint')) + '</span></p>' +
       '<p class="disclaimer" style="margin-top:8px">' + icon('info') + '<span>' + escapeHtml(t('ai.disclaimer')) + '</span></p>';
   }
-  function toggleMenu(force) {
-    const open = force != null ? force : els.hudMenu.hidden;
-    els.hudMenu.hidden = !open;
-    document.querySelectorAll('[data-action="toggle-menu"]').forEach((b) => b.setAttribute('aria-expanded', String(open)));
-  }
-  function closeMenu() { if (els.hudMenu && !els.hudMenu.hidden) toggleMenu(false); }
 
   function toast(message, tone, ms, opts) {
     const el = document.createElement('div');
-    const kita = !!(opts && opts.kita);
-    el.className = 'toast' + (tone === 'warn' ? ' toast--warn' : tone === 'ok' ? ' toast--ok' : '') + (kita ? ' toast--kita' : '');
+    const guide = !!(opts && opts.guide);
+    el.className = 'toast' + (tone === 'warn' ? ' toast--warn' : tone === 'ok' ? ' toast--ok' : '') + (guide ? ' toast--guide' : '');
     el.setAttribute('role', tone === 'warn' ? 'alert' : 'status');
-    if (kita) {
-      el.innerHTML = '<span class="toast__kita" aria-hidden="true">' + coraPeekSVG() + '</span><span>' + escapeHtml(message) + '</span>';
+    if (guide) {
+      el.innerHTML = '<span class="toast__guide" aria-hidden="true">' + coraSVG() + '</span><span>' + escapeHtml(message) + '</span>';
     } else {
       el.textContent = message;
     }
@@ -3883,16 +4394,11 @@
       setTimeout(() => el.remove(), 600);
     }, ms || 3400);
   }
-  function fireConfetti(kind) {
+  // One restrained burst in the brand palette: end of a completed day, or passing Checkpoint #1.
+  function fireConfetti() {
     if (typeof window.confetti !== 'function') return;
-    const colors = [C.yellow, C.green, C.tangerine, C.sky, C.ink];
-    if (kind === 'full') {
-      window.confetti({ particleCount: 150, spread: 100, startVelocity: 42, origin: { y: 0.55 }, colors, disableForReducedMotion: true });
-      setTimeout(() => window.confetti({ particleCount: 60, angle: 60, spread: 60, origin: { x: 0, y: 0.7 }, colors, disableForReducedMotion: true }), 180);
-      setTimeout(() => window.confetti({ particleCount: 60, angle: 120, spread: 60, origin: { x: 1, y: 0.7 }, colors, disableForReducedMotion: true }), 260);
-      return;
-    }
-    window.confetti({ particleCount: 40, spread: 62, origin: { y: 0.75 }, colors, disableForReducedMotion: true });
+    const colors = [C.yellow, C.green, C.ink, C.rule];
+    window.confetti({ particleCount: 80, spread: 70, startVelocity: 32, gravity: 1.1, ticks: 160, scalar: 0.85, origin: { y: 0.6 }, colors, disableForReducedMotion: true });
   }
 
   // ------------------------------------------------------------------------
@@ -3906,16 +4412,19 @@
     document.querySelectorAll('[data-i18n-title]').forEach((el) => el.setAttribute('title', t(el.dataset.i18nTitle)));
     document.querySelectorAll('[data-i18n-content]').forEach((el) => el.setAttribute('content', t(el.dataset.i18nContent)));
     document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => el.setAttribute('placeholder', t(el.dataset.i18nPlaceholder)));
+    // Static copy with tap-to-define terms (e.g. MiFID II in the compliance note).
+    document.querySelectorAll('[data-i18n-define]').forEach((el) => { el.innerHTML = defineTerms(t(el.dataset.i18nDefine)); });
     document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === state.lang)));
   }
 
   async function setLang(lang) {
     if (lang !== 'en' && lang !== 'pl') return;
-    if (lang === state.lang) { closeMenu(); return; }
+    if (lang === state.lang) return;
     state.lang = lang;
     storageSet(LS_LANG, lang);
+    closeTermPop();
     applyStaticI18n();
-    renderKitaWelcome();
+    renderGuideWelcome();
     renderSoundButton();
     renderStageCards();
     syncFormOutputs();
@@ -3925,7 +4434,7 @@
     loadPersonas();
     // Nothing answered yet -> refresh server content in the new language (docs/01 §9).
     if (state.session && state.log.length === 0 && state.lastProfile && (state.screen === SCREENS.HUB)) {
-      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), checks: state.lessonChecks, checkin: new Set(state.checkinDays), bypass: new Set(state.gateBypass), year: state.tm.year };
+      const keep = { lessonsXp: state.lessonsXp, completedLessons: new Set(state.completedLessons), checks: state.lessonChecks, checkin: new Set(state.checkinDays), bypass: new Set(state.gateBypass), year: state.tm.year, view: state.hubView };
       const data = await analyzeProfile(state.lastProfile, { stay: true, quick: true, stageId: state.stageId });
       if (data) {
         state.lessonsXp = keep.lessonsXp;
@@ -3936,7 +4445,15 @@
         renderLessonsCard();
         renderHud({ animate: false });
         if (keep.year) updateTimeMachine(keep.year, { animate: false });
+        openHubTool(keep.view, { scroll: false });
       }
+      return;
+    }
+    // Later in the sprint: re-fetch today's lessons in the new language while the day has not
+    // started yet (day/start is then side-effect free), so the lesson tool does not mix languages.
+    if (state.session && state.screen === SCREENS.HUB && !dayDone(state.day) && !(state.mission && state.mission.started)) {
+      renderHub();
+      refreshDayContent();
       return;
     }
     if (state.session) {
@@ -3949,6 +4466,24 @@
     if (!els.coraSheet.hidden) renderCoraBody();
   }
 
+  async function refreshDayContent() {
+    const token = state.token;
+    const day = state.day;
+    const lang = state.lang;
+    try {
+      const res = await withSessionRecovery((sid) => api.dayStart({ session_id: sid, day, lang }));
+      if (token !== state.token || day !== state.day || lang !== state.lang || (state.mission && state.mission.started)) return;
+      state.log.push({ kind: 'day', body: { day, lang } });
+      state.turn = res.initial_mission_turn || state.turn;
+      if (Array.isArray(res.micro_lessons) && res.micro_lessons.length) state.dayLessons = res.micro_lessons;
+      state.mission = freshMissionState();
+      renderHub();
+      renderHud({ animate: false });
+    } catch (err) {
+      console.info('[Finance Quest] Could not refresh day content in the new language (' + err.message + ').');
+    }
+  }
+
   function goHome() {
     if (!state.session) { showScreen(SCREENS.BANK_ENTRY); return; }
     closeDrawer();
@@ -3959,15 +4494,15 @@
 
   function bindEvents() {
     document.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.btn, .answer, .node, .stage-card, .stage-pill, .tile-wrap, .icon-btn, .tool-btn, .check, .fund__row, .seg button, .topic-chips button, .cora-dock, .pebble, .step-tab')) Sound.click();
+      if (e.target.closest('.btn, .answer, .tl__btn, .stage-card, .stage-pill, .tile-wrap, .icon-btn, .tool-btn, .check, .fund__row, .seg button, .topic-chips button, .cora-dock, .pebble, .step-tab')) Sound.click();
     });
 
     document.addEventListener('click', (e) => {
-      if (els.hudMenu && !els.hudMenu.hidden && !e.target.closest('#hud-menu, [data-action="toggle-menu"]')) toggleMenu(false);
-      if (els.demoPop && !els.demoPop.hidden && !e.target.closest('#demo-pop, [data-action="toggle-demo"]')) toggleDemo(false);
+      if (els.settingsPop && !els.settingsPop.hidden && !e.target.closest('#settings-pop, [data-action="toggle-settings"]')) closeSettings();
+      if (els.termPop && !els.termPop.hidden && !e.target.closest('#term-pop, [data-action="define"]')) closeTermPop();
       const el = e.target.closest('[data-action], [data-stage], [data-lang]');
       if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true' && el.dataset.action !== 'node') return;
-      if (el.dataset.lang) { setLang(el.dataset.lang); closeMenu(); return; }
+      if (el.dataset.lang) { setLang(el.dataset.lang); return; }
       if (el.dataset.stage) { selectStage(el.dataset.stage); return; }
       const a = el.dataset.action;
       switch (a) {
@@ -3980,10 +4515,13 @@
         case 'go-home': goHome(); break;
         case 'reset': resetToProfile(); break;
         case 'toggle-sound': Sound.setMuted(!Sound.isMuted()); renderSoundButton(); if (!Sound.isMuted()) Sound.pop(); break;
-        case 'toggle-menu': closeDemo(); renderDemoMenus(); toggleMenu(); break;
-        case 'toggle-demo': toggleDemo(); break;
-        case 'open-judges': closeMenu(); closeDemo(); renderJudges(); openModal('modal_judges'); break;
-        case 'hub-tab': showHubTab(el.dataset.tab, { scroll: el.dataset.scroll === '1', focus: el.classList.contains('step-tab') }); break;
+        case 'toggle-calm': toggleCalm(); break;
+        case 'define': e.preventDefault(); openTermPop(el.dataset.term, el); break;
+        case 'term-ask': askAboutTerm(el.dataset.term); break;
+        case 'term-close': closeTermPop(true); break;
+        case 'toggle-settings': toggleSettings(); break;
+        case 'open-judges': closeSettings(); renderJudges(); openModal('modal_judges'); break;
+        case 'hub-tool': closeSettings(); openHubTool(el.dataset.tool, { focus: true }); break;
         case 'done-tab': showDoneTab(el.dataset.tab); break;
         case 'soon-day': onSoonDay(el); break;
         case 'tm-reset': state.tmAmount = null; syncAmountControls(); updateTimeMachine(state.tm.year || state.session.default_horizon_years); break;
@@ -4027,17 +4565,18 @@
         case 'cora-topic': askCora(t('cora.topic.' + el.dataset.topic), el.dataset.topic); break;
         case 'cora-drill': pickDrill(Number(el.dataset.i)); break;
         case 'cora-reset': state.cora.result = null; state.cora.picked = null; state.cora.question = ''; renderCoraBody(); break;
-        case 'demo-day4': closeModal(); closeDemo(); closeMenu(); startDay(4, { demo: true }); break;
-        case 'demo-cp': closeModal(); closeDemo(); closeMenu(); openCheckpoint(); break;
+        case 'demo-day4': closeModal(); closeSettings(); startDay(4, { demo: true }); break;
+        case 'demo-cp': closeModal(); closeSettings(); openCheckpoint(); break;
         default: break;
       }
     });
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        if (!els.coraSheet.hidden) closeCora();
+        if (els.termPop && !els.termPop.hidden) closeTermPop(true);
+        else if (!els.coraSheet.hidden) closeCora();
         else if (document.querySelector('.modal:not([hidden])')) closeModal();
-        else { closeMenu(); closeDemo(); }
+        else closeSettings(true);
       }
       // Arrow keys move between the step tabs (WAI-ARIA tabs pattern).
       if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && e.target && e.target.classList && e.target.classList.contains('step-tab')) {
@@ -4062,8 +4601,13 @@
       else if (id === 'tm-years') updateTimeMachine(e.target.value);
       else if (id === 'tm-amount') setWhatIfAmount(e.target.value);
     });
+    // The popover is anchored to its term: close it when the page moves under it.
+    window.addEventListener('scroll', () => closeTermPop(), { passive: true });
+    window.addEventListener('resize', () => closeTermPop());
     document.addEventListener('change', (e) => {
       const input = e.target;
+      // Releasing the age slider at 45+ switches on the calm layout (unless chosen by hand).
+      if (input && input.id === 'f-age') { calmForAge(input.value); return; }
       if (!input || input.type !== 'radio') return;
       if (input.name === 'self_after') {
         state.summary.selfAfter = Number(input.value);
@@ -4101,8 +4645,14 @@
     els.hudLevel = $('hud-level');
     els.hudReady = $('hud-ready');
     els.hudReadyRow = $('hud-ready-row');
+    els.hudStats = $('hud-stats');
+    els.hudStage = $('hud-stage');
+    els.tmCow = $('tm-cow');
+    els.termPop = $('term-pop');
     els.hudSound = $('hud-sound');
-    els.hudMenu = $('hud-menu');
+    els.settingsPop = $('settings-pop');
+    els.settingsBtn = $('hud-settings-btn');
+    els.settingsDemo = $('settings-demo');
     els.stageGrid = $('stage-grid');
     els.tailorBody = $('tailor-body');
     els.form = $('onboarding-form');
@@ -4115,11 +4665,13 @@
     els.fFreeOut = $('f-free-out');
     els.fFreeHint = $('f-free-hint');
     els.ctaOnboarding = $('cta-onboarding');
-    els.demoPop = $('demo-pop');
-    els.demoMobile = $('demo-menu-mobile');
     els.hubPathCol = $('hub-path-col');
     els.hubMoreCol = $('hub-more-col');
-    els.hubSteps = $('hub-steps');
+    els.hubRail = $('hub-rail');
+    els.hubMain = $('hub-main');
+    els.hubViewQuests = $('hub-view-quests');
+    els.hubViewTool = $('hub-view-tool');
+    els.hubToolTitle = $('hub-tool-title');
     els.tmAmount = $('tm-amount');
     els.tmAmountPill = $('tm-amount-pill');
     els.tmAmountMin = $('tm-amount-min');
@@ -4186,7 +4738,7 @@
     if (!window.Chart) return;
     window.Chart.defaults.font.family = "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif";
     window.Chart.defaults.font.size = 12;
-    window.Chart.defaults.font.weight = '600';
+    window.Chart.defaults.font.weight = '500';
     window.Chart.defaults.color = C.ink3;
   }
 
@@ -4198,6 +4750,7 @@
     hydrateIcons();
     hydrateCora();
     applyStaticI18n();
+    renderGuideWelcome();
     renderSoundButton();
     configureChart();
     bindEvents();
