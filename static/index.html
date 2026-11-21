@@ -12,7 +12,7 @@
 
   <!-- Wszystkie zasoby LOKALNIE z /static/vendor/ — zero CDN w runtime (AGENTS.md §3, docs/01 §5) -->
   <!-- ?v= — cache-busting: po każdej zmianie styles.css/app.js podbij wersję (serwer nie wysyła Cache-Control) -->
-  <link rel="stylesheet" href="/static/styles.css?v=13.0">
+  <link rel="stylesheet" href="/static/styles.css?v=14.0">
   <script>
     // Tailwind Play (plik lokalny z /static/vendor/) zawsze ostrzega o „cdn.tailwindcss.com",
     // choć nic nie jest pobierane z CDN. Wyciszamy tylko ten komunikat na czas wczytania skryptu.
@@ -101,6 +101,17 @@
               class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-3.5 sm:text-sm">38y Family</button>
             <button type="button" data-persona-id="senior_56" aria-pressed="false" title="56y • Capital Protection 50+"
               class="demo-pill min-h-tap whitespace-nowrap rounded-full border border-white/25 bg-white/5 px-2 text-[13px] font-semibold text-white transition hover:border-brand-yellow/70 hover:bg-white/15 disabled:cursor-wait disabled:opacity-60 aria-pressed:border-brand-yellow aria-pressed:bg-brand-yellow aria-pressed:text-brand-dark sm:px-3.5 sm:text-sm">56y 50+</button>
+          </div>
+          <!-- Skrót Demo Mode: 1 klik do Dnia 4 lub Checkpointu #1 (Golden Path, docs/01 §2 pkt 2) -->
+          <div class="flex flex-wrap gap-1.5 sm:gap-2" data-demo-shortcuts>
+            <button type="button" data-action="demo-jump" data-day="4" data-i18n-title="demoShortcutTitle"
+              class="fq-demo-shortcut min-h-tap whitespace-nowrap rounded-full border border-brand-yellow/60 bg-brand-yellow/10 px-2.5 text-[12px] font-bold text-brand-yellow transition hover:bg-brand-yellow/25 sm:text-[13px]">
+              <span data-i18n="demoJumpDay4">Jump to Day 4</span>
+            </button>
+            <button type="button" data-action="demo-checkpoint" data-i18n-title="demoShortcutTitle"
+              class="fq-demo-shortcut min-h-tap whitespace-nowrap rounded-full border border-brand-yellow/60 bg-brand-yellow/10 px-2.5 text-[12px] font-bold text-brand-yellow transition hover:bg-brand-yellow/25 sm:text-[13px]">
+              <span data-i18n="demoCheckpoint">Checkpoint #1</span>
+            </button>
           </div>
         </nav>
       </div>
@@ -439,6 +450,8 @@
       <h2 id="screen_checklist_title" data-screen-title data-i18n="screenChecklistTitle" tabindex="-1" class="sr-only">Day 1 of 14 summary</h2>
       <!-- Baner ukończenia Dnia 1 / awansu (.level-pop), Gotowość start -> wynik, samoocena „po" -->
       <div id="card-levelup" class="mb-4 md:mb-6"></div>
+      <!-- CTA wielodniowe: Continue to Day X (Dni 1–3) albo Checkpoint #1 Quiz (po Dniu 4) -->
+      <div id="card-next-step" class="mb-4 md:mb-6"></div>
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <div class="flex flex-col gap-4 md:gap-6">
           <!-- Lewa kolumna — realne działanie dziś: Karta 1 (mikro-wyzwanie), Karta 2 (checklista) -->
@@ -451,8 +464,32 @@
           <div id="card-leaderboard"></div>
         </div>
       </div>
+      <!-- After Day 14 — Continuous Learning (docs/01 §7 Ekran 4, pkt 4) -->
+      <div id="card-after14" class="mt-4 md:mt-6"></div>
       <!-- Stopka compliance + AI disclaimer (docs/01 §7 Ekran 4, pkt 4) -->
       <footer id="compliance-footer" class="mt-8"></footer>
+    </section>
+
+    <!-- Checkpoint #1: quiz wiedzy po Dniu 4 (docs/01 §7, docs/02 §5) -->
+    <section id="screen_checkpoint" class="screen" aria-labelledby="screen_checkpoint_title" hidden>
+      <h2 id="screen_checkpoint_title" data-screen-title data-i18n="screenCheckpointTitle" tabindex="-1" class="sr-only">Checkpoint #1 — knowledge check</h2>
+      <div id="checkpoint-head"></div>
+      <form id="checkpoint-form" novalidate class="mt-4">
+        <div id="checkpoint-questions" class="space-y-4"></div>
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button type="submit" id="checkpoint-submit" class="btn-3d w-full text-base sm:w-auto">
+            <span class="fq-spinner" aria-hidden="true" hidden></span>
+            <i data-lucide="clipboard-check" data-idle-icon class="h-5 w-5" aria-hidden="true"></i>
+            <span data-label data-i18n="cpSubmit">Submit answers</span>
+          </button>
+          <button type="button" data-goto="screen_checklist" data-i18n="cpBackToSummary"
+            class="inline-flex min-h-tap w-full items-center justify-center rounded-2xl border-2 border-brand-dark/10 bg-white px-4 font-extrabold transition hover:border-brand-yellow hover:bg-brand-yellow/10 sm:w-auto">
+            Back to the day summary
+          </button>
+        </div>
+      </form>
+      <div id="checkpoint-result" class="mt-6" hidden></div>
+      <div id="checkpoint-after14" class="mt-6"></div>
     </section>
   </main>
 
@@ -476,6 +513,6 @@
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
   <script src="/static/vendor/lucide.min.js"></script>
-  <script src="/static/app.js?v=13.0"></script>
+  <script src="/static/app.js?v=14.0"></script>
 </body>
 </html>
