@@ -923,6 +923,143 @@ body[data-screen="screen_filter_and_timemachine"] .cora-dock { display: none; } 
 .cow__delta--gain { color: var(--green-text); }
 .cow__note { margin-top: 10px; font-size: 0.8438rem; color: var(--ink-2); }
 
+/* what-if simulator (Issue #61, rendered by static/simulator.js). Every rule is scoped to
+   #card-timemachine so nothing here reaches the rest of the hub. Reading order follows the
+   lesson: a question to explore, two main controls, the result and how it is built, what it
+   shows, then the chart and a table that is both legend and asset picker. The "how it is
+   built" bar is the one bold element; everything else stays quiet. */
+#card-timemachine .sim-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+#card-timemachine .sim-sub { flex: 1 1 260px; max-width: 62ch; font-size: 0.9375rem; color: var(--ink-2); }
+#card-timemachine .sim-h { font-weight: 800; font-size: 0.9688rem; line-height: 1.35; color: var(--ink); }
+#card-timemachine .sim-hint { font-size: 0.8125rem; color: var(--ink-2); line-height: 1.45; }
+
+/* quiet way into the Atlas drawer */
+#card-timemachine .sim-ask { margin-top: 6px; font-size: 0.875rem; color: var(--ink-2); }
+#card-timemachine .sim-ask__link { min-height: 32px; padding: 0 2px; font-weight: 700; color: var(--sky-strong); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+#card-timemachine .sim-ask__link:hover { color: var(--ink); }
+
+/* controls */
+#card-timemachine .sim-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px 28px; margin-top: 18px; }
+@container (min-width: 560px) { #card-timemachine .sim-controls, #card-timemachine .sim-more__body { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+#card-timemachine .sim-field { min-width: 0; }
+#card-timemachine .sim-field__top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 40px; }
+#card-timemachine .sim-field__label { font-weight: 800; font-size: 0.9063rem; color: var(--ink); }
+#card-timemachine .sim-field__value { font-weight: 800; font-size: 0.9375rem; font-variant-numeric: tabular-nums; color: var(--ink); }
+#card-timemachine .sim-scale { display: flex; justify-content: space-between; font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); }
+#card-timemachine .sim-field--row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
+#card-timemachine .sim-amount { display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; min-height: 40px; border: 1.5px solid var(--rule); border-radius: var(--r-sm); background: var(--card); }
+#card-timemachine .sim-amount:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px rgba(14, 116, 144, .2); }
+#card-timemachine .sim-amount__input { width: 7ch; border: 0; background: transparent; text-align: right; font-weight: 800; font-size: 0.9375rem; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+#card-timemachine .sim-amount__input::-webkit-outer-spin-button, #card-timemachine .sim-amount__input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#card-timemachine .sim-amount__input:focus { outline: none; }
+#card-timemachine .sim-amount__unit { font-size: 0.8125rem; font-weight: 700; color: var(--ink-2); }
+
+#card-timemachine .sim-more { margin-top: 16px; border: 1.5px solid var(--rule-2); border-radius: var(--r-md); background: var(--paper); }
+#card-timemachine .sim-more__summary { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; font-weight: 800; font-size: 0.9375rem; cursor: pointer; list-style: none; border-radius: var(--r-md); }
+#card-timemachine .sim-more__summary::-webkit-details-marker { display: none; }
+#card-timemachine .sim-more__summary::before { content: ''; width: 8px; height: 8px; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(-45deg); transition: transform var(--t); }
+#card-timemachine .sim-more[open] .sim-more__summary::before { transform: rotate(45deg); }
+#card-timemachine .sim-more__count { margin-left: auto; font-size: 0.8125rem; font-weight: 700; color: var(--sky-text); }
+#card-timemachine .sim-more__body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px 28px; padding: 4px 14px 16px; }
+#card-timemachine .sim-more .seg { background: var(--card); }
+#card-timemachine .sim-switch__text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px; }
+#card-timemachine .sim-switch { position: relative; flex: 0 0 auto; width: 52px; height: 30px; border-radius: 999px; background: var(--stone-2); transition: background-color var(--t); }
+#card-timemachine .sim-switch::before { content: ''; position: absolute; inset: -7px -2px; }
+#card-timemachine .sim-switch__knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform var(--t); }
+#card-timemachine .sim-switch[aria-checked="true"] { background: var(--orange); }
+#card-timemachine .sim-switch[aria-checked="true"] .sim-switch__knob { transform: translateX(22px); }
+
+#card-timemachine .sim-planbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-top: 12px; min-height: 44px; }
+#card-timemachine .sim-planbar__note { flex: 1 1 220px; font-size: 0.8438rem; color: var(--ink-2); }
+#card-timemachine .sim-planbar .btn:disabled { opacity: 0.5; cursor: default; }
+
+/* results */
+#card-timemachine .sim-results { margin-top: 14px; padding-top: 16px; border-top: 1.5px solid var(--rule-2); }
+#card-timemachine .sim-kpis { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+@container (min-width: 560px) { #card-timemachine .sim-kpis { grid-template-columns: 1fr 1.35fr 1fr; } }
+@container (max-width: 559px) { #card-timemachine .sim-kpi--focus { order: -1; } }
+#card-timemachine .sim-kpi { min-width: 0; padding: 14px; border: 1.5px solid var(--rule-2); border-radius: var(--r-md); background: var(--card); }
+#card-timemachine .sim-kpi--focus { --asset: var(--green); border-color: var(--asset); border-left: 5px solid var(--asset); background: var(--paper); }
+#card-timemachine .sim-kpi__label { font-size: 0.8438rem; font-weight: 800; line-height: 1.35; color: var(--ink); }
+#card-timemachine .sim-kpi__value { margin-top: 6px; font-weight: 800; font-size: 1.375rem; line-height: 1.15; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#card-timemachine .sim-kpi--focus .sim-kpi__value { font-size: 1.75rem; }
+#card-timemachine [data-sign="up"] { color: var(--green-text); }
+#card-timemachine [data-sign="down"] { color: var(--coral-text); }
+#card-timemachine .sim-kpi__sub { margin-top: 4px; font-size: 0.8125rem; line-height: 1.45; color: var(--ink-2); }
+
+/* how the end value is built: two bars on one scale */
+#card-timemachine .sim-build { --asset: var(--green); margin: 18px 0 0; }
+#card-timemachine .sim-build__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin-top: 10px; }
+@container (min-width: 480px) { #card-timemachine .sim-build__row { grid-template-columns: 9.5rem minmax(0, 1fr); align-items: center; gap: 12px; } }
+#card-timemachine .sim-build__label { font-size: 0.8125rem; font-weight: 700; color: var(--ink-2); }
+#card-timemachine .sim-build__bar { display: flex; height: 26px; border-radius: 6px; background: var(--paper-2); overflow: hidden; }
+#card-timemachine .sim-build__bar > span { height: 100%; transition: width 300ms var(--ease-out); }
+#card-timemachine .seg-paid { background: var(--ink-surface); }
+#card-timemachine .seg-growth { background: var(--asset); }
+#card-timemachine .seg-growth.is-drop { background: repeating-linear-gradient(-45deg, var(--orange) 0 5px, var(--orange-soft) 5px 10px); }
+#card-timemachine .seg-real { background: color-mix(in srgb, var(--asset) 55%, var(--ink-surface)); }
+#card-timemachine .seg-infl { background: repeating-linear-gradient(-45deg, var(--coral-line) 0 5px, var(--blush) 5px 10px); }
+#card-timemachine .sim-build__legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin-top: 12px; }
+@container (min-width: 560px) { #card-timemachine .sim-build__legend { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+#card-timemachine .sim-build__legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr); column-gap: 8px; align-items: center; font-size: 0.8125rem; color: var(--ink-2); }
+#card-timemachine .sim-build__legend i { width: 12px; height: 12px; border-radius: 3px; }
+#card-timemachine .sim-build__legend strong { grid-column: 2; font-weight: 800; font-size: 0.9375rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+#card-timemachine .sim-insights { margin-top: 18px; }
+#card-timemachine .sim-insights__list { margin-top: 6px; }
+#card-timemachine .sim-insights__list li { position: relative; max-width: 70ch; padding-left: 18px; font-size: 0.9375rem; line-height: 1.5; color: var(--ink); }
+#card-timemachine .sim-insights__list li + li { margin-top: 6px; }
+#card-timemachine .sim-insights__list li::before { content: ''; position: absolute; left: 2px; top: 0.6em; width: 7px; height: 7px; border-radius: 50%; background: var(--sky); }
+
+/* chart */
+#card-timemachine .sim-chart { position: relative; width: 100%; min-width: 0; height: 260px; margin-top: 18px; }
+#card-timemachine .sim-chart canvas { max-width: 100%; }
+@media (min-width: 640px) { #card-timemachine .sim-chart { height: 320px; } }
+#card-timemachine .sim-chart__empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; text-align: center; font-weight: 700; color: var(--ink-2); background: var(--paper); border-radius: var(--r-md); }
+
+/* comparison table = legend + asset picker */
+#card-timemachine .sim-table { margin-top: 18px; }
+#card-timemachine .sim-table .sim-hint { margin-top: 2px; }
+#card-timemachine .sim-table__head, #card-timemachine .sim-row { display: grid; grid-template-columns: 44px minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); align-items: center; column-gap: 10px; }
+#card-timemachine .sim-table__head { margin-top: 10px; padding: 0 8px 6px 0; border-bottom: 1.5px solid var(--rule); font-size: 0.75rem; font-weight: 700; color: var(--ink-2); }
+#card-timemachine .sim-table__head span:nth-child(n+3) { text-align: right; }
+#card-timemachine .sim-row { --asset: var(--ink); min-height: 52px; padding-right: 8px; border-bottom: 1.5px solid var(--rule-2); transition: background-color var(--t); }
+#card-timemachine .sim-row.is-focus { background: var(--paper); box-shadow: inset 4px 0 0 var(--asset); }
+#card-timemachine .sim-row__tick { display: grid; place-items: center; width: 44px; height: 44px; }
+#card-timemachine .sim-row__tick svg { width: 20px; height: 20px; padding: 2px; border: 2px solid var(--stone-2); border-radius: 6px; color: transparent; background: var(--card); transition: background-color var(--t), border-color var(--t), color var(--t); }
+#card-timemachine .sim-row.is-on .sim-row__tick svg { border-color: var(--asset); background: var(--asset); color: #fff; }
+#card-timemachine .sim-row__name { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 700; font-size: 0.875rem; text-align: left; color: var(--ink-2); }
+#card-timemachine button.sim-row__name:hover span { text-decoration: underline; text-underline-offset: 3px; }
+#card-timemachine .sim-row.is-on .sim-row__name, #card-timemachine .sim-row.is-focus .sim-row__name { color: var(--ink); }
+#card-timemachine .sim-swatch { flex: 0 0 auto; display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--asset); opacity: 0.4; }
+#card-timemachine .sim-row.is-on .sim-swatch { opacity: 1; }
+#card-timemachine .sim-swatch--bonds, #card-timemachine .sim-swatch--cash { border-top-style: dashed; }
+#card-timemachine .sim-row__value, #card-timemachine .sim-row__vs { text-align: right; font-weight: 800; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+#card-timemachine .sim-row:not(.is-on) .sim-row__value, #card-timemachine .sim-row:not(.is-on) .sim-row__vs { opacity: 0.55; }
+#card-timemachine .sim-row__swing { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+#card-timemachine .sim-meter { display: inline-flex; gap: 3px; }
+#card-timemachine .sim-meter i { width: 9px; height: 9px; border-radius: 2px; background: var(--rule); }
+#card-timemachine .sim-meter i.on { background: var(--orange); }
+#card-timemachine .sim-row__swingtext { font-size: 0.75rem; font-weight: 600; color: var(--ink-2); text-align: right; }
+@container (max-width: 479px) {
+  #card-timemachine .sim-table__head { display: none; }
+  #card-timemachine .sim-row { grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "tick name value" "tick swing vs"; row-gap: 0; padding: 6px 8px 8px 0; }
+  #card-timemachine .sim-row__tick { grid-area: tick; align-self: start; }
+  #card-timemachine .sim-row__name { grid-area: name; }
+  #card-timemachine .sim-row__value { grid-area: value; }
+  #card-timemachine .sim-row__vs { grid-area: vs; font-size: 0.8125rem; }
+  #card-timemachine .sim-row__swing { grid-area: swing; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; }
+}
+#card-timemachine .sim-about { margin-top: 10px; max-width: 70ch; font-size: 0.875rem; line-height: 1.5; color: var(--ink-2); }
+
+#card-timemachine .sim-notes div + p, #card-timemachine .sim-notes p + p { margin-top: 6px; }
+#card-timemachine #sim-note-assume { color: var(--ink); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  #card-timemachine .sim-row, #card-timemachine .sim-row__tick svg, #card-timemachine .sim-switch,
+  #card-timemachine .sim-switch__knob, #card-timemachine .sim-more__summary::before, #card-timemachine .sim-build__bar > span { transition: none; }
+}
+
 .mobile-cta { display: none; }
 @media (max-width: 899px) {
   .hub-cta-desktop { display: none; }
