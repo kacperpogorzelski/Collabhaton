@@ -5,6 +5,7 @@ AgeGroup = Literal["20+", "30-50", "50+"]
 MainConcern = Literal["freeze_money", "no_time", "lose_money", "too_late"]
 PlanType = Literal["savings_first", "split", "invest"]
 Language = Literal["en", "pl"]
+AnswerQuality = Literal["optimal", "partial", "invalid"]
 
 
 class DemoPersona(BaseModel):
@@ -59,6 +60,16 @@ class RoadmapMilestone(BaseModel):
     title: str
     focus: str
     status: Literal["active", "locked"] = "locked"
+    phase: Optional[str] = None         # np. "Phase 1: Days 1–4"
+    duration_hint: str = "~5 min/day"
+
+
+class Post14Path(BaseModel):
+    id: str
+    title: str
+    description: str
+    cadence: str
+    badge: str
 
 
 class MicroLessonCard(BaseModel):
@@ -141,7 +152,63 @@ class BankDraft(BaseModel):
     costs_note: str                   # koszty, podatek, brak gwarancji
 
 
+class CheckpointQuestion(BaseModel):
+    id: str
+    question: str
+    options: list[QuickReply]
+
+
+class CheckpointQuestionResult(BaseModel):
+    id: str
+    correct: bool
+    correct_option_id: str
+    explanation: str
+
+
+class CheckpointSubmitRequest(BaseModel):
+    session_id: str
+    answers: dict[str, str]
+    lang: Optional[Language] = None
+
+
+class CheckpointSubmitResponse(BaseModel):
+    score_pct: int
+    passed: bool
+    correct_count: int
+    total_questions: int
+    reward_xp: int
+    xp: int
+    leveled_up: bool
+    badge_title: str
+    results: list[CheckpointQuestionResult]
+    leaderboard: list[LeaderboardEntry]
+
+
+class CoachExplainRequest(BaseModel):
+    session_id: str
+    question: str = Field(..., min_length=1, max_length=400)
+    topic_hint: Optional[str] = None
+    lang: Optional[Language] = None
+
+
+class CoachExplainResponse(BaseModel):
+    simple_explanation: str
+    real_life_example: str
+    drill_question: str
+    drill_options: list[str]
+    correct_option_index: int = Field(..., ge=0, le=2)
+    drill_feedback: str
+    is_fallback: bool = False
+
+
+class DayStartRequest(BaseModel):
+    session_id: str
+    day: int = Field(..., ge=1, le=4)
+    lang: Optional[Language] = None
+
+
 class MissionTurnResponse(BaseModel):
+    day: int = 1
     step_number: int = Field(..., ge=1, le=3)
     total_steps: int = 3
     confidence_score: int = Field(..., ge=0, le=100)   # w UI: „Gotowość"
@@ -149,16 +216,20 @@ class MissionTurnResponse(BaseModel):
     confidence_start: int = Field(..., ge=0, le=100)
     understanding_feedback: Optional[str] = None
     is_optimal_choice: Optional[bool] = None           # None w turze startowej
+    answer_quality: Optional[AnswerQuality] = None     # optimal | partial | invalid
+    allow_retry: bool = False                          # True gdy invalid (0 XP, zostaje na kroku)
     luna_message: str
     quick_replies: list[QuickReply]
     portfolio_status: PortfolioStatus
     gamification: GamificationState
     trigger_confetti: bool = False
     mission_completed: bool = False
+    completed_days: list[int] = Field(default_factory=list)
     real_world_challenge: Optional[RealWorldChallenge] = None
     leaderboard: Optional[list[LeaderboardEntry]] = None
     final_checklist: Optional[list[ChecklistItem]] = None
     bank_draft: Optional[BankDraft] = None
+    post_14_paths: Optional[list[Post14Path]] = None
 
 
 class OnboardingResponse(BaseModel):
@@ -177,17 +248,27 @@ class OnboardingResponse(BaseModel):
     micro_lessons: list[MicroLessonCard]
     projection_series: list[ProjectionPoint]
     initial_mission_turn: MissionTurnResponse
+    checkpoint_questions: list[CheckpointQuestion] = Field(default_factory=list)
+    post_14_paths: list[Post14Path] = Field(default_factory=list)
+
+
+class DayStartResponse(BaseModel):
+    day: int
+    micro_lessons: list[MicroLessonCard]
+    initial_mission_turn: MissionTurnResponse
 
 
 class MissionTurnRequest(BaseModel):
     session_id: str
     user_message: str = Field(..., min_length=1, max_length=600)
     quick_reply_id: Optional[str] = None   # gdy klik karty -> ocena deterministyczna (bez LLM)
+    day: Optional[int] = Field(default=None, ge=1, le=4)
     lang: Optional[Language] = None
 
 
 class ChallengeAcceptRequest(BaseModel):
     session_id: str
+    day: int = Field(default=1, ge=1, le=4)
     lang: Optional[Language] = None
 
 
