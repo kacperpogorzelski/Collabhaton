@@ -57,6 +57,8 @@ __all__ = [
     "MICRO_LESSONS_BY_GROUP_EN",
     "MICRO_LESSONS_BY_DAY",
     "MICRO_LESSONS_BY_DAY_EN",
+    "MICRO_LESSON_CHECKS",
+    "MICRO_LESSON_CHECKS_EN",
     "STEP1_BY_AGE_GROUP",
     "STEP1_BY_AGE_GROUP_EN",
     "STEP1_SAVINGS_FIRST",
@@ -76,6 +78,7 @@ __all__ = [
     "EXPLAIN_FALLBACKS",
     "EXPLAIN_FALLBACKS_EN",
     "EXPLAIN_TOPIC_KEYWORDS",
+    "EXPLAIN_SCREEN_LABELS",
     "POST_14_PATHS",
     "POST_14_PATHS_EN",
     "PLAN_SENTENCE",
@@ -326,8 +329,11 @@ MICRO_LESSONS_BY_GROUP: dict[AgeGroup, list[MicroLessonCard]] = {
             id="ml_20_1",
             title="Inflacja zjada gotówkę",
             duration_sec=20,
-            summary="Pieniądze leżące na zwykłym koncie 0% co roku kupią mniej przez inflację.",
-            key_takeaway="Brak decyzji to pewna strata siły nabywczej.",
+            summary=(
+                "Pieniądze leżące na koncie 0% tracą siłę nabywczą: przy inflacji 3,5% z 10 000 zł "
+                "po roku kupisz towary warte dziś około 9 650 zł."
+            ),
+            key_takeaway="Brak decyzji to realna strata ok. 350 zł na każde 10 000 zł rocznie.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -335,11 +341,11 @@ MICRO_LESSONS_BY_GROUP: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Poduszka na awarie, ETF na długi cel",
             duration_sec=20,
             summary=(
-                "Na nagłe wydatki służy poduszka. ETF to pieniądze na długi horyzont — ale nie są "
-                "zamrożone: w ostateczności sprzedasz jednostki, a wypłata zajmie zwykle kilka dni "
-                "roboczych."
+                "Poduszka to 3 miesiące wydatków — przy 2 000 zł/mies. daje 6 000 zł na awarie. "
+                "ETF zostaje osobno i nie jest zamrożony: w ostateczności sprzedasz jednostki, "
+                "a wypłata zajmie zwykle kilka dni roboczych."
             ),
-            key_takeaway="Wiesz, które pieniądze są do czego.",
+            key_takeaway="6 000 zł poduszki chroni plan — ETF to pieniądze na długi horyzont.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -347,10 +353,10 @@ MICRO_LESSONS_BY_GROUP: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Efekt skali od małych kwot",
             duration_sec=20,
             summary=(
-                "Startując młodo, nawet małe kwoty (np. 100–300 zł) mogą pracować przez dekady "
-                "dzięki procentowi składanemu."
+                "200 zł/mies. przez 15 lat to 36 000 zł wpłat, a przy założeniu 5,7% netto rocznie "
+                "historycznie ok. 56 700 zł nominalnie (przykład edukacyjny, bez gwarancji)."
             ),
-            key_takeaway="Czas jest ważniejszy niż wielki kapitał na starcie.",
+            key_takeaway="Czas pracuje mocniej niż wielkość pierwszej wpłaty.",
             xp_reward=15,
         ),
     ],
@@ -359,24 +365,33 @@ MICRO_LESSONS_BY_GROUP: dict[AgeGroup, list[MicroLessonCard]] = {
             id="ml_30_1",
             title="Inflacja zjada oszczędności",
             duration_sec=20,
-            summary="Trzymanie nadwyżek na nieoprocentowanym koncie systematycznie obniża ich realną wartość.",
-            key_takeaway="Nadwyżki powinny pracować szybciej niż inflacja.",
+            summary=(
+                "20 000 zł na nieoprocentowanym koncie przy inflacji 3,5% to po roku o około "
+                "700 zł mniejsza siła nabywcza — mimo że saldo się nie zmieniło."
+            ),
+            key_takeaway="Nadwyżki powinny pracować szybciej niż inflacja 3,5% rocznie.",
             xp_reward=15,
         ),
         MicroLessonCard(
             id="ml_30_2",
             title="Automatyzacja w tle bez wykresów",
             duration_sec=20,
-            summary="Szeroki ETF inwestuje w setki firm naraz i nie wymaga codziennego śledzenia giełdy.",
-            key_takeaway="Oszczędzasz czas — stały plan działa w tle.",
+            summary=(
+                "Stałe zlecenie 200 zł/mies. to 2 400 zł wpłat rocznie bez codziennego śledzenia "
+                "giełdy. Szeroki ETF trzyma w środku setki firm, więc nie musisz ich wybierać."
+            ),
+            key_takeaway="2 400 zł rocznie wpada w tle — bez patrzenia w wykresy.",
             xp_reward=15,
         ),
         MicroLessonCard(
             id="ml_30_3",
             title="Poduszka osobno, nadwyżki osobno",
             duration_sec=20,
-            summary="Bezpieczeństwo rodziny chroni poduszka; na rynek kierujesz tylko wolne nadwyżki.",
-            key_takeaway="Spokojniej znosisz chwilowe spadki.",
+            summary=(
+                "Wydatki 2 500 zł/mies. × 3 miesiące = 7 500 zł poduszki. Dopiero kwoty powyżej "
+                "tej granicy kierujesz na rynek — dlatego spadek portfela nie zmusza Cię do sprzedaży."
+            ),
+            key_takeaway="7 500 zł poduszki = spokojniejsze znoszenie chwilowych spadków.",
             xp_reward=15,
         ),
     ],
@@ -385,8 +400,12 @@ MICRO_LESSONS_BY_GROUP: dict[AgeGroup, list[MicroLessonCard]] = {
             id="ml_50_1",
             title="Inwestować można w każdym wieku",
             duration_sec=20,
-            summary="Horyzont 5–10 lat to nadal czas, by kapitał mądrze pracował bez zbędnego ryzyka.",
-            key_takeaway="Nigdy nie jest za późno na świadomy start.",
+            summary=(
+                "Horyzont 7 lat to nadal czas na świadomy start: 1 200 zł/mies. daje 100 800 zł "
+                "wpłat, a nawet przejściowe -20% w roku 3 zostawia czas na spokojne odbudowanie "
+                "planu (scenariusz edukacyjny)."
+            ),
+            key_takeaway="Przy 7 latach horyzontu liczy się spokój, nie pośpiech.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -394,10 +413,10 @@ MICRO_LESSONS_BY_GROUP: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Tarcza antyinflacyjna dla kapitału",
             duration_sec=20,
             summary=(
-                "Gotówka na zwykłym koncie traci siłę nabywczą co roku, co najbardziej boli przy "
-                "większym dorobku."
+                "50 000 zł na koncie 0% przy inflacji 3,5% traci rocznie około 1 750 zł siły "
+                "nabywczej — im większy dorobek, tym bardziej to boli."
             ),
-            key_takeaway="Szeroki ETF historycznie pomagał chronić wartość pieniędzy (bez gwarancji).",
+            key_takeaway="Ok. 1 750 zł rocznie na każde 50 000 zł — o tyle mniej kupuje gotówka.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -405,9 +424,10 @@ MICRO_LESSONS_BY_GROUP: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Prostota i dywersyfikacja",
             duration_sec=20,
             summary=(
-                "Zamiast ryzykować w jednej firmie, szeroki ETF rozkłada kapitał na cały globalny rynek."
+                "Jedna spółka to jedno ryzyko, a szeroki ETF rozkłada kapitał na setki firm. "
+                "TER 0,20% oznacza 20 zł rocznie od 10 000 zł — przewidywalny, jawny koszt."
             ),
-            key_takeaway="Mniejsza koncentracja ryzyka, niskie koszty, przejrzystość.",
+            key_takeaway="Setki firm zamiast jednej, 20 zł kosztu od 10 000 zł, pełna przejrzystość.",
             xp_reward=15,
         ),
     ],
@@ -952,41 +972,42 @@ DAY2_STEPS: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Dzień 2 • Tryb demo",
-        "step_question": "Po co na starcie korzystać z trybu demo?",
+        "badge": "Dzień 2 • Pułapka opłat",
+        "step_question": "Znajomy składa po 20 małych zleceń miesięcznie, żeby łapać okazje. Co jest rozsądniejsze?",
         "luna_message": (
-            "Masz już przed sobą tabelę opłat. Zanim wpłacisz prawdziwe pieniądze, możesz użyć "
-            "trybu demo. Po co jest tryb demo na starcie?"
+            "Dzień 2 z 14 — koszty i dywersyfikacja. {plan_sentence} Znajomy mówi, że składa po 20 "
+            "małych zleceń miesięcznie, żeby łapać okazje. Co jest rozsądniejsze?"
         ),
         "optimal_criterion": (
-            "ćwiczy składanie zleceń bez realnego ryzyka, żeby oswoić proces i sprawdzić koszty"
+            "kilka regularnych zleceń w szeroki ETF zamiast wielu małych transakcji; częste zlecenia "
+            "mnożą opłaty, a dywersyfikacji nie poprawiają"
         ),
         "options": [
             {
                 "id": "a",
-                "text": "Sprawdzam zlecenia bez realnego ryzyka i oswajam proces",
+                "text": "Kilka regularnych zleceń w szeroki ETF — mniej opłat, ta sama dywersyfikacja",
                 "is_optimal": True,
                 "feedback": (
-                    "W punkt! Tryb demo pozwala przejść cały proces bez stresu, a prawdziwe "
-                    "pieniądze wchodzą dopiero, gdy czujesz się pewnie."
+                    "Dokładnie. Każde zlecenie to opłata, a szeroki ETF już zawiera setki firm. "
+                    "Mniej transakcji to niższy koszt bez utraty dywersyfikacji."
                 ),
             },
             {
                 "id": "b",
-                "text": "Bo w trybie demo zysk jest gwarantowany",
+                "text": "20 zleceń miesięcznie, bo więcej okazji to więcej zysku",
                 "is_optimal": False,
                 "feedback": (
-                    "W trybie demo nic nie jest gwarantowane — to tylko symulacja. Chodzi "
-                    "o oswojenie procesu, nie o obietnicę zysku."
+                    "20 zleceń × 3 zł to już 60 zł miesięcznie samych opłat. Więcej transakcji nie "
+                    "zwiększa dywersyfikacji — szeroki ETF ma ją od razu."
                 ),
             },
             {
                 "id": "c",
-                "text": "Bo prawdziwe konto nigdy nie ma żadnych opłat",
+                "text": "Jedno duże zlecenie w jedną spółkę, żeby ograniczyć opłaty",
                 "is_optimal": False,
                 "feedback": (
-                    "Prawdziwe konto zwykle ma opłaty za zlecenia. Właśnie dlatego warto je "
-                    "sprawdzić wcześniej, także w trybie demo."
+                    "Opłaty spadną, ale całe ryzyko trafi do jednej firmy. Szeroki ETF daje niskie "
+                    "koszty i rozproszenie jednocześnie."
                 ),
             },
         ],
@@ -1035,42 +1056,42 @@ DAY3_STEPS: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Dzień 3 • Test 10 zł",
-        "step_question": "Dlaczego pierwszy przelew testowy to tylko 10 zł?",
+        "badge": "Dzień 3 • Gorący typ",
+        "step_question": "Znajomy wysyła „gorący typ” na jedną spółkę. Co robisz ze swoim stałym planem?",
         "luna_message": (
-            "Zlecenie stałe masz ustawione. Zanim ruszysz z pełnym planem, zrób symboliczny "
-            "przelew testowy 10 zł. Dlaczego właśnie taka mała kwota?"
+            "Dzień 3 z 14 — emocje i gorące typy. {plan_sentence} Znajomy wysyła „gorący typ”: "
+            "jedna spółka ma „na pewno” podwoić wartość. Co robisz ze swoim stałym planem?"
         ),
         "optimal_criterion": (
-            "test ma oswoić proces i sprawdzić koszty; mała kwota obniża stres i nie służy "
-            "szybkiemu zyskowi"
+            "trzyma się prostego, zautomatyzowanego planu w szeroki ETF; nie ulega FOMO ani typom "
+            "na pojedyncze spółki"
         ),
         "options": [
             {
                 "id": "a",
-                "text": "Sprawdzam proces i opłaty bez stresu — kwota jest symboliczna",
+                "text": "Trzymam stałe zlecenie w szeroki ETF — typ na jedną spółkę to duża koncentracja ryzyka",
                 "is_optimal": True,
                 "feedback": (
-                    "Dokładnie. Chodzi o przełamanie bariery i sprawdzenie kosztów, a nie "
-                    "o szybki zarobek."
+                    "Dokładnie. Stały plan nie potrzebuje typów, a jedna spółka to ryzyko, którego "
+                    "szeroki ETF nie ma w takiej skali."
                 ),
             },
             {
                 "id": "b",
-                "text": "Bo 10 zł zawsze przyniesie duży zysk",
+                "text": "Przerzucam cały plan w tę spółkę, bo okazja się nie powtórzy",
                 "is_optimal": False,
                 "feedback": (
-                    "10 zł nie ma szans na duży zysk — i nie o to chodzi. To trening procesu, "
-                    "a nie inwestycyjna szansa."
+                    "To klasyczne FOMO: cała kwota w jednej firmie oznacza, że jej wpadka zabiera "
+                    "cały plan. Nikt nie gwarantuje wzrostu."
                 ),
             },
             {
                 "id": "c",
-                "text": "Bo lepiej od razu wpłacić całość bez żadnego testu",
+                "text": "Wstrzymuję wpłaty i czekam, aż typ się potwierdzi",
                 "is_optimal": False,
                 "feedback": (
-                    "Bez testu pierwszy przelew bywa stresujący, a każdy błąd kosztuje więcej. "
-                    "Mała kwota najpierw, pełny plan później."
+                    "Czekanie na potwierdzenie typa to zgadywanie momentu. Regularne wpłaty "
+                    "w szeroki ETF działają bez takich zakładów."
                 ),
             },
         ],
@@ -1120,42 +1141,42 @@ DAY4_STEPS: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Dzień 4 • Checkpoint #1",
-        "step_question": "Jak najlepiej przygotować się do Checkpoint #1?",
+        "badge": "Dzień 4 • Plan pod kontrolą",
+        "step_question": "Po miesiącu psuje się pralka, a ETF urósł z 20% do 28% portfela. Co robisz?",
         "luna_message": (
-            "To ostatni krok Dnia 4. Po nim czeka Cię Checkpoint #1 — krótki test wiedzy. "
-            "Jak najlepiej się do niego przygotować?"
+            "Dzień 4 z 14 — utrzymanie prostego planu przed Checkpoint #1. {plan_sentence} Po "
+            "miesiącu psuje się pralka, a udział ETF w portfelu urósł z 20% do 28%. Co robisz?"
         ),
         "optimal_criterion": (
-            "powtarza cztery pojęcia z Dni 1–4 (inflacja, poduszka, koszty, wahania), bez "
-            "wkuwania tickerów"
+            "opłaca naprawę z poduszki i raz w kwartale wraca do ustalonych proporcji "
+            "(rebalansowanie), bez codziennego handlu"
         ),
         "options": [
             {
                 "id": "a",
-                "text": "Powtarzam 4 pojęcia z Dni 1–4: inflacja, poduszka, koszty, wahania",
+                "text": "Płacę z poduszki i raz w kwartale wracam do proporcji 20% ETF / 80% poduszka",
                 "is_optimal": True,
                 "feedback": (
-                    "Dokładnie! Test sprawdza rozumienie mechanizmów, a nie pamięciówkę nazw "
-                    "funduszy."
+                    "W punkt! Poduszka obsługuje niespodzianki, a jedno spokojne rebalansowanie na "
+                    "kwartał przywraca plan bez zbędnych transakcji."
                 ),
             },
             {
                 "id": "b",
-                "text": "Uczę się na pamięć tickerów i nazw funduszy",
+                "text": "Sprzedaję cały ETF, żeby naprawić pralkę i zacząć plan od nowa",
                 "is_optimal": False,
                 "feedback": (
-                    "Tickery nie są potrzebne — test dotyczy zasad, nie produktów. "
-                    "Wystarczy zrozumienie czterech pojęć."
+                    "Sprzedaż całego portfela to koszty i wyjście z planu. Poduszka istnieje po to, "
+                    "żeby inwestycja mogła dalej pracować."
                 ),
             },
             {
                 "id": "c",
-                "text": "Pomijam powtórkę — test i tak nie ma znaczenia",
+                "text": "Codziennie przestawiam proporcje, żeby złapać lepszy moment",
                 "is_optimal": False,
                 "feedback": (
-                    "Krótka powtórka zwykle wystarcza, a test pomaga utrwalić wiedzę przed "
-                    "kolejnymi dniami sprintu."
+                    "Codzienne przestawianie to koszty i emocje. Rebalansowanie raz na kwartał "
+                    "wystarcza, żeby utrzymać proste proporcje."
                 ),
             },
         ],
@@ -1170,10 +1191,10 @@ DAY2_LESSONS: list[MicroLessonCard] = [
         title="Konto maklerskie i tryb demo",
         duration_sec=20,
         summary=(
-            "Konto maklerskie to miejsce, w którym składasz zlecenia. Tryb demo pozwala "
-            "przećwiczyć cały proces bez realnego ryzyka."
+            "Konto maklerskie to miejsce, w którym składasz zlecenia. Tryb demo pozwala przejść "
+            "cały proces za 0 zł realnego ryzyka — np. zlecenie testowe na 10 zł."
         ),
-        key_takeaway="Najpierw oswojenie procesu, potem prawdziwe pieniądze.",
+        key_takeaway="Najpierw proces za 0 zł ryzyka, potem prawdziwe pieniądze.",
         xp_reward=15,
     ),
     MicroLessonCard(
@@ -1181,10 +1202,10 @@ DAY2_LESSONS: list[MicroLessonCard] = [
         title="Tabela opłat i TER",
         duration_sec=20,
         summary=(
-            "Opłata za zlecenie i TER funduszu to koszty, które działają co roku. Darmowe "
-            "otwarcie konta nie znaczy darmowe inwestowanie."
+            "Przykład: TER 0,20% od 10 000 zł to 20 zł rocznie, a 12 zleceń po 3 zł to 36 zł — "
+            "razem około 56 zł. Darmowe otwarcie konta nie znaczy darmowe inwestowanie."
         ),
-        key_takeaway="Patrz na łączny koszt, nie na jedną pozycję cennika.",
+        key_takeaway="Razem ok. 56 zł rocznie na 10 000 zł — patrz na pełny koszt, nie jedną pozycję.",
         xp_reward=15,
     ),
 ]
@@ -1195,10 +1216,10 @@ DAY3_LESSONS: list[MicroLessonCard] = [
         title="Zlecenie stałe",
         duration_sec=20,
         summary=(
-            "Stałe zlecenie ustawiasz raz, a bank realizuje je regularnie. Decyzja podjęta raz "
-            "chroni przed emocjami i codziennym stresem."
+            "Stałe zlecenie 100 zł/mies. daje 1 200 zł wpłat rocznie bez podejmowania 12 decyzji "
+            "i bez śledzenia notowań. Decyzja podjęta raz chroni przed emocjami."
         ),
-        key_takeaway="Regularność jest ważniejsza niż wyczucie momentu.",
+        key_takeaway="1 200 zł rocznie wpada automatycznie — regularność bije wyczucie momentu.",
         xp_reward=15,
     ),
     MicroLessonCard(
@@ -1206,10 +1227,10 @@ DAY3_LESSONS: list[MicroLessonCard] = [
         title="10 zł, które uczy",
         duration_sec=20,
         summary=(
-            "Symboliczny pierwszy przelew 10 zł oswaja proces i pozwala sprawdzić opłaty. "
-            "To trening nawyku, nie sposób na szybki zysk."
+            "Przy opłacie 3 zł za zlecenie przelew 10 zł kosztuje aż 30% kwoty — dlatego pierwszy "
+            "test jest symboliczny. Uczy procesu i pokazuje koszty, zanim wejdą większe kwoty."
         ),
-        key_takeaway="Mała kwota testowa obniża stres i pokazuje realne koszty.",
+        key_takeaway="10 zł + 3 zł opłaty = lekcja o kosztach, nie sposób na szybki zysk.",
         xp_reward=15,
     ),
 ]
@@ -1220,10 +1241,10 @@ DAY4_LESSONS: list[MicroLessonCard] = [
         title="Szeroki ETF w praktyce",
         duration_sec=20,
         summary=(
-            "Szeroki globalny ETF kupuje się jak każdy instrument: wybierasz kwotę i składasz "
-            "zlecenie. Nie musisz zgadywać dołka ani wybierać pojedynczych spółek."
+            "Pierwsze mikro-zlecenie to np. 50–100 zł w szeroki globalny ETF: jedna transakcja, "
+            "setki firm w środku i zero typowania pojedynczych spółek czy dołka."
         ),
-        key_takeaway="Prostota i dywersyfikacja zamiast trafiania w moment.",
+        key_takeaway="50–100 zł i setki firm w środku — prostota zamiast trafiania w moment.",
         xp_reward=15,
     ),
     MicroLessonCard(
@@ -1231,10 +1252,10 @@ DAY4_LESSONS: list[MicroLessonCard] = [
         title="Gotowość na Checkpoint #1",
         duration_sec=20,
         summary=(
-            "Cztery pojęcia z Dni 1–4: inflacja, poduszka, koszty i wahania. To wystarczy, "
-            "by spokojnie przejść krótki test wiedzy."
+            "Checkpoint #1 ma 4 pytania i próg 75%, czyli 3 poprawne odpowiedzi. Wystarczy "
+            "powtórzyć: inflacja, poduszka, koszty i wahania — bez wkuwania tickerów."
         ),
-        key_takeaway="Rozumienie mechanizmów, nie pamięciówka tickerów.",
+        key_takeaway="3 z 4 poprawnych odpowiedzi = zdany Checkpoint #1.",
         xp_reward=15,
     ),
 ]
@@ -1244,6 +1265,219 @@ MICRO_LESSONS_BY_DAY: dict[int, list[MicroLessonCard]] = {
     3: DAY3_LESSONS,
     4: DAY4_LESSONS,
 }
+
+# --------------------------------------------------------------------------- #
+# Mini-checki mikro-lekcji Dni 1–4 (1 pytanie, 3 opcje, jeden poprawny indeks)
+# --------------------------------------------------------------------------- #
+
+MICRO_LESSON_CHECKS: dict[str, dict] = {
+    # --- Dzień 1 ---
+    "ml_20_1": {
+        "check_question": "Ile realnie traci 10 000 zł na koncie 0% po roku przy inflacji 3,5%?",
+        "check_options": [
+            "Ok. 350 zł siły nabywczej",
+            "Ok. 3 500 zł siły nabywczej",
+            "Nic — saldo się nie zmienia",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "3,5% z 10 000 zł to ok. 350 zł. Saldo stoi, ale kupujesz za nie mniej."
+        ),
+    },
+    "ml_20_2": {
+        "check_question": "W 6. miesiącu psuje się laptop. Co robisz z poduszką 6 000 zł?",
+        "check_options": [
+            "Sprzedaję cały ETF, żeby mieć pewność",
+            "Płacę z poduszki, a ETF zostaje i pracuje dalej",
+            "Biorę kredyt, bo poduszki nie ruszam nigdy",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "Poduszka jest właśnie na awarie. ETF nie jest zamrożony, ale nie musi być ruszany."
+        ),
+    },
+    "ml_20_3": {
+        "check_question": "Co daje 200 zł/mies. przez 15 lat przy założeniu 5,7% netto?",
+        "check_options": [
+            "36 000 zł wpłat i gwarancję 100 000 zł",
+            "36 000 zł wpłat i dokładnie 36 000 zł wartości",
+            "36 000 zł wpłat i historycznie ok. 56 700 zł nominalnie (edukacyjnie)",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": (
+            "200 zł × 180 miesięcy = 36 000 zł wpłat; przy 5,7% netto ok. 56 700 zł nominalnie, "
+            "bez żadnej gwarancji."
+        ),
+    },
+    "ml_30_1": {
+        "check_question": "Ile siły nabywczej traci 20 000 zł na koncie 0% w rok przy 3,5% inflacji?",
+        "check_options": [
+            "Ok. 700 zł",
+            "Ok. 70 zł",
+            "Zero, bo saldo się nie zmienia",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": "3,5% z 20 000 zł to ok. 700 zł mniej siły nabywczej rocznie.",
+    },
+    "ml_30_2": {
+        "check_question": "Ile wpłacisz w rok ze stałym zleceniem 200 zł/mies.?",
+        "check_options": [
+            "200 zł",
+            "2 400 zł — bez patrzenia w wykresy",
+            "24 000 zł",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": "200 zł × 12 miesięcy = 2 400 zł, a decyzję podejmujesz tylko raz.",
+    },
+    "ml_30_3": {
+        "check_question": "Wydatki to 2 500 zł/mies. Jak duża jest poduszka na 3 miesiące?",
+        "check_options": [
+            "2 500 zł",
+            "25 000 zł",
+            "7 500 zł",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": "2 500 zł × 3 = 7 500 zł. Dopiero nadwyżki powyżej idą na rynek.",
+    },
+    "ml_50_1": {
+        "check_question": "Ile wpłat daje 1 200 zł/mies. przez 7 lat?",
+        "check_options": [
+            "100 800 zł",
+            "14 400 zł",
+            "840 000 zł",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": "1 200 zł × 84 miesiące = 100 800 zł wpłat w 7-letnim horyzoncie.",
+    },
+    "ml_50_2": {
+        "check_question": "Ile siły nabywczej traci 50 000 zł na koncie 0% w rok przy 3,5%?",
+        "check_options": [
+            "Ok. 175 zł",
+            "Ok. 1 750 zł",
+            "Nic — to duża kwota, więc strata nie występuje",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": "3,5% z 50 000 zł to ok. 1 750 zł rocznie mniej siły nabywczej.",
+    },
+    "ml_50_3": {
+        "check_question": "Ile wynosi roczny koszt TER 0,20% od 10 000 zł?",
+        "check_options": [
+            "200 zł",
+            "2 000 zł",
+            "20 zł",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": "0,20% z 10 000 zł to 20 zł rocznie — jawny i przewidywalny koszt.",
+    },
+    # --- Dzień 2 ---
+    "ml_d2_1": {
+        "check_question": "Po co korzystać z trybu demo?",
+        "check_options": [
+            "Aby przećwiczyć zlecenia bez realnego ryzyka",
+            "Aby mieć gwarantowany zysk",
+            "Aby uniknąć wszystkich opłat",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "Tryb demo to trening procesu za 0 zł ryzyka — nie obietnica zysku i nie brak opłat."
+        ),
+    },
+    "ml_d2_2": {
+        "check_question": "TER 0,20% od 10 000 zł plus 12 zleceń po 3 zł to rocznie razem:",
+        "check_options": [
+            "Ok. 6 zł",
+            "Ok. 56 zł",
+            "Ok. 560 zł",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": "20 zł TER + 36 zł za zlecenia = ok. 56 zł rocznie.",
+    },
+    # --- Dzień 3 ---
+    "ml_d3_1": {
+        "check_question": "Ile wpłat daje stałe zlecenie 100 zł/mies. w ciągu roku?",
+        "check_options": [
+            "100 zł",
+            "12 000 zł",
+            "1 200 zł bez 12 decyzji",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": "100 zł × 12 = 1 200 zł, a decyzję podejmujesz raz, nie co miesiąc.",
+    },
+    "ml_d3_2": {
+        "check_question": "Przy opłacie 3 zł za zlecenie przelew 10 zł to koszt:",
+        "check_options": [
+            "Ok. 30% kwoty",
+            "Ok. 3% kwoty",
+            "Zero, bo kwota jest mała",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": "3 zł z 10 zł to 30% — dlatego test jest symboliczny i pokazuje koszty.",
+    },
+    # --- Dzień 4 ---
+    "ml_d4_1": {
+        "check_question": "Jak wygląda rozsądne pierwsze mikro-zlecenie?",
+        "check_options": [
+            "Cała kwota w jedną spółkę z gorącego tipu",
+            "50–100 zł w szeroki globalny ETF",
+            "Pożyczona kwota z dźwignią",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "Mała kwota w szeroki ETF daje setki firm w środku, bez typowania i bez dźwigni."
+        ),
+    },
+    "ml_d4_2": {
+        "check_question": "Próg 75% w Checkpoint #1 z 4 pytań oznacza:",
+        "check_options": [
+            "3 poprawne odpowiedzi",
+            "2 poprawne odpowiedzi",
+            "Wszystkie 4 odpowiedzi",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": "75% z 4 pytań to 3 poprawne odpowiedzi — wystarczy rozumieć mechanizmy.",
+    },
+}
+
+
+def _micro_lesson_fields() -> set[str]:
+    """Nazwy pól ``MicroLessonCard`` (schema może jeszcze nie mieć pól ``check_*``)."""
+    return set((getattr(MicroLessonCard, "model_fields", None) or {}).keys())
+
+
+def _lesson_with_check(lesson: MicroLessonCard, check: dict | None) -> MicroLessonCard:
+    """Dokleja mini-check do karty lekcji, jeśli schemat zna pola ``check_*``."""
+    if not check:
+        return lesson
+    return lesson.model_copy(
+        update={
+            "check_question": check["check_question"],
+            "check_options": list(check["check_options"]),
+            "correct_option_index": int(check["correct_option_index"]),
+            "check_explanation": check["check_explanation"],
+        }
+    )
+
+
+def _apply_lesson_checks(checks: dict[str, dict], *tables: object) -> None:
+    """Wzbogaca lekcje o mini-checki tylko przy schemacie z polami ``check_*``."""
+    if not {"check_question", "check_options", "correct_option_index", "check_explanation"} <= _micro_lesson_fields():
+        return
+    for table in tables:
+        if isinstance(table, dict):
+            for key, lessons in list(table.items()):
+                table[key] = [_lesson_with_check(lesson, checks.get(lesson.id)) for lesson in lessons]
+        elif isinstance(table, list):
+            table[:] = [_lesson_with_check(lesson, checks.get(lesson.id)) for lesson in table]
+
+
+_apply_lesson_checks(
+    MICRO_LESSON_CHECKS,
+    MICRO_LESSONS_BY_GROUP,
+    MICRO_LESSONS_BY_DAY,
+    DAY2_LESSONS,
+    DAY3_LESSONS,
+    DAY4_LESSONS,
+)
 
 # --------------------------------------------------------------------------- #
 # Checkpoint #1 (po Dniu 4) — 4 pytania ABCD, próg 75%, +100 XP (docs/03 §6D)
@@ -1514,6 +1748,52 @@ POST_14_PATHS_EN: list[dict] = [dict(path) for path in _POST_14_PATHS_BY_LANG["e
 # --------------------------------------------------------------------------- #
 
 EXPLAIN_FALLBACKS: dict[str, dict] = {
+    # Nawigacja po aplikacji (Kita jako przewodnik po ekranach).
+    "navigation": {
+        "simple_explanation": (
+            "Wszystko jest w jednej aplikacji: ankieta to krok pierwszy, mapa sprintu z mikro-lekcjami "
+            "i Wehikułem Czasu to krok drugi, symulacja decyzji z Kitą to trzeci, a podsumowanie dnia, "
+            "wyzwanie i ranking to czwarty."
+        ),
+        "real_life_example": (
+            "To jak plan podróży na jednej mapie: najpierw ustalasz cel (ankieta), potem widzisz trasę "
+            "(mapa sprintu), ćwiczysz kolejny krok (symulacja), a na końcu odhaczasz dzień i widzisz, "
+            "ile już przeszedłeś."
+        ),
+        "drill_question": "Gdzie znajdziesz wykres porównujący gotówkę i szeroki ETF (Wehikuł Czasu)?",
+        "drill_options": [
+            "Na mapie sprintu, w karcie Wehikuł Czasu",
+            "W ankiecie, przy pytaniu o wiek",
+            "W rankingu znajomych",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Tak — wykres jest na mapie sprintu, tuż pod mikro-lekcjami, razem z suwakiem lat."
+        ),
+        "is_fallback": True,
+    },
+    # Wybór opcji / podział środków.
+    "options": {
+        "simple_explanation": (
+            "Przy wyborze trzymaj kolejność: najpierw poduszka na 3 miesiące wydatków, potem szeroki "
+            "ETF z małą, regularną kwotą. Podział 80/20 to tylko przykład, nie reguła dla każdego."
+        ),
+        "real_life_example": (
+            "To jak pakowanie na wyjazd: najpierw dokumenty i leki (poduszka), a potem rzeczy na długą "
+            "trasę (ETF). Bez pierwszej części druga nie ma sensu."
+        ),
+        "drill_question": "Od czego zaczynasz, jeśli nie masz jeszcze poduszki?",
+        "drill_options": [
+            "Od poduszki na 3 miesiące wydatków, ETF wchodzi później",
+            "Od razu od szerokiego ETF z całą wolną kwotą",
+            "Od jednej spółki z gorącego typa kolegi",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Dokładnie — najpierw bezpieczna baza, a inwestowanie startuje z wolnych nadwyżek."
+        ),
+        "is_fallback": True,
+    },
     "inflation": {
         "simple_explanation": (
             "Inflacja to wzrost cen — te same pieniądze kupują z roku na rok coraz mniej. "
@@ -1656,6 +1936,52 @@ EXPLAIN_FALLBACKS: dict[str, dict] = {
 }
 
 EXPLAIN_FALLBACKS_EN: dict[str, dict] = {
+    # App navigation (Kita as a guide through the screens).
+    "navigation": {
+        "simple_explanation": (
+            "Everything lives in one app: the survey is step one, the sprint map with micro-lessons "
+            "and the Time Machine is step two, the decision simulation with Kita is step three, and "
+            "the day summary, challenge and leaderboard are step four."
+        ),
+        "real_life_example": (
+            "It is like a trip planned on one map: first you set the goal (survey), then you see the "
+            "route (sprint map), you practise the next step (simulation), and finally you tick the day "
+            "off and see how far you have come."
+        ),
+        "drill_question": "Where do you find the chart that compares cash and a broad ETF (Time Machine)?",
+        "drill_options": [
+            "On the sprint map, in the Time Machine card",
+            "In the survey, next to the age question",
+            "In the friends leaderboard",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Yes — the chart sits on the sprint map, right under the micro-lessons, with the years slider."
+        ),
+        "is_fallback": True,
+    },
+    # Choosing options / splitting money.
+    "options": {
+        "simple_explanation": (
+            "Keep this order when choosing: first a buffer for 3 months of expenses, then a broad ETF "
+            "with a small, regular amount. An 80/20 split is only an example, not a rule for everyone."
+        ),
+        "real_life_example": (
+            "It is like packing for a trip: documents and medicine first (buffer), long-route gear "
+            "second (ETF). Without the first part, the second makes no sense."
+        ),
+        "drill_question": "Where do you start if you do not have a buffer yet?",
+        "drill_options": [
+            "With a buffer for 3 months of expenses; the ETF comes later",
+            "Straight into a broad ETF with all free cash",
+            "With one company from a friend's hot tip",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Exactly — a safe base first, and investing starts from free surplus."
+        ),
+        "is_fallback": True,
+    },
     "inflation": {
         "simple_explanation": (
             "Inflation means rising prices — the same money buys less every year. Cash in a "
@@ -1800,6 +2126,55 @@ EXPLAIN_FALLBACKS_EN: dict[str, dict] = {
 }
 
 EXPLAIN_TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
+    # Nawigacja ma pierwszeństwo — pytania „gdzie…” nie powinny wpadać w tematy finansowe.
+    "navigation": (
+        "gdzie",
+        "how do i get",
+        "jak przej",
+        "jak doj",
+        "find ",
+        "znajd",
+        "screen",
+        "ekran",
+        "time machine",
+        "wehikul",
+        "simulator",
+        "symulator",
+        "micro-lesson",
+        "micro lesson",
+        "mikro-lekcj",
+        "lesson",
+        "lekcj",
+        "ranking",
+        "leaderboard",
+        "checkpoint",
+        "drawer",
+        "szuflad",
+        "checklist",
+        "podsumowanie",
+        "summary",
+        "navigate",
+        "nawigac",
+    ),
+    # Wybór opcji i podział środków.
+    "options": (
+        "which option",
+        "option a",
+        "option b",
+        "opcj",
+        "wybrac",
+        "wybior",
+        "wybierz",
+        "choose",
+        "choice",
+        "od czego zacz",
+        "start with",
+        "buffer vs",
+        "poduszka czy",
+        "etf czy",
+        "split",
+        "podzial",
+    ),
     "inflation": (
         "inflac",
         "inflation",
@@ -1865,10 +2240,49 @@ _PL_DIACRITICS: dict[int, int] = str.maketrans("ąćęłńóśźż", "acelnoszz"
 # Wzorce wymagające granicy słowa (żeby „ter” nie łapało „after”, a „strat”
 # nie łapało „strategii”, „dip” nie łapało „diploma”, „0%” nie łapało „-20%”).
 _TOPIC_PATTERNS: dict[str, re.Pattern[str]] = {
+    "navigation": re.compile(r"(?<![a-z])where(?![a-z])"),
+    "options": re.compile(r"(?<![a-z])split(?![a-z])"),
     "inflation": re.compile(r"(?<![\d-])0\s?%"),
     "etf": re.compile(r"(?<![a-z])(?:ter|fees?)(?![a-z])"),
     "volatility": re.compile(r"(?<![a-z])dip(?![a-z])|(?<![a-z])strat(?!eg)|-\s?\d+\s?%"),
 }
+
+# Czytelne nazwy ekranów dla odpowiedzi nawigacyjnych Kity.
+EXPLAIN_SCREEN_LABELS: dict[str, dict[str, str]] = {
+    "pl": {
+        "screen_onboarding": "ankieta (Ekran 1)",
+        "screen_filter_and_timemachine": "mapa sprintu z mikro-lekcjami i Wehikułem Czasu (Ekran 2)",
+        "screen_mission_live": "symulacja decyzji z Kitą (Ekran 3)",
+        "screen_checkpoint": "Checkpoint #1 — test wiedzy",
+        "screen_checklist": "podsumowanie dnia, wyzwanie i ranking (Ekran 4)",
+        "modal_bank_order": "podgląd przykładowego planu w banku (modal)",
+    },
+    "en": {
+        "screen_onboarding": "the survey (Screen 1)",
+        "screen_filter_and_timemachine": "the sprint map with micro-lessons and Time Machine (Screen 2)",
+        "screen_mission_live": "the decision simulation with Kita (Screen 3)",
+        "screen_checkpoint": "Checkpoint #1 — the knowledge check",
+        "screen_checklist": "the day summary, challenge and leaderboard (Screen 4)",
+        "modal_bank_order": "the sample bank plan preview (modal)",
+    },
+}
+
+
+def _screen_label(current_screen: str | None, lang: Language) -> str | None:
+    """Czytelna nazwa bieżącego ekranu (albo ``None``, gdy nieznany)."""
+    key = str(current_screen or "").strip()
+    if not key:
+        return None
+    return EXPLAIN_SCREEN_LABELS[lang].get(key)
+
+
+def _with_user_name(text: str, user_name: str | None, lang: Language) -> str:
+    """Zwraca się do użytkownika po imieniu, jeśli zostało podane."""
+    name = str(user_name or "").strip()
+    if not name or name.lower() in {"none", "null", "-"}:
+        return text
+    prefix = "Cześć" if lang == "pl" else "Hi"
+    return f"{prefix} {name} — {text}"
 
 
 def _fold_text(text: str) -> str:
@@ -1889,15 +2303,33 @@ def _match_explain_topic(question: str, topic_hint: str | None = None) -> str:
 
 
 def get_explain_fallback(
-    question: str, topic_hint: str | None = None, lang: Language = "en"
+    question: str,
+    topic_hint: str | None = None,
+    lang: Language = "en",
+    user_name: str | None = None,
+    current_screen: str | None = None,
 ) -> dict:
-    """Deterministyczne wyjaśnienie + 3-opcyjny mini-drill (kopia słownika)."""
+    """Deterministyczne wyjaśnienie + 3-opcyjny mini-drill (kopia słownika).
+
+    Obsługuje także pytania o nawigację po aplikacji i wybór opcji; gdy podano
+    ``user_name`` Kita zwraca się po imieniu, a przy nawigacji dopowiada, na
+    którym ekranie użytkownik jest teraz. ``session_data`` może być minimalne —
+    wszystkie odczyty idą przez ``.get``.
+    """
     active = _normalize_lang(lang)
     topic = _match_explain_topic(question, topic_hint)
     table = EXPLAIN_FALLBACKS_EN if active == "en" else EXPLAIN_FALLBACKS
     entry = table[topic]
+
+    simple = str(entry["simple_explanation"])
+    screen_text = _screen_label(current_screen, active)
+    if topic == "navigation" and screen_text:
+        simple = simple + (
+            f" (Jesteś teraz w: {screen_text}.)" if active == "pl" else f" (You are now on: {screen_text}.)"
+        )
+
     return {
-        "simple_explanation": entry["simple_explanation"],
+        "simple_explanation": _with_user_name(simple, user_name, active),
         "real_life_example": entry["real_life_example"],
         "drill_question": entry["drill_question"],
         "drill_options": list(entry["drill_options"]),
@@ -2059,8 +2491,11 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             id="ml_20_1",
             title="Inflation eats your cash",
             duration_sec=20,
-            summary="Money sitting in a regular 0% account buys less every year because of inflation.",
-            key_takeaway="Not deciding is a certain loss of purchasing power.",
+            summary=(
+                "Money in a 0% account loses purchasing power: with 3.5% inflation, 10,000 PLN buys "
+                "goods worth about 9,650 PLN a year later."
+            ),
+            key_takeaway="Not deciding is a real loss of about 350 PLN per 10,000 PLN a year.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -2068,11 +2503,11 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Emergency buffer for surprises, ETF for the long term",
             duration_sec=20,
             summary=(
-                "The buffer covers unexpected expenses. An ETF is money for the long horizon — but it "
-                "is not frozen: as a last resort you can sell units, and the payout usually takes a "
-                "few business days."
+                "A buffer is 3 months of expenses — at 2,000 PLN/mo that is 6,000 PLN for surprises. "
+                "The ETF stays separate and is not frozen: as a last resort you sell units and the "
+                "payout usually takes a few business days."
             ),
-            key_takeaway="You know which money is for what.",
+            key_takeaway="A 6,000 PLN buffer protects the plan; the ETF is long-horizon money.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -2080,10 +2515,10 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             title="The power of scale from small amounts",
             duration_sec=20,
             summary=(
-                "Starting young, even small amounts (e.g. 100–300 PLN) can work for decades thanks to "
-                "compound interest."
+                "200 PLN/mo for 15 years is 36,000 PLN of contributions; at an assumed 5.7% net per "
+                "year that is historically about 56,700 PLN nominal (educational example, no guarantee)."
             ),
-            key_takeaway="Time matters more than a large starting capital.",
+            key_takeaway="Time works harder than the size of your first contribution.",
             xp_reward=15,
         ),
     ],
@@ -2093,9 +2528,10 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Inflation eats your savings",
             duration_sec=20,
             summary=(
-                "Keeping surplus in a non-interest-bearing account steadily lowers its real value."
+                "20,000 PLN in a 0% account at 3.5% inflation means roughly 700 PLN less purchasing "
+                "power after a year — even though the balance looks unchanged."
             ),
-            key_takeaway="Surplus should work faster than inflation.",
+            key_takeaway="Surplus should work faster than 3.5% yearly inflation.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -2103,10 +2539,10 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Background automation without charts",
             duration_sec=20,
             summary=(
-                "A broad ETF invests in hundreds of companies at once and does not require tracking "
-                "the market daily."
+                "A standing order of 200 PLN/mo puts 2,400 PLN to work each year without watching "
+                "charts. A broad ETF holds hundreds of companies, so you do not have to pick them."
             ),
-            key_takeaway="You save time — a steady plan runs in the background.",
+            key_takeaway="2,400 PLN lands every year in the background — no chart-watching.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -2114,9 +2550,10 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Buffer separately, surplus separately",
             duration_sec=20,
             summary=(
-                "The buffer protects your family's security; you only send free surplus to the market."
+                "Expenses of 2,500 PLN/mo × 3 months = a 7,500 PLN buffer. Only amounts above that "
+                "go to the market, so a portfolio drop never forces you to sell."
             ),
-            key_takeaway="You handle temporary drops more calmly.",
+            key_takeaway="A 7,500 PLN buffer = calmer handling of temporary drops.",
             xp_reward=15,
         ),
     ],
@@ -2126,9 +2563,11 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             title="You can invest at any age",
             duration_sec=20,
             summary=(
-                "A 5–10 year horizon is still time for capital to work wisely without unnecessary risk."
+                "A 7-year horizon is still time for a conscious start: 1,200 PLN/mo is 100,800 PLN "
+                "of contributions, and even a temporary -20% in year 3 leaves time to rebuild the "
+                "plan calmly (educational scenario)."
             ),
-            key_takeaway="It is never too late for a conscious start.",
+            key_takeaway="With a 7-year horizon, calm matters more than speed.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -2136,10 +2575,10 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             title="An anti-inflation shield for your capital",
             duration_sec=20,
             summary=(
-                "Cash in a regular account loses purchasing power every year, which hurts most with "
-                "larger savings."
+                "50,000 PLN in a 0% account at 3.5% inflation loses about 1,750 PLN of purchasing "
+                "power a year — the larger the savings, the more it hurts."
             ),
-            key_takeaway="A broad ETF has historically helped protect the value of money (no guarantee).",
+            key_takeaway="About 1,750 PLN a year per 50,000 PLN — that is how much less cash buys.",
             xp_reward=15,
         ),
         MicroLessonCard(
@@ -2147,10 +2586,10 @@ MICRO_LESSONS_BY_GROUP_EN: dict[AgeGroup, list[MicroLessonCard]] = {
             title="Simplicity and diversification",
             duration_sec=20,
             summary=(
-                "Instead of betting on one company, a broad ETF spreads capital across the entire "
-                "global market."
+                "One company is one risk; a broad ETF spreads capital across hundreds of companies. "
+                "A TER of 0.20% means 20 PLN a year per 10,000 PLN — a predictable, explicit cost."
             ),
-            key_takeaway="Lower concentration risk, low costs, transparency.",
+            key_takeaway="Hundreds of companies instead of one, 20 PLN cost per 10,000 PLN, full clarity.",
             xp_reward=15,
         ),
     ],
@@ -2695,42 +3134,42 @@ DAY2_STEPS_EN: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Day 2 • Demo mode",
-        "step_question": "Why use demo mode at the start?",
+        "badge": "Day 2 • Fee trap",
+        "step_question": "A friend places 20 small orders a month to catch opportunities. What is wiser?",
         "luna_message": (
-            "You have the fee table in front of you. Before you deposit real money, you can "
-            "use demo mode. Why is demo mode useful at the start?"
+            "Day 2 of 14 — costs and diversification. {plan_sentence} A friend says they place 20 "
+            "small orders a month to catch opportunities. What is wiser?"
         ),
         "optimal_criterion": (
-            "practises placing orders without real risk, to get comfortable with the process "
-            "and check the costs"
+            "a few regular orders into a broad ETF instead of many small transactions; frequent "
+            "orders multiply fees and do not improve diversification"
         ),
         "options": [
             {
                 "id": "a",
-                "text": "I test orders without real risk and get comfortable with the process",
+                "text": "A few regular orders into a broad ETF — fewer fees, the same diversification",
                 "is_optimal": True,
                 "feedback": (
-                    "Spot on! Demo mode lets you go through the whole process stress-free, and "
-                    "real money comes only when you feel confident."
+                    "Exactly. Every order costs a fee, and a broad ETF already holds hundreds of "
+                    "companies. Fewer trades means a lower cost without losing diversification."
                 ),
             },
             {
                 "id": "b",
-                "text": "Because demo mode guarantees a profit",
+                "text": "20 orders a month, because more opportunities mean more profit",
                 "is_optimal": False,
                 "feedback": (
-                    "Nothing is guaranteed in demo mode — it is only a simulation. The point is "
-                    "to get comfortable with the process, not a promise of profit."
+                    "20 orders × 3 PLN is already 60 PLN a month in fees alone. More trades do not "
+                    "add diversification — a broad ETF has it from day one."
                 ),
             },
             {
                 "id": "c",
-                "text": "Because a real account never has any fees",
+                "text": "One big order into a single company to limit the fees",
                 "is_optimal": False,
                 "feedback": (
-                    "A real account usually charges per-order fees. That is exactly why it is "
-                    "worth checking them in advance, also in demo mode."
+                    "Fees drop, but all the risk lands on one company. A broad ETF gives low costs "
+                    "and spreading at the same time."
                 ),
             },
         ],
@@ -2780,42 +3219,41 @@ DAY3_STEPS_EN: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Day 3 • 10 PLN test",
-        "step_question": "Why is the first test transfer only 10 PLN?",
+        "badge": "Day 3 • Hot tip",
+        "step_question": "A friend sends a “hot tip” about one company. What do you do with your steady plan?",
         "luna_message": (
-            "Your standing order is set. Before the full plan starts, make a symbolic 10 PLN "
-            "test transfer. Why such a small amount?"
+            "Day 3 of 14 — emotions and hot tips. {plan_sentence} A friend sends a “hot tip”: one "
+            "company is “certain” to double. What do you do with your steady plan?"
         ),
         "optimal_criterion": (
-            "the test is to get comfortable with the process and check costs; a small amount "
-            "lowers stress and is not meant for quick profit"
+            "keeps the simple, automated plan in a broad ETF; resists FOMO and single-company tips"
         ),
         "options": [
             {
                 "id": "a",
-                "text": "I check the process and fees without stress — the amount is symbolic",
+                "text": "I keep the standing order in a broad ETF — a single-company tip is high concentration risk",
                 "is_optimal": True,
                 "feedback": (
-                    "Exactly. It is about breaking the barrier and checking the costs, not "
-                    "about a quick gain."
+                    "Exactly. A steady plan needs no tips, and one company carries risk that a broad "
+                    "ETF does not have at that scale."
                 ),
             },
             {
                 "id": "b",
-                "text": "Because 10 PLN always brings a big profit",
+                "text": "I move the whole plan into that company, because the chance will not repeat",
                 "is_optimal": False,
                 "feedback": (
-                    "10 PLN cannot bring a big profit — and that is not the point. It is a "
-                    "process rehearsal, not an investment opportunity."
+                    "That is textbook FOMO: all the money in one company means one stumble takes the "
+                    "whole plan. Nobody guarantees growth."
                 ),
             },
             {
                 "id": "c",
-                "text": "Because it is better to deposit everything at once without any test",
+                "text": "I pause contributions and wait until the tip is confirmed",
                 "is_optimal": False,
                 "feedback": (
-                    "Without a test the first transfer feels stressful and every mistake costs "
-                    "more. A small amount first, the full plan later."
+                    "Waiting for a tip to be confirmed is timing the market. Regular contributions "
+                    "into a broad ETF work without such bets."
                 ),
             },
         ],
@@ -2865,42 +3303,42 @@ DAY4_STEPS_EN: dict[int, dict] = {
         ],
     },
     2: {
-        "badge": "Day 4 • Checkpoint #1",
-        "step_question": "How do you best prepare for Checkpoint #1?",
+        "badge": "Day 4 • Plan under control",
+        "step_question": "A month later the washing machine breaks, and the ETF grew from 20% to 28% of the portfolio. What do you do?",
         "luna_message": (
-            "This is the last step of Day 4. After it comes Checkpoint #1 — a short knowledge "
-            "check. How do you best prepare for it?"
+            "Day 4 of 14 — keeping the plan simple before Checkpoint #1. {plan_sentence} A month "
+            "later the washing machine breaks, and the ETF share grew from 20% to 28%. What do you do?"
         ),
         "optimal_criterion": (
-            "revises four concepts from Days 1–4 (inflation, buffer, costs, volatility), "
-            "without memorising tickers"
+            "pays for the repair from the buffer and rebalances back to the agreed proportions once "
+            "a quarter, without daily trading"
         ),
         "options": [
             {
                 "id": "a",
-                "text": "I revise 4 concepts from Days 1–4: inflation, buffer, costs, volatility",
+                "text": "I pay from the buffer and once a quarter return to 20% ETF / 80% buffer",
                 "is_optimal": True,
                 "feedback": (
-                    "Exactly! The check tests understanding of mechanisms, not memorising fund "
-                    "names."
+                    "Spot on! The buffer handles surprises, and one calm quarterly rebalancing "
+                    "restores the plan without extra trades."
                 ),
             },
             {
                 "id": "b",
-                "text": "I memorise tickers and fund names",
+                "text": "I sell the whole ETF to fix the machine and restart the plan from scratch",
                 "is_optimal": False,
                 "feedback": (
-                    "Tickers are not needed — the check is about principles, not products. "
-                    "Understanding four concepts is enough."
+                    "Selling the whole portfolio costs fees and breaks the plan. The buffer exists "
+                    "so the investment can keep working."
                 ),
             },
             {
                 "id": "c",
-                "text": "I skip the revision — the check does not matter anyway",
+                "text": "I move the proportions every day to catch a better moment",
                 "is_optimal": False,
                 "feedback": (
-                    "A short revision is usually enough, and the check helps consolidate "
-                    "knowledge before the next sprint days."
+                    "Daily reshuffling means costs and emotions. Rebalancing once a quarter is "
+                    "enough to keep simple proportions."
                 ),
             },
         ],
@@ -2915,10 +3353,10 @@ DAY2_LESSONS_EN: list[MicroLessonCard] = [
         title="Brokerage account and demo mode",
         duration_sec=20,
         summary=(
-            "A brokerage account is where you place orders. Demo mode lets you rehearse the "
-            "whole process without real risk."
+            "A brokerage account is where you place orders. Demo mode walks you through the whole "
+            "process at 0 PLN of real risk — for example with a 10 PLN test order."
         ),
-        key_takeaway="Get comfortable with the process first, real money later.",
+        key_takeaway="First the process at zero risk, then real money.",
         xp_reward=15,
     ),
     MicroLessonCard(
@@ -2926,10 +3364,10 @@ DAY2_LESSONS_EN: list[MicroLessonCard] = [
         title="Fee table and TER",
         duration_sec=20,
         summary=(
-            "The per-order fee and the fund's TER are costs that work every year. A free "
-            "account opening does not mean free investing."
+            "Example: a 0.20% TER on 10,000 PLN is 20 PLN a year, and 12 orders at 3 PLN are 36 PLN "
+            "— about 56 PLN together. A free account opening does not mean free investing."
         ),
-        key_takeaway="Look at the total cost, not one line of the price list.",
+        key_takeaway="About 56 PLN a year per 10,000 PLN — look at the full cost, not one line.",
         xp_reward=15,
     ),
 ]
@@ -2940,10 +3378,10 @@ DAY3_LESSONS_EN: list[MicroLessonCard] = [
         title="Standing order",
         duration_sec=20,
         summary=(
-            "You set a standing order once and the bank executes it regularly. One decision "
-            "taken up front protects you from emotions and daily stress."
+            "A standing order of 100 PLN/mo is 1,200 PLN of contributions a year with no 12 monthly "
+            "decisions and no quote-checking. One decision up front protects you from emotions."
         ),
-        key_takeaway="Consistency matters more than timing.",
+        key_takeaway="1,200 PLN lands automatically each year — consistency beats timing.",
         xp_reward=15,
     ),
     MicroLessonCard(
@@ -2951,10 +3389,10 @@ DAY3_LESSONS_EN: list[MicroLessonCard] = [
         title="The 10 PLN lesson",
         duration_sec=20,
         summary=(
-            "A symbolic first 10 PLN transfer gets you comfortable with the process and shows "
-            "the real fees. It is a habit rehearsal, not a way to quick profit."
+            "With a 3 PLN order fee, a 10 PLN transfer costs 30% of the amount — that is why the "
+            "first test is symbolic. It teaches the process and reveals fees before larger amounts."
         ),
-        key_takeaway="A small test amount lowers stress and reveals real costs.",
+        key_takeaway="10 PLN + 3 PLN fee = a lesson about costs, not a way to quick profit.",
         xp_reward=15,
     ),
 ]
@@ -2965,10 +3403,10 @@ DAY4_LESSONS_EN: list[MicroLessonCard] = [
         title="A broad ETF in practice",
         duration_sec=20,
         summary=(
-            "A broad global ETF is bought like any instrument: you choose an amount and place "
-            "an order. You do not have to time the bottom or pick individual companies."
+            "Your first micro-order can be 50–100 PLN into a broad global ETF: one transaction, "
+            "hundreds of companies inside, and no picking of single stocks or the perfect bottom."
         ),
-        key_takeaway="Simplicity and diversification instead of timing.",
+        key_takeaway="50–100 PLN and hundreds of companies inside — simplicity instead of timing.",
         xp_reward=15,
     ),
     MicroLessonCard(
@@ -2976,10 +3414,10 @@ DAY4_LESSONS_EN: list[MicroLessonCard] = [
         title="Ready for Checkpoint #1",
         duration_sec=20,
         summary=(
-            "Four concepts from Days 1–4: inflation, buffer, costs and volatility. That is "
-            "enough to pass a short knowledge check calmly."
+            "Checkpoint #1 has 4 questions and a 75% threshold, so 3 correct answers. Revise four "
+            "concepts: inflation, buffer, costs and volatility — no ticker memorising."
         ),
-        key_takeaway="Understanding mechanisms, not memorising tickers.",
+        key_takeaway="3 out of 4 correct answers = Checkpoint #1 passed.",
         xp_reward=15,
     ),
 ]
@@ -2989,6 +3427,185 @@ MICRO_LESSONS_BY_DAY_EN: dict[int, list[MicroLessonCard]] = {
     3: DAY3_LESSONS_EN,
     4: DAY4_LESSONS_EN,
 }
+
+# Mini-checki EN (1 pytanie, 3 opcje, jeden poprawny indeks) — te same id co PL.
+MICRO_LESSON_CHECKS_EN: dict[str, dict] = {
+    # --- Day 1 ---
+    "ml_20_1": {
+        "check_question": "How much does 10,000 PLN in a 0% account really lose in a year at 3.5% inflation?",
+        "check_options": [
+            "About 350 PLN of purchasing power",
+            "About 3,500 PLN of purchasing power",
+            "Nothing — the balance stays the same",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "3.5% of 10,000 PLN is about 350 PLN. The balance stands still, but it buys less."
+        ),
+    },
+    "ml_20_2": {
+        "check_question": "In month 6 the laptop breaks. What do you do with the 6,000 PLN buffer?",
+        "check_options": [
+            "I sell the whole ETF to be sure",
+            "I pay from the buffer and the ETF keeps working",
+            "I take a loan because the buffer must never be touched",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "The buffer exists for surprises. The ETF is not frozen, but it does not have to be sold."
+        ),
+    },
+    "ml_20_3": {
+        "check_question": "What does 200 PLN/mo for 15 years give at an assumed 5.7% net?",
+        "check_options": [
+            "36,000 PLN of contributions and a guaranteed 100,000 PLN",
+            "36,000 PLN of contributions and exactly 36,000 PLN in value",
+            "36,000 PLN of contributions and historically about 56,700 PLN nominal (educational)",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": (
+            "200 PLN × 180 months = 36,000 PLN of contributions; at 5.7% net about 56,700 PLN "
+            "nominal, with no guarantee."
+        ),
+    },
+    "ml_30_1": {
+        "check_question": "How much purchasing power does 20,000 PLN lose in a year at 3.5% inflation?",
+        "check_options": [
+            "About 700 PLN",
+            "About 70 PLN",
+            "Zero, because the balance does not change",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": "3.5% of 20,000 PLN is about 700 PLN less purchasing power per year.",
+    },
+    "ml_30_2": {
+        "check_question": "How much do you contribute in a year with a 200 PLN/mo standing order?",
+        "check_options": [
+            "200 PLN",
+            "2,400 PLN — without watching charts",
+            "24,000 PLN",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": "200 PLN × 12 months = 2,400 PLN, and you decide only once.",
+    },
+    "ml_30_3": {
+        "check_question": "Expenses are 2,500 PLN/mo. How big is a 3-month buffer?",
+        "check_options": [
+            "2,500 PLN",
+            "25,000 PLN",
+            "7,500 PLN",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": "2,500 PLN × 3 = 7,500 PLN. Only the surplus above that goes to the market.",
+    },
+    "ml_50_1": {
+        "check_question": "How many contributions does 1,200 PLN/mo give over 7 years?",
+        "check_options": [
+            "100,800 PLN",
+            "14,400 PLN",
+            "840,000 PLN",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": "1,200 PLN × 84 months = 100,800 PLN of contributions over 7 years.",
+    },
+    "ml_50_2": {
+        "check_question": "How much purchasing power does 50,000 PLN lose in a year at 3.5%?",
+        "check_options": [
+            "About 175 PLN",
+            "About 1,750 PLN",
+            "None — large amounts do not lose value",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": "3.5% of 50,000 PLN is about 1,750 PLN less purchasing power a year.",
+    },
+    "ml_50_3": {
+        "check_question": "What is the yearly cost of a 0.20% TER on 10,000 PLN?",
+        "check_options": [
+            "200 PLN",
+            "2,000 PLN",
+            "20 PLN",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": "0.20% of 10,000 PLN is 20 PLN a year — an explicit, predictable cost.",
+    },
+    # --- Day 2 ---
+    "ml_d2_1": {
+        "check_question": "Why use demo mode?",
+        "check_options": [
+            "To rehearse orders without real risk",
+            "To get a guaranteed profit",
+            "To avoid every fee",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": (
+            "Demo mode is a process rehearsal at zero risk — not a profit promise and not a fee waiver."
+        ),
+    },
+    "ml_d2_2": {
+        "check_question": "A 0.20% TER on 10,000 PLN plus 12 orders at 3 PLN cost per year:",
+        "check_options": [
+            "About 6 PLN",
+            "About 56 PLN",
+            "About 560 PLN",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": "20 PLN TER + 36 PLN in order fees = about 56 PLN a year.",
+    },
+    # --- Day 3 ---
+    "ml_d3_1": {
+        "check_question": "How much does a 100 PLN/mo standing order contribute in a year?",
+        "check_options": [
+            "100 PLN",
+            "12,000 PLN",
+            "1,200 PLN without 12 decisions",
+        ],
+        "correct_option_index": 2,
+        "check_explanation": "100 PLN × 12 = 1,200 PLN, and you decide once instead of every month.",
+    },
+    "ml_d3_2": {
+        "check_question": "With a 3 PLN order fee, a 10 PLN transfer costs:",
+        "check_options": [
+            "About 30% of the amount",
+            "About 3% of the amount",
+            "Nothing, because the amount is small",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": "3 PLN out of 10 PLN is 30% — that is why the test is symbolic and shows costs.",
+    },
+    # --- Day 4 ---
+    "ml_d4_1": {
+        "check_question": "What does a sensible first micro-order look like?",
+        "check_options": [
+            "Everything into one company from a hot tip",
+            "50–100 PLN into a broad global ETF",
+            "Borrowed money with leverage",
+        ],
+        "correct_option_index": 1,
+        "check_explanation": (
+            "A small amount in a broad ETF holds hundreds of companies inside, with no stock picking "
+            "and no leverage."
+        ),
+    },
+    "ml_d4_2": {
+        "check_question": "A 75% threshold in Checkpoint #1 with 4 questions means:",
+        "check_options": [
+            "3 correct answers",
+            "2 correct answers",
+            "All 4 answers",
+        ],
+        "correct_option_index": 0,
+        "check_explanation": "75% of 4 questions is 3 correct answers — understanding the mechanisms is enough.",
+    },
+}
+
+_apply_lesson_checks(
+    MICRO_LESSON_CHECKS_EN,
+    MICRO_LESSONS_BY_GROUP_EN,
+    MICRO_LESSONS_BY_DAY_EN,
+    DAY2_LESSONS_EN,
+    DAY3_LESSONS_EN,
+    DAY4_LESSONS_EN,
+)
 
 
 
