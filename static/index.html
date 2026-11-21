@@ -13,7 +13,7 @@
        ?v= cache-busting: bump after every change to styles.css / app.js. -->
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-500.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/vendor/fonts/PlusJakartaSans-800.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/styles.css?v=25.0">
+  <link rel="stylesheet" href="/static/styles.css?v=26.0">
 </head>
 <body data-screen="screen_bank_entry">
   <a href="#main" class="skip-link" data-i18n="a11y.skip">Skip to content</a>
@@ -238,21 +238,20 @@
       </div>
     </section>
 
-    <!-- ===================== Screen 2 — Quest Hub: tool rail + Daily quests ===================== -->
+    <!-- ===================== Screen 2 — Learning Hub: tool rail + Stage path ===================== -->
     <section id="screen_filter_and_timemachine" class="screen wrap" aria-labelledby="t-hub" hidden>
-      <h2 id="t-hub" class="sr-only" data-screen-title tabindex="-1" data-i18n="hub.srTitle">Your 14-day plan</h2>
+      <h2 id="t-hub" class="sr-only" data-screen-title tabindex="-1" data-i18n="hub.srTitle">Your 14-stage journey</h2>
       <div class="hub">
         <!-- Left: feature buttons. Their content stays hidden until a button is clicked. -->
-        <nav class="hub-rail" id="hub-rail" data-i18n-aria="tool.railTitle" aria-label="Your sprint tools"></nav>
+        <nav class="hub-rail" id="hub-rail" data-i18n-aria="tool.railTitle" aria-label="Your journey tools"></nav>
         <div class="hub-main" id="hub-main">
-          <!-- Default view: Daily quests -->
+          <!-- Default view: Stage path (Phase 1 playable + Phases 2–4 Coming soon) -->
           <div class="hub-view" id="hub-view-quests">
             <div id="hub-path-col"></div>
           </div>
-          <!-- Tool view: opened from the rail, with a clear way back -->
+          <!-- Tool view: opened from the rail, closeable via rail or X -->
           <div class="hub-view" id="hub-view-tool" hidden>
             <div class="tool-head">
-              <button type="button" class="btn btn--ghost btn--sm" data-action="hub-tool" data-tool="quests"><span data-icon="arrow-right" data-icon-class="ic--flip"></span><span class="tool-head__back-label" data-i18n="tool.back">Back to daily quests</span></button>
               <h3 class="tool-head__title" id="hub-tool-title" tabindex="-1"></h3>
               <button type="button" class="icon-btn" data-action="hub-tool" data-tool="quests" data-i18n-aria="common.close" aria-label="Close"><span data-icon="x"></span></button>
             </div>
@@ -378,9 +377,9 @@
       </div>
     </section>
 
-    <!-- ===================== Screen 4 — day complete ===================== -->
+    <!-- ===================== Screen 4 — stage complete ===================== -->
     <section id="screen_checklist" class="screen wrap" aria-labelledby="t-complete" hidden>
-      <h2 id="t-complete" class="sr-only" data-screen-title tabindex="-1" data-i18n="done.srTitle">Day complete</h2>
+      <h2 id="t-complete" class="sr-only" data-screen-title tabindex="-1" data-i18n="done.srTitle">Stage complete</h2>
       <div id="done-root"></div>
     </section>
 
@@ -469,6 +468,6 @@
 
   <script src="/static/vendor/chart.umd.min.js"></script>
   <script src="/static/vendor/confetti.browser.min.js"></script>
-  <script src="/static/app.js?v=25.0"></script>
+  <script src="/static/app.js?v=26.0"></script>
 </body>
 </html>
