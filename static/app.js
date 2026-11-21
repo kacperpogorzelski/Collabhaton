@@ -136,21 +136,21 @@
   // ------------------------------------------------------------------------
   const I18N = {
     en: {
-      'meta.title': 'Investly by Commerzbank',
-      'meta.description': 'Investly by Commerzbank: build investing confidence in a 14-day sprint, five minutes a day.',
+      'meta.title': 'Investly · Calm Investing Start',
+      'meta.description': 'Investly by Collabothon: calm, step-by-step investing confidence for every generation.',
       'a11y.skip': 'Skip to content',
       'brand.sub': 'Your calm investing start',
       'common.close': 'Close',
-      'entry.demo': 'DEMO · Commerzbank simulation',
-      'entry.account': 'Everyday account',
-      'entry.available': 'Available balance · sample data',
-      'entry.transaction1': 'Salary · sample',
-      'entry.transaction2': 'Rent · sample',
-      'entry.transactions': 'Recent sample transactions',
-      'entry.cta': 'Build your investment plan & start investing in 14 days',
-      'entry.note': 'Nothing is executed. This is a guided learning simulation.',
+      'entry.demo': 'Collabothon 2026 · Interactive Learning Sandbox',
+      'entry.kicker': 'Investly',
+      'entry.slogan': 'Investing made clear, one calm step at a time.',
+      'entry.sub': 'Build real investing confidence at your own pace. No jargon, no pressure, and zero real money at risk.',
+      'entry.cta': 'Get started',
+      'entry.note': 'Zero real money moved · Simulation only · Built for every generation',
+      'entry.factLabel': 'Did you know?',
+      'entry.factNext': 'Next fact',
       'entry.whyTitle': 'A calmer way to start',
-      'entry.whyText': 'Atlas, your Commerzbank financial guide, turns a big money decision into one clear step at a time.',
+      'entry.whyText': 'Atlas, your Investly guide, turns a big money decision into one clear step at a time.',
       'intro.next': 'Next', 'intro.skip': 'Skip',
       'intro.1.title': 'Inflation is quiet, but real.', 'intro.1.copy': 'A 0% account keeps the number the same while prices keep moving. Financial knowledge helps you protect what your money can buy.',
       'intro.2.title': 'No big sums. No jargon.', 'intro.2.copy': 'Five minutes and one small habit are enough to start. Atlas keeps the language plain and the steps practical.',
@@ -189,12 +189,15 @@
       'hud.soundOn': 'Sound is on',
       'hud.soundOff': 'Sound is off',
 
-      'onb.title': 'Build investing confidence in 14 days.',
-      'onb.lead': "Five minutes a day. Pick where you are in life and Atlas leaves out every bit of theory you don't need yet.",
-      'onb.bubble': "I'm Atlas, your Commerzbank financial guide. Choose the life stage that fits you best.",
-      'onb.bubbleName': 'Welcome, {name}. Choose the life stage that fits you best and I will prepare your plan.',
-      'onb.stagesTitle': 'Where are you in life?',
-      'onb.stagesHint': 'One tap builds your plan.',
+      'onb.title': 'Where are you in life?',
+      'onb.lead': "Set your numbers below and Atlas leaves out every bit of theory you don't need yet.",
+      'onb.bubble': "I'm Atlas, your Investly guide. Adjust the sliders or pick a quick sample profile below.",
+      'onb.bubbleName': 'Welcome, {name}. Adjust the sliders below — or pick a quick sample profile — and I will build your plan.',
+      'onb.formTitle': 'Personalise your plan',
+      'onb.formHint': '6 quick choices — takes under 30 seconds.',
+      'onb.orDivider': 'or',
+      'onb.stagesTitle': 'Try a quick sample profile',
+      'onb.stagesHint': 'One tap fills and builds your plan.',
       'onb.tailorToggle': 'Not quite you? Answer 6 quick questions instead',
       'onb.building': 'Cutting the theory you don\'t need…',
 
@@ -217,7 +220,7 @@
       'form.confidence': 'How confident do you feel about investing your first money?',
       'form.scaleLow': '1, not at all',
       'form.scaleHigh': '5, very confident',
-      'form.cta': 'Build my 14-day plan',
+      'form.cta': 'Build my plan',
       'form.ctaBusy': 'Building your plan…',
       'err.age': 'Age must be between 18 and 70.',
       'err.net': 'Net income: 2,500 to 25,000 PLN.',
@@ -642,21 +645,21 @@
     },
 
     pl: {
-      'meta.title': 'Finance Quest od Commerzbanku',
-      'meta.description': 'Finance Quest od Commerzbanku: pewność inwestycyjna w 14-dniowym sprincie, po 5 minut dziennie.',
+      'meta.title': 'Investly · Spokojny start w inwestowaniu',
+      'meta.description': 'Investly (Collabothon): spokojna, krok po kroku droga do pewności inwestowania dla każdego pokolenia.',
       'a11y.skip': 'Przejdź do treści',
-      'brand.sub': 'od Commerzbanku, 14-dniowy Sprint Pewności',
+      'brand.sub': 'Twój spokojny start w inwestowaniu',
       'common.close': 'Zamknij',
-      'entry.demo': 'DEMO · symulacja Commerzbanku',
-      'entry.account': 'Konto codzienne',
-      'entry.available': 'Dostępne saldo · dane przykładowe',
-      'entry.transaction1': 'Wynagrodzenie · przykład',
-      'entry.transaction2': 'Czynsz · przykład',
-      'entry.transactions': 'Ostatnie przykładowe transakcje',
-      'entry.cta': 'Stwórz swój plan inwestycyjny i zacznij inwestować w 14 dni',
-      'entry.note': 'Nic nie zostanie wykonane. To prowadzona symulacja edukacyjna.',
+      'entry.demo': 'Collabothon 2026 · Interaktywna piaskownica edukacyjna',
+      'entry.kicker': 'Investly',
+      'entry.slogan': 'Spokojny start w inwestowaniu, krok po kroku.',
+      'entry.sub': 'Zbuduj prawdziwą pewność finansową we własnym tempie. Bez żargonu, bez presji i bez ryzyka prawdziwych pieniędzy.',
+      'entry.cta': 'Zacznij',
+      'entry.note': 'Zero prawdziwych przelewów · Wyłącznie symulacja · Dla każdego pokolenia',
+      'entry.factLabel': 'Ciekawostka na start',
+      'entry.factNext': 'Kolejna ciekawostka',
       'entry.whyTitle': 'Spokojniejszy start',
-      'entry.whyText': 'Atlas, przewodnik finansowy Commerzbanku, zamienia dużą decyzję finansową w jeden jasny krok naraz.',
+      'entry.whyText': 'Atlas, Twój przewodnik w Investly, zamienia dużą decyzję finansową w jeden jasny krok naraz.',
       'intro.next': 'Dalej', 'intro.skip': 'Pomiń',
       'intro.1.title': 'Inflacja działa po cichu, ale naprawdę.', 'intro.1.copy': 'Konto 0% trzyma tę samą liczbę, gdy ceny idą w górę. Wiedza finansowa pomaga chronić to, co możesz kupić za swoje pieniądze.',
       'intro.2.title': 'Bez wielkich kwot i żargonu.', 'intro.2.copy': 'Wystarczy 5 minut i jeden prosty nawyk. Atlas mówi prostym językiem i prowadzi przez praktyczne kroki.',
@@ -695,12 +698,15 @@
       'hud.soundOn': 'Dźwięk włączony',
       'hud.soundOff': 'Dźwięk wyłączony',
 
-      'onb.title': 'Zbuduj pewność inwestycyjną w 14 dni.',
-      'onb.lead': 'Po 5 minut dziennie. Wybierz etap życia, a Atlas pominie całą teorię, której jeszcze nie potrzebujesz.',
-      'onb.bubble': 'Nazywam się Atlas, jestem przewodnikiem finansowym Commerzbanku. Wybierz etap życia, który najlepiej do Ciebie pasuje.',
-      'onb.bubbleName': 'Witamy, {name}. Wybierz etap życia, który najlepiej do Ciebie pasuje, a przygotuję Twój plan.',
-      'onb.stagesTitle': 'Na jakim etapie życia jesteś?',
-      'onb.stagesHint': 'Jedno kliknięcie układa Twój plan.',
+      'onb.title': 'Na jakim etapie życia jesteś?',
+      'onb.lead': 'Ustaw swoje liczby poniżej, a Atlas pominie całą teorię, której jeszcze nie potrzebujesz.',
+      'onb.bubble': 'Jestem Atlas, Twój przewodnik w Investly. Ustaw suwaki albo wybierz gotowy profil poniżej.',
+      'onb.bubbleName': 'Witamy, {name}. Ustaw suwaki poniżej — albo wybierz gotowy profil — a ułożę Twój plan.',
+      'onb.formTitle': 'Dopasuj swój plan',
+      'onb.formHint': '6 szybkich wyborów — zajmuje poniżej 30 sekund.',
+      'onb.orDivider': 'lub',
+      'onb.stagesTitle': 'Wybierz gotowy profil na start',
+      'onb.stagesHint': 'Jedno kliknięcie wypełnia i układa Twój plan.',
       'onb.tailorToggle': 'To nie do końca Ty? Odpowiedz na 6 szybkich pytań',
       'onb.building': 'Wycinam zbędną teorię…',
 
@@ -723,7 +729,7 @@
       'form.confidence': 'Jak pewnie czujesz się na myśl o zainwestowaniu pierwszych pieniędzy?',
       'form.scaleLow': '1, wcale',
       'form.scaleHigh': '5, bardzo pewnie',
-      'form.cta': 'Ułóż mój 14-dniowy plan',
+      'form.cta': 'Ułóż mój plan',
       'form.ctaBusy': 'Układam Twój plan…',
       'err.age': 'Wiek musi mieścić się w przedziale 18–70 lat.',
       'err.net': 'Zarobki netto: od 2 500 do 25 000 zł.',
@@ -1739,6 +1745,7 @@
     screen: SCREENS.BANK_ENTRY,
     userName: storageGet(LS_USER_NAME) || '',
     introIndex: 0,
+    factIndex: 0,
     busy: false,
     personas: [],
     stageId: null,           // 'first' | 'home' | 'peak' | 'pre' | null (custom form)
@@ -1950,6 +1957,86 @@
     renderHud({ animate: false });
   }
 
+  const START_FACTS = Object.freeze([
+    {
+      en: {
+        title: 'The Rule of 72',
+        text: 'Divide 72 by an annual return rate to estimate how many years it takes for money to double. At 6% a year, that is roughly 12 years — assuming returns stay steady and are reinvested.',
+      },
+      pl: {
+        title: 'Reguła 72',
+        text: 'Podziel 72 przez roczną stopę zwrotu, aby oszacować, po ilu latach kapitał się podwoi. Przy 6% rocznie to ok. 12 lat — przy założeniu reinwestowania zysków.',
+      },
+    },
+    {
+      en: {
+        title: 'Inflation works quietly on 0% cash',
+        text: 'At 3.5% annual inflation, 10,000 PLN sitting in a 0% account for 10 years keeps the same balance on screen, but buys roughly what 7,089 PLN buys today.',
+      },
+      pl: {
+        title: 'Inflacja po cichu zjada gotówkę na 0%',
+        text: 'Przy inflacji 3,5% rocznie 10 000 zł leżące przez 10 lat na koncie 0% wciąż pokazuje tę samą kwotę, ale ma siłę nabywczą ok. 7 089 zł dzisiaj.',
+      },
+    },
+    {
+      en: {
+        title: 'Why "guaranteed 20% a month" is a red flag',
+        text: 'No regulated market investment guarantees high monthly returns without risk. When an ad combines "guaranteed profit" with "act today", walk away.',
+      },
+      pl: {
+        title: 'Dlaczego „gwarantowane 20% miesięcznie” to ostrzeżenie',
+        text: 'Żadna legalna inwestycja rynkowa nie gwarantuje wysokiego zysku bez ryzyka. Gdy oferta łączy „pewny zysk” z presją czasu, to klasyczny sygnał oszustwa.',
+      },
+    },
+    {
+      en: {
+        title: 'Small regular habits beat waiting for the "perfect day"',
+        text: 'Investing a steady, affordable amount every month reduces the stress of guessing market tops and bottoms — time in the market matters more than timing.',
+      },
+      pl: {
+        title: 'Małe regularne kwoty wygrywają z czekaniem na „idealny moment”',
+        text: 'Regularne odkładanie stałej, bezpiecznej kwoty co miesiąc zdejmuje stres z trafiania w dołki — w długim terminie kluczowy jest czas na rynku.',
+      },
+    },
+    {
+      en: {
+        title: 'Your emergency cushion protects your investments',
+        text: 'Keeping 3–6 months of everyday costs in safe cash means a broken laptop or car repair will not force you to sell investments during a market dip.',
+      },
+      pl: {
+        title: 'Poduszka finansowa chroni Twoje inwestycje',
+        text: 'Odkładając 3–6 miesięcy kosztów życia w bezpiecznej gotówce, nie musisz sprzedawać inwestycji ze stratą, gdy nagle zepsuje się auto lub laptop.',
+      },
+    },
+    {
+      en: {
+        title: 'One broad ETF spreads risk across hundreds of companies',
+        text: 'Instead of betting on a single company, a global index ETF lets even a small monthly amount own a tiny slice of hundreds of businesses worldwide.',
+      },
+      pl: {
+        title: 'Jeden szeroki ETF rozkłada ryzyko na setki firm',
+        text: 'Zamiast stawiać wszystko na jedną spółkę, globalny ETF indeksowy pozwala nawet małą kwotą posiadać mały ułamek setek firm z całego świata.',
+      },
+    },
+  ]);
+
+  function renderStartFact() {
+    const titleEl = document.getElementById('start-fact-title');
+    const textEl = document.getElementById('start-fact-text');
+    const countEl = document.getElementById('start-fact-count');
+    if (!titleEl || !textEl || !countEl) return;
+    const idx = ((state.factIndex % START_FACTS.length) + START_FACTS.length) % START_FACTS.length;
+    const item = START_FACTS[idx][state.lang === 'pl' ? 'pl' : 'en'];
+    titleEl.textContent = item.title;
+    textEl.textContent = item.text;
+    countEl.textContent = (idx + 1) + ' / ' + START_FACTS.length;
+  }
+
+  function nextStartFact() {
+    state.factIndex = (state.factIndex + 1) % START_FACTS.length;
+    renderStartFact();
+  }
+
   const INTRO_SLIDES = [1, 2, 3];
   const INTRO_ICONS = { 1: 'chart', 2: 'clock', 3: 'shield' };
   function renderIntro() {
@@ -2097,7 +2184,10 @@
     (name ? [name] : FORM_FIELDS).forEach((f) => {
       const box = els.form.querySelector('[data-field="' + f + '"]');
       const msg = els.form.querySelector('[data-error-for="' + f + '"]');
-      if (box) box.removeAttribute('data-invalid');
+      if (box) {
+        box.removeAttribute('data-invalid');
+        box.querySelectorAll('input').forEach((inp) => inp.removeAttribute('aria-invalid'));
+      }
       if (msg) { msg.hidden = true; msg.textContent = ''; }
     });
   }
@@ -2108,7 +2198,10 @@
       if (!errors[f]) return;
       const box = els.form.querySelector('[data-field="' + f + '"]');
       const msg = els.form.querySelector('[data-error-for="' + f + '"]');
-      if (box) box.setAttribute('data-invalid', '');
+      if (box) {
+        box.setAttribute('data-invalid', '');
+        box.querySelectorAll('input').forEach((inp) => inp.setAttribute('aria-invalid', 'true'));
+      }
       if (msg) { msg.textContent = t(errors[f]); msg.hidden = false; }
       if (!first && box) first = box;
     });
@@ -2153,10 +2246,12 @@
   }
   function openTailor(open) {
     const body = els.tailorBody;
+    if (!body) return;
     const toggle = document.querySelector('[data-action="toggle-tailor"]');
+    if (!toggle) { body.hidden = false; return; }
     const next = open == null ? body.hidden : open;
     body.hidden = !next;
-    if (toggle) toggle.setAttribute('aria-expanded', String(next));
+    toggle.setAttribute('aria-expanded', String(next));
   }
   function setFormBusy(busy) {
     const cta = els.ctaOnboarding;
@@ -4445,6 +4540,7 @@
     storageSet(LS_LANG, lang);
     closeTermPop();
     applyStaticI18n();
+    renderStartFact();
     renderGuideWelcome();
     renderSoundButton();
     renderStageCards();
@@ -4528,6 +4624,7 @@
       const a = el.dataset.action;
       switch (a) {
         case 'start-entry': beginJourney(); break;
+        case 'next-fact': nextStartFact(); break;
         case 'next-intro': nextIntro(); break;
         case 'skip-intro': skipIntro(); break;
         case 'close-intro': skipIntro(); break;
@@ -4771,6 +4868,7 @@
     hydrateIcons();
     hydrateCora();
     applyStaticI18n();
+    renderStartFact();
     renderGuideWelcome();
     renderSoundButton();
     configureChart();
