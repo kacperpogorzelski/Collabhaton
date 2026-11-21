@@ -109,7 +109,9 @@ Kontener `max-w-4xl mx-auto px-4 sm:px-6 lg:px-8`; układy `grid grid-cols-1 md:
   * Badge poziomu: `⭐ Poz. 1: Obserwator ({xp} XP)` -> `🏆 Poz. 2: Świadomy Start` po awansie.
   * Badge streaka `🔥 1 dzień` (`#F97316`).
   * **Gotowość (od Ekranu 2):** pasek `Gotowość: XX%` z animowanym `+10` (wartość z `confidence_score`, startuje od samooceny).
-* **Prawa (DEMO MODE):** 3 pigułki `[22 l. Student]`, `[38 l. Rodzina]`, `[56 l. 50+]` — wypełniają profil z `GET /api/demo-personas` i uruchamiają analizę.
+* **Prawa (DEMO MODE + Język):**
+  * Przełącznik języka **`PL | EN`** (przyciski min. `44 px` wysokości, `aria-pressed`, zapis wyboru w `localStorage`), domyślnie `PL`.
+  * 3 pigułki `[22 l. Student]`, `[38 l. Rodzina]`, `[56 l. 50+]` (w EN: `[22y Student]`, `[38y Family]`, `[56y 50+]`) — wypełniają profil z `GET /api/demo-personas?lang={lang}` i uruchamiają analizę w aktualnym języku.
 
 ---
 
@@ -195,3 +197,22 @@ Układ 2-kolumnowy od `md`, 1 kolumna na mobile.
 | „gwarantowany zysk", nazwy tickerów | „dane historyczne", „szerokie fundusze ETF" |
 | „Jestem za stary…" jako opcja odpowiedzi | „Wiek nie wyklucza — dopasowuję horyzont i proporcje" |
 | porównanie ETF nominalnie z gotówką realnie | obie wielkości w dzisiejszych złotych (nominał tylko jako dopisek) |
+
+---
+
+## 9. Wersja dwujęzyczna (PL / EN)
+
+* **Przełącznik w nagłówku:** przyciski `PL | EN` obok Demo Mode (min. `44 px`, `aria-pressed`), domyślnie `"pl"`. Wybór jest zapisywany w `localStorage` pod kluczem `fq_lang` i aktualizuje atrybut `<html lang="pl|en">` oraz `<title>` / meta opis.
+* **Implementacja bez build-toola i bez zewnętrznych bibliotek i18n:** lekki słownik `I18N = { pl: {...}, en: {...} }` w `static/app.js` oraz atrybuty `data-i18n` / `data-i18n-aria` w `static/index.html` (zero nowych zależności w `static/vendor/`).
+* **Zachowanie przy zmianie języka w trakcie pracy aplikacji:**
+  * **Ekran 1:** natychmiast tłumaczy statyczne UI i ponownie pobiera `GET /api/demo-personas?lang={lang}`.
+  * **Ekran 2:** tłumaczy statyczne UI (oś wykresu `Rok 0` / `Year 0`, etykiety, przyciski, stopka) oraz ponawia `POST /api/onboarding/analyze` z aktualnym profilem i nowym `lang`, aby odświeżyć filtr Speakly, mapę 14 dni, mikro-lekcje, opis planu i turę startową.
+  * **Ekrany 3–4 i Modal:** tłumaczy statyczne UI oraz przekazuje nowy `lang` w kolejnym żądaniu `POST /api/mission/turn` / `POST /api/challenge/accept`; kliknięcie pigułki Demo Mode uruchamia świeżą sesję w aktualnym języku.
+* **Waluta i jednostki bez FX:** wszystkie kwoty pozostają w **PLN** (bez przeliczania kursów) — w wersji PL zapis `zł`, w wersji EN zapis `PLN`. Wykres w EN używa podpisu osi `Year 0` i etykiety `today's PLN`.
+* **Angielski słownik compliance (§8 dla `lang="en"`):**
+  * Zamiast *„safe amount”* używać wyłącznie *„illustrative target amount”* / *„sensible starting point”*.
+  * Używać *„sample plan”*, *„broad global ETF”*, *„historical data”* (zero obietnic zysku, zero tickerów).
+  * Zamiast *„99% without loss”* używać *„in illustrative historical windows, X% ended with a positive real return”* (limit wyświetlania `min(97, wartość)`).
+  * Gotowość: *„Readiness: {start}% -> {score}%”* (*„full readiness comes on Day 14”*).
+* **Angielska stopka compliance (MiFID II) pod wykresem Ekranu 2 i na Ekranie 4:**
+  * *„Finance Quest is strictly an educational and simulation tool. Calculations are based on simplified assumptions and historical data, exclude capital gains tax, brokerage fees, and currency risk, do not guarantee future returns, and do not constitute investment advice or a recommendation under MiFID II. Investing involves the risk of losing part or all of your capital.”*
