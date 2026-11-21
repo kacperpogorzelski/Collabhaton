@@ -1,7 +1,16 @@
 /* ==========================================================================
-   Investly — static/simulator.js  (Issue #61: rich "What-If" simulator)
+   Investly — static/simulator.js  (Issue #61: educational "What-If" simulator)
    A self-contained module for #card-timemachine, loaded before app.js.
    app.js only calls window.InvestlySim.mount(...) and .refresh(...).
+
+   The card is built to teach, not just to plot:
+     1. "Explore a question" — four guided lessons set the controls and say what to notice.
+     2. Controls — monthly amount and horizon up front; the rest under "More settings".
+     3. Results — three KPIs, then one bar that shows how the end value is built
+        (what you paid in, what growth added, what inflation takes away).
+     4. "What this shows" — live sentences: inflation on cash, when growth overtakes
+        your own payments, what starting 5 years later costs, how a crash recovers.
+     5. Chart + a comparison table that is also the legend and the asset picker.
 
    Maths: monthly compounding, same formula as backend/finance_math.py
    (generate_projection_series). With the default settings (global ETF at the
@@ -17,23 +26,26 @@
   // 1. Assets and constants
   // ------------------------------------------------------------------------
   // rate: nominal yearly return after costs, before tax (ETF comes from the server).
-  // shock: value multipliers in years 3–6 when the crisis switch is on.
-  // Equities use the backend's own STRESS_MULTIPLIER; bonds dip 5%; gold and cash are not shocked.
+  // shock: value multipliers in years 3–6 when the crisis switch is on. Equities use the
+  // backend's own STRESS_MULTIPLIER; bonds dip 5%; gold and cash are not shocked.
+  // swing: 0–4, how hard a bad year can hit (educational scale, not a measured volatility).
   const EQUITY_SHOCK = { 3: 0.80, 4: 0.85, 5: 0.90, 6: 0.95 };
   const BOND_SHOCK = { 3: 0.95, 4: 0.9625, 5: 0.975, 6: 0.9875 };
   const ASSETS = [
-    { id: 'etf', rate: null, color: '#10B981', dash: [], shock: EQUITY_SHOCK },
-    { id: 'sp500', rate: 0.065, color: '#0369A1', dash: [], shock: EQUITY_SHOCK },
-    { id: 'bonds', rate: 0.040, color: '#49606C', dash: [10, 4], shock: BOND_SHOCK },
-    { id: 'gold', rate: 0.045, color: '#B98C24', dash: [], shock: null },
-    { id: 'cash', rate: 0, color: '#EF4444', dash: [7, 5], shock: null },
+    { id: 'etf', rate: null, color: '#10B981', dash: [], shock: EQUITY_SHOCK, swing: 3 },
+    { id: 'sp500', rate: 0.065, color: '#0369A1', dash: [], shock: EQUITY_SHOCK, swing: 4 },
+    { id: 'bonds', rate: 0.040, color: '#49606C', dash: [10, 4], shock: BOND_SHOCK, swing: 1 },
+    { id: 'gold', rate: 0.045, color: '#B98C24', dash: [], shock: null, swing: 3 },
+    { id: 'cash', rate: 0, color: '#EF4444', dash: [7, 5], shock: null, swing: 0 },
   ];
   const FOCUS_ORDER = ['etf', 'sp500', 'bonds', 'gold'];
   const ETF_DEFAULT_RATE = 0.057;     // docs/02 §3A fallback when the server sends no assumptions
   const INFLATION_DEFAULT = 3.5;
+  const DELAY_YEARS = 5;
   const WIN_RATE_CAP = 97;            // docs/02 §3B: never above 97%
   const WIN_RATE_KEYS = { 1: 73, 3: 84, 5: 90, 7: 93, 10: 96, 15: 99, 20: 100 };
   const LIMITS = { monthly: [50, 10000], initial: [0, 50000], years: [1, 30], inflation: [2, 8] };
+  const LESSONS = ['delay', 'crash', 'inflation', 'assets'];
 
   // Non-linear slider grids: fine steps where most people are, coarse steps at the top.
   function grid(parts) {
@@ -49,23 +61,18 @@
   // ------------------------------------------------------------------------
   const COPY = {
     en: {
-      sub: 'See where the same contributions could go. Change any number and the chart follows.',
+      sub: 'Same money, different choices. Move a slider and every number below explains itself.',
       headChip: '{amount}/mo for {years}',
-      compare: 'Compare',
-      compareHint: 'Tick to draw a line. Tap a name to show it in the results.',
-      showAsset: 'Show {asset} on the chart',
-      focusAsset: 'Show {asset} in the results',
-      inResults: 'in results',
-      'asset.etf': 'Global broad ETF',
-      'asset.sp500': 'S&P 500',
-      'asset.bonds': 'Treasury bonds',
-      'asset.gold': 'Gold',
-      'asset.cash': 'Cash 0%',
-      'about.etf': 'Thousands of companies from developed markets (MSCI World type) in one fund. Educational base rate of {rate} a year after costs, the same assumption as the rest of the app.',
-      'about.sp500': '500 large US companies. Illustrative long-term average of {rate} a year after costs. It swings more than a global ETF and, as a USD asset, adds currency risk for a PLN investor.',
-      'about.bonds': 'Lending money to the state: smaller swings and lower growth potential. Illustrative long-term average of {rate} a year.',
-      'about.gold': 'Has kept purchasing power over long periods, but pays no interest and can stall for years. Illustrative long-term average of {rate} a year.',
-      'about.cash': 'Money on a 0% account. In today’s money it shrinks every year by inflation. This is your baseline.',
+      lessonsTitle: 'Explore a question',
+      'lesson.delay': 'What does waiting 5 years cost?',
+      'lesson.crash': 'What does a crash do to my plan?',
+      'lesson.inflation': 'How much does inflation matter?',
+      'lesson.assets': 'Stocks, bonds or gold?',
+      'notice.delay': 'The dashed line starts {d} years later and ends on the same date. The gap at the end, about {gap} in today’s money, is the price of waiting.',
+      'notice.crash': 'In year 3 the line drops, then is back on its path by year 7. Selling in the dip would have turned a paper loss into a real one; paying in kept buying at lower prices.',
+      'notice.inflation': 'At {inf} inflation, the {paid} you pay in buys only {cash} worth of today’s goods on a 0% account. An asset has to beat inflation just to stand still.',
+      'notice.assets': 'Read the table across. S&P 500 ends highest and also swings hardest; bonds swing least and grow least. Gold shows that big swings do not promise big growth. Spreading money widely is why the global ETF is the base here.',
+      noticeLabel: 'What to notice',
       monthly: 'Monthly contribution',
       years: 'Horizon',
       more: 'More settings',
@@ -82,7 +89,7 @@
       whatIfNote: 'What-if view. Your sample plan is {plan}/mo for {years}.',
       amountAria: '{label} in PLN',
       kpiPaid: 'You pay in',
-      kpiPaidSub: 'On a 0% account that is worth {cash} in today’s money.',
+      kpiPaidSub: 'Your own money, before any growth.',
       kpiFocus: '{asset} in {years}',
       kpiFocusNominal: 'Nominal: about {amount}',
       kpiFocusReal: 'In today’s money: about {amount}',
@@ -91,35 +98,69 @@
       kpiGainSub: 'Both amounts in today’s money.',
       kpiGainEmpty: 'Turn on an asset other than cash to compare.',
       kpiNone: 'No asset selected',
+      buildTitle: 'How {asset} gets to {amount}',
+      buildPaid: 'You pay in',
+      buildGrowth: 'Growth adds',
+      buildDrop: 'Market drop',
+      buildNominal: 'Nominal value',
+      buildReal: 'In today’s money',
+      buildInflation: 'Inflation takes',
+      insightsTitle: 'What this shows',
+      'insight.cash': 'On a 0% account, inflation turns {paid} into {cash} of today’s buying power.',
+      'insight.cross': 'From year {y}, {asset} growth adds more each year than you pay in yourself. That is compounding at work.',
+      'insight.noCross': 'Within {years}, growth stays smaller than your own yearly payments. Compounding needs time to take over.',
+      'insight.delay': 'Starting {d} years later and stopping on the same date would leave about {gap} less in today’s money.',
+      'insight.crash': 'The year-3 crash is back on its path by year 7, because the contributions never stopped.',
+      tableTitle: 'Compare and choose what to draw',
+      tableHint: 'Tick to draw a line. Tap a name to explain it above.',
+      colAsset: 'Asset',
+      colValue: 'In {years}',
+      colVsCash: 'vs cash 0%',
+      colSwing: 'Swings',
+      showAsset: 'Show {asset} on the chart',
+      focusAsset: 'Explain {asset} in the results',
+      'swing.0': 'none in PLN',
+      'swing.1': 'low',
+      'swing.2': 'medium',
+      'swing.3': 'medium-high',
+      'swing.4': 'high',
+      swingAria: 'Swings: {level}',
+      'asset.etf': 'Global broad ETF',
+      'asset.sp500': 'S&P 500',
+      'asset.bonds': 'Treasury bonds',
+      'asset.gold': 'Gold',
+      'asset.cash': 'Cash 0%',
+      'about.etf': 'Thousands of companies from developed markets (MSCI World type) in one fund. Educational base rate of {rate} a year after costs, the same assumption as the rest of the app.',
+      'about.sp500': '500 large US companies. Illustrative long-term average of {rate} a year after costs. It swings more than a global ETF and, as a USD asset, adds currency risk for a PLN investor.',
+      'about.bonds': 'Lending money to the state: smaller swings and lower growth potential. Illustrative long-term average of {rate} a year.',
+      'about.gold': 'Has kept purchasing power over long periods, but pays no interest and can stall for years. Illustrative long-term average of {rate} a year.',
+      'about.cash': 'Money on a 0% account. In today’s money it shrinks every year by inflation. This is your baseline.',
       yReal: 'today’s PLN',
       yNominal: 'PLN, nominal',
       year: 'Year {n}',
       paidTip: 'Paid in: {amount}',
       crisisMark: 'Crisis',
+      crossMark: 'Growth > payments',
+      delayLabel: '{asset}, start {d} years later',
       chartAria: 'Line chart of the selected assets over {years}, {mode}.',
-      empty: 'Tick at least one asset to draw the chart.',
-      noteAssume: 'Assumptions: global ETF {etf} a year after costs (before 19% tax), inflation {inf} a year. S&P 500 {sp}, bonds {bonds} and gold {gold} are illustrative long-term averages, not year-by-year history. Taxes, broker fees and currency moves are left out.',
+      empty: 'Tick at least one asset in the table to draw the chart.',
+      noteAssume: 'Assumptions: global ETF {etf} a year after costs (before 19% tax), inflation {inf} a year. S&P 500 {sp}, bonds {bonds} and gold {gold} are illustrative long-term averages, not year-by-year history. Swings are an educational scale. Taxes, broker fees and currency moves are left out.',
       noteCrisis: 'Crisis scenario (educational): in year 3 stocks fall 20% and bonds 5%, then recover over years 4–6. Gold and cash are not shocked here. This is an illustration, not a forecast.',
       noteHistory: 'Historical data do not guarantee future results. Every asset here can also lose value.',
     },
     pl: {
-      sub: 'Zobacz, dokąd mogą trafić te same wpłaty. Zmień dowolną liczbę, a wykres pójdzie za nią.',
+      sub: 'Te same pieniądze, różne wybory. Przesuń suwak, a każda liczba poniżej sama się wytłumaczy.',
       headChip: '{amount}/mies. przez {years}',
-      compare: 'Porównaj',
-      compareHint: 'Zaznacz, by narysować linię. Kliknij nazwę, by pokazać ją w wynikach.',
-      showAsset: 'Pokaż {asset} na wykresie',
-      focusAsset: 'Pokaż {asset} w wynikach',
-      inResults: 'w wynikach',
-      'asset.etf': 'Globalny szeroki ETF',
-      'asset.sp500': 'S&P 500',
-      'asset.bonds': 'Obligacje skarbowe',
-      'asset.gold': 'Złoto',
-      'asset.cash': 'Gotówka 0%',
-      'about.etf': 'Tysiące spółek z rynków rozwiniętych (typu MSCI World) w jednym funduszu. Edukacyjna stopa bazowa {rate} rocznie po kosztach, to samo założenie co w całej aplikacji.',
-      'about.sp500': '500 dużych spółek z USA. Ilustracyjna długoterminowa średnia {rate} rocznie po kosztach. Waha się mocniej niż globalny ETF, a jako aktywo w USD dokłada ryzyko walutowe dla inwestora w złotych.',
-      'about.bonds': 'Pożyczasz pieniądze państwu: mniejsze wahania i niższy potencjał wzrostu. Ilustracyjna długoterminowa średnia {rate} rocznie.',
-      'about.gold': 'W długich okresach chroniło siłę nabywczą, ale nie wypłaca odsetek i potrafi stać w miejscu latami. Ilustracyjna długoterminowa średnia {rate} rocznie.',
-      'about.cash': 'Pieniądze na koncie 0%. W dzisiejszych złotych co roku kurczą się o inflację. To Twój punkt odniesienia.',
+      lessonsTitle: 'Sprawdź pytanie',
+      'lesson.delay': 'Ile kosztuje 5 lat zwłoki?',
+      'lesson.crash': 'Co kryzys robi z moim planem?',
+      'lesson.inflation': 'Jak bardzo liczy się inflacja?',
+      'lesson.assets': 'Akcje, obligacje czy złoto?',
+      'notice.delay': 'Przerywana linia startuje {d} lat później i kończy się w tym samym dniu. Różnica na końcu, ok. {gap} w dzisiejszych złotych, to cena czekania.',
+      'notice.crash': 'W 3. roku linia spada, a do 7. roku wraca na swój tor. Sprzedaż w dołku zamieniłaby stratę na papierze w prawdziwą; dalsze wpłaty kupowały taniej.',
+      'notice.inflation': 'Przy inflacji {inf} wpłacone {paid} na koncie 0% kupi dziś tylko tyle, co {cash}. Aktywo musi pokonać inflację, żeby w ogóle stać w miejscu.',
+      'notice.assets': 'Czytaj tabelę wierszami. S&P 500 kończy najwyżej i waha się najmocniej; obligacje wahają się najmniej i najmniej rosną. Złoto pokazuje, że duże wahania nie obiecują dużego wzrostu. Szerokie rozłożenie pieniędzy to powód, dla którego bazą jest tu globalny ETF.',
+      noticeLabel: 'Na co zwrócić uwagę',
       monthly: 'Miesięczna wpłata',
       years: 'Horyzont',
       more: 'Więcej ustawień',
@@ -136,7 +177,7 @@
       whatIfNote: 'Widok „co jeśli”. Twój przykładowy plan to {plan}/mies. przez {years}.',
       amountAria: '{label} w złotych',
       kpiPaid: 'Wpłacasz łącznie',
-      kpiPaidSub: 'Na koncie 0% to {cash} w dzisiejszych złotych.',
+      kpiPaidSub: 'Twoje własne pieniądze, bez żadnego wzrostu.',
       kpiFocus: '{asset}: wynik za {years}',
       kpiFocusNominal: 'Nominalnie ok. {amount}',
       kpiFocusReal: 'W dzisiejszych zł ok. {amount}',
@@ -145,14 +186,53 @@
       kpiGainSub: 'Obie kwoty w dzisiejszych złotych.',
       kpiGainEmpty: 'Włącz aktywo inne niż gotówka, aby porównać.',
       kpiNone: 'Nie wybrano aktywa',
+      buildTitle: 'Skąd się bierze {amount}: {asset}',
+      buildPaid: 'Wpłacasz',
+      buildGrowth: 'Wzrost dokłada',
+      buildDrop: 'Spadek rynku',
+      buildNominal: 'Wartość nominalna',
+      buildReal: 'W dzisiejszych zł',
+      buildInflation: 'Inflacja zabiera',
+      insightsTitle: 'Co to pokazuje',
+      'insight.cash': 'Na koncie 0% inflacja zamienia {paid} w {cash} dzisiejszej siły nabywczej.',
+      'insight.cross': 'Od {y}. roku wzrost ({asset}) dokłada co roku więcej, niż sam wpłacasz. Tak działa procent składany.',
+      'insight.noCross': 'W horyzoncie {years} wzrost jest mniejszy niż Twoje roczne wpłaty. Procent składany potrzebuje czasu.',
+      'insight.delay': 'Start {d} lat później i koniec w tym samym dniu dałby ok. {gap} mniej w dzisiejszych złotych.',
+      'insight.crash': 'Po kryzysie w 3. roku linia wraca na swój tor do 7. roku, bo wpłaty ani na chwilę się nie zatrzymały.',
+      tableTitle: 'Porównaj i wybierz, co narysować',
+      tableHint: 'Zaznacz, by narysować linię. Kliknij nazwę, by wyjaśnić ją wyżej.',
+      colAsset: 'Aktywo',
+      colValue: 'Za {years}',
+      colVsCash: 'vs gotówka 0%',
+      colSwing: 'Wahania',
+      showAsset: 'Pokaż {asset} na wykresie',
+      focusAsset: 'Wyjaśnij {asset} w wynikach',
+      'swing.0': 'brak w złotych',
+      'swing.1': 'niskie',
+      'swing.2': 'średnie',
+      'swing.3': 'średnio-wysokie',
+      'swing.4': 'wysokie',
+      swingAria: 'Wahania: {level}',
+      'asset.etf': 'Globalny szeroki ETF',
+      'asset.sp500': 'S&P 500',
+      'asset.bonds': 'Obligacje skarbowe',
+      'asset.gold': 'Złoto',
+      'asset.cash': 'Gotówka 0%',
+      'about.etf': 'Tysiące spółek z rynków rozwiniętych (typu MSCI World) w jednym funduszu. Edukacyjna stopa bazowa {rate} rocznie po kosztach, to samo założenie co w całej aplikacji.',
+      'about.sp500': '500 dużych spółek z USA. Ilustracyjna długoterminowa średnia {rate} rocznie po kosztach. Waha się mocniej niż globalny ETF, a jako aktywo w USD dokłada ryzyko walutowe dla inwestora w złotych.',
+      'about.bonds': 'Pożyczasz pieniądze państwu: mniejsze wahania i niższy potencjał wzrostu. Ilustracyjna długoterminowa średnia {rate} rocznie.',
+      'about.gold': 'W długich okresach chroniło siłę nabywczą, ale nie wypłaca odsetek i potrafi stać w miejscu latami. Ilustracyjna długoterminowa średnia {rate} rocznie.',
+      'about.cash': 'Pieniądze na koncie 0%. W dzisiejszych złotych co roku kurczą się o inflację. To Twój punkt odniesienia.',
       yReal: 'dzisiejsze zł',
       yNominal: 'zł nominalnie',
       year: 'Rok {n}',
       paidTip: 'Wpłacono: {amount}',
       crisisMark: 'Kryzys',
+      crossMark: 'Wzrost > wpłaty',
+      delayLabel: '{asset}, start {d} lat później',
       chartAria: 'Wykres liniowy wybranych aktywów w horyzoncie {years}, {mode}.',
-      empty: 'Zaznacz co najmniej jedno aktywo, aby narysować wykres.',
-      noteAssume: 'Założenia: globalny ETF {etf} rocznie po kosztach (przed podatkiem 19%), inflacja {inf} rocznie. S&P 500 {sp}, obligacje {bonds} i złoto {gold} to ilustracyjne długoterminowe średnie, a nie historia rok po roku. Pomijamy podatki, opłaty brokera i wahania kursów walut.',
+      empty: 'Zaznacz w tabeli co najmniej jedno aktywo, aby narysować wykres.',
+      noteAssume: 'Założenia: globalny ETF {etf} rocznie po kosztach (przed podatkiem 19%), inflacja {inf} rocznie. S&P 500 {sp}, obligacje {bonds} i złoto {gold} to ilustracyjne długoterminowe średnie, a nie historia rok po roku. Skala wahań jest edukacyjna. Pomijamy podatki, opłaty brokera i wahania kursów walut.',
       noteCrisis: 'Scenariusz kryzysu (edukacyjny): w 3. roku akcje spadają o 20%, a obligacje o 5%, po czym odrabiają straty w latach 4–6. Złota i gotówki tu nie obciążamy. To ilustracja, nie prognoza.',
       noteHistory: 'Dane historyczne nie gwarantują przyszłych wyników. Każde z tych aktywów może też tracić na wartości.',
     },
@@ -184,26 +264,41 @@
     return Math.min(WIN_RATE_CAP, pyRound(v));
   }
 
-  // One asset, years 1..Y. Each point: paid (nominal), nominal value, real value.
-  function series(asset, p) {
+  // One point: money invested for `investedYears`, read in calendar year `year`
+  // (inflation and the crisis follow the calendar, so a late start is compared fairly).
+  function point(asset, p, investedYears, year, crisis) {
     const r = asset.id === 'etf' ? p.etfRate : asset.rate;
     const i = r / 12;
+    const n = 12 * investedYears;
+    if (n <= 0) return { year, paid: 0, nominal: 0, real: 0 };
+    const paid = p.initial + p.monthly * n;
+    let nominal = r === 0 ? p.monthly * n : p.monthly * ((Math.pow(1 + i, n) - 1) / i);
+    if (p.initial > 0) nominal += r === 0 ? p.initial : p.initial * Math.pow(1 + i, n);
+    const real = nominal / Math.pow(1 + p.inflation / 100, year);
+    const m = crisis && asset.shock ? (asset.shock[year] || 1) : 1;
+    return { year, paid, nominal: pyRound(nominal * m), real: pyRound(real * m) };
+  }
+  function series(asset, p, delay) {
+    const d = delay || 0;
     const out = [];
-    for (let year = 1; year <= p.years; year++) {
-      const n = 12 * year;
-      const paid = p.initial + p.monthly * n;
-      let nominal = r === 0 ? p.monthly * n : p.monthly * ((Math.pow(1 + i, n) - 1) / i);
-      if (p.initial > 0) nominal += r === 0 ? p.initial : p.initial * Math.pow(1 + i, n);
-      const real = nominal / Math.pow(1 + p.inflation / 100, year);
-      const m = p.crisis && asset.shock ? (asset.shock[year] || 1) : 1;
-      out.push({ year, paid, nominal: pyRound(nominal * m), real: pyRound(real * m) });
-    }
+    for (let year = 1; year <= p.years; year++) out.push(point(asset, p, year - d, year, p.crisis));
     return out;
   }
   function computeAll(p) {
     const res = {};
     ASSETS.forEach((a) => { res[a.id] = series(a, p); });
     return res;
+  }
+  // First year in which growth adds more than the year's own contributions (no crisis overlay).
+  function crossoverYear(asset, p) {
+    let prev = 0;
+    for (let year = 1; year <= p.years; year++) {
+      const nom = point(asset, p, year, year, false).nominal;
+      const added = 12 * p.monthly + (year === 1 ? p.initial : 0);
+      if (nom - prev - added > 12 * p.monthly) return year;
+      prev = nom;
+    }
+    return null;
   }
 
   // ------------------------------------------------------------------------
@@ -218,6 +313,7 @@
   let st = null;       // current settings
   let chart = null;
   let lastKpi = null;
+  let view = null;     // derived numbers of the last render (for the chart plugin)
   const el = {};
 
   function lang() { return H && H.lang() === 'pl' ? 'pl' : 'en'; }
@@ -229,9 +325,10 @@
   function esc(v) { return H.escapeHtml(v); }
   function pct(v) {
     const d = Math.round(v * 10) / 10;
-    const s = (Number.isInteger(d) ? d.toFixed(1) : String(d));
+    const s = Number.isInteger(d) ? d.toFixed(1) : String(d);
     return (lang() === 'pl' ? s.replace('.', ',') : s) + '%';
   }
+  function signed(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + H.money(Math.abs(v)); }
   function assetName(id) { return tr('asset.' + id); }
   function assetById(id) { return ASSETS.find((a) => a.id === id); }
   function rateOf(id) { return id === 'etf' ? st.etfRate : assetById(id).rate; }
@@ -240,7 +337,7 @@
     return {
       monthly: plan.monthly, initial: 0, years: plan.years, inflation: plan.inflation,
       etfRate: plan.etfRate, real: true, crisis: false,
-      enabled: new Set(['etf', 'cash']), focus: 'etf',
+      enabled: new Set(['etf', 'cash']), focus: 'etf', lesson: null,
     };
   }
   function focusId() {
@@ -256,8 +353,21 @@
     return n;
   }
   function isPlan() {
-    return st.monthly === plan.monthly && st.years === plan.years && advancedChanged() === 0 &&
+    return st.monthly === plan.monthly && st.years === plan.years && advancedChanged() === 0 && !st.lesson &&
       st.enabled.size === 2 && st.enabled.has('etf') && st.enabled.has('cash') && focusId() === 'etf';
+  }
+
+  // Each lesson starts from the plan and changes only what it is about.
+  function applyLesson(id) {
+    const keepMore = el.moreOpen;
+    st = defaults();
+    st.lesson = id;
+    if (id === 'delay') st.years = Math.max(plan.years, 15);
+    if (id === 'crash') { st.crisis = true; st.years = Math.max(plan.years, 10); }
+    if (id === 'inflation') { st.inflation = 6; st.enabled = new Set(['etf', 'bonds', 'cash']); }
+    if (id === 'assets') { st.enabled = new Set(['etf', 'sp500', 'bonds', 'gold', 'cash']); st.years = Math.max(plan.years, 10); }
+    el.moreOpen = keepMore || id === 'crash' || id === 'inflation';
+    if (el.more) el.more.open = el.moreOpen;
   }
 
   // ------------------------------------------------------------------------
@@ -291,23 +401,34 @@
     );
   }
 
+  function assetRow(a) {
+    const name = assetName(a.id);
+    const focusable = a.id !== 'cash';
+    const meter = [1, 2, 3, 4].map((k) => '<i' + (k <= a.swing ? ' class="on"' : '') + '></i>').join('');
+    return (
+      '<li class="sim-row" data-asset="' + a.id + '" style="--asset:' + a.color + '">' +
+        '<button type="button" class="sim-row__tick" data-sim-toggle="' + a.id + '" aria-pressed="false" aria-label="' + esc(tr('showAsset', { asset: name })) + '">' +
+          '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</button>' +
+        (focusable
+          ? '<button type="button" class="sim-row__name" data-sim-focus="' + a.id + '" aria-pressed="false" aria-label="' + esc(tr('focusAsset', { asset: name })) + '">'
+          : '<span class="sim-row__name">') +
+          '<i class="sim-swatch sim-swatch--' + a.id + '"></i><span>' + esc(name) + '</span>' +
+        (focusable ? '</button>' : '</span>') +
+        '<span class="sim-row__value" data-col="value"></span>' +
+        '<span class="sim-row__vs" data-col="vs"></span>' +
+        '<span class="sim-row__swing" role="img" aria-label="' + esc(tr('swingAria', { level: tr('swing.' + a.swing) })) + '">' +
+          '<span class="sim-meter" aria-hidden="true">' + meter + '</span>' +
+          '<span class="sim-row__swingtext">' + esc(tr('swing.' + a.swing)) + '</span>' +
+        '</span>' +
+      '</li>'
+    );
+  }
+
   function build() {
     builtLang = lang();
-    const assetChips = ASSETS.map((a) => {
-      const name = assetName(a.id);
-      return (
-        '<li class="sim-asset" data-asset="' + a.id + '" style="--asset:' + a.color + '">' +
-          '<button type="button" class="sim-asset__tick" data-sim-toggle="' + a.id + '" aria-pressed="false" aria-label="' + esc(tr('showAsset', { asset: name })) + '">' +
-            '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-          '</button>' +
-          (a.id === 'cash'
-            ? '<span class="sim-asset__name"><i class="sim-swatch sim-swatch--' + a.id + '"></i>' + esc(name) + '</span>'
-            : '<button type="button" class="sim-asset__name" data-sim-focus="' + a.id + '" aria-pressed="false" aria-label="' + esc(tr('focusAsset', { asset: name })) + '"><i class="sim-swatch sim-swatch--' + a.id + '"></i>' + esc(name) + '<span class="sim-asset__mark">' + esc(tr('inResults')) + '</span></button>') +
-        '</li>'
-      );
-    }).join('');
+    const lessons = LESSONS.map((id) => '<li><button type="button" class="sim-lesson" data-sim-lesson="' + id + '" aria-pressed="false">' + esc(tr('lesson.' + id)) + '</button></li>').join('');
 
-    const yearsLabel = tr('years');
     root.innerHTML =
       // The tool panel above already says "What-if simulator", so the card opens on what it does.
       '<div class="sim-head">' +
@@ -315,18 +436,20 @@
         '<span class="chip chip--soft" id="sim-head-chip"></span>' +
       '</div>' +
 
-      '<fieldset class="sim-assets">' +
-        '<legend class="sim-assets__label">' + esc(tr('compare')) + '</legend>' +
-        '<p class="sim-hint">' + esc(tr('compareHint')) + '</p>' +
-        '<ul class="sim-assets__list">' + assetChips + '</ul>' +
-        '<p class="sim-about" id="sim-about" aria-live="polite"></p>' +
-      '</fieldset>' +
+      '<section class="sim-lessons" aria-labelledby="sim-lessons-title">' +
+        '<h4 class="sim-h" id="sim-lessons-title">' + esc(tr('lessonsTitle')) + '</h4>' +
+        '<ul class="sim-lessons__list">' + lessons + '</ul>' +
+        '<div class="sim-notice" id="sim-notice" hidden aria-live="polite">' +
+          '<p class="sim-notice__label">' + esc(tr('noticeLabel')) + '</p>' +
+          '<p class="sim-notice__text" id="sim-notice-text"></p>' +
+        '</div>' +
+      '</section>' +
 
       '<div class="sim-controls">' +
         amountField('sim-monthly', 'monthly', el.monthlyGrid, st.monthly) +
         '<div class="sim-field">' +
           '<div class="sim-field__top">' +
-            '<label class="sim-field__label" for="sim-years">' + esc(yearsLabel) + '</label>' +
+            '<label class="sim-field__label" for="sim-years">' + esc(tr('years')) + '</label>' +
             '<output class="sim-field__value" id="sim-years-out" for="sim-years"></output>' +
           '</div>' +
           '<input class="range" id="sim-years" type="range" min="' + LIMITS.years[0] + '" max="' + LIMITS.years[1] + '" step="1" value="' + st.years + '">' +
@@ -365,22 +488,52 @@
         '<button type="button" class="btn btn--ghost btn--sm" data-sim-reset id="sim-reset">' + esc(tr('reset')) + '</button>' +
       '</div>' +
 
-      '<div class="sim-kpis" aria-live="polite">' +
-        '<div class="sim-kpi sim-kpi--paid"><p class="sim-kpi__label">' + esc(tr('kpiPaid')) + '</p><p class="sim-kpi__value" id="sim-kpi-paid">0</p><p class="sim-kpi__sub" id="sim-kpi-paid-sub"></p></div>' +
-        '<div class="sim-kpi sim-kpi--focus" id="sim-kpi-focus-box"><p class="sim-kpi__label" id="sim-kpi-focus-label"></p><p class="sim-kpi__value" id="sim-kpi-focus">0</p><p class="sim-kpi__sub" id="sim-kpi-focus-sub"></p><p class="sim-kpi__sub" id="sim-kpi-win"></p></div>' +
-        '<div class="sim-kpi sim-kpi--gain"><p class="sim-kpi__label">' + esc(tr('kpiGain')) + '</p><p class="sim-kpi__value" id="sim-kpi-gain">0</p><p class="sim-kpi__sub" id="sim-kpi-gain-sub"></p></div>' +
+      '<div class="sim-results">' +
+        '<div class="sim-kpis">' +
+          '<div class="sim-kpi sim-kpi--paid"><p class="sim-kpi__label">' + esc(tr('kpiPaid')) + '</p><p class="sim-kpi__value" id="sim-kpi-paid">0</p><p class="sim-kpi__sub">' + esc(tr('kpiPaidSub')) + '</p></div>' +
+          '<div class="sim-kpi sim-kpi--focus" id="sim-kpi-focus-box"><p class="sim-kpi__label" id="sim-kpi-focus-label"></p><p class="sim-kpi__value" id="sim-kpi-focus">0</p><p class="sim-kpi__sub" id="sim-kpi-focus-sub"></p><p class="sim-kpi__sub" id="sim-kpi-win"></p></div>' +
+          '<div class="sim-kpi sim-kpi--gain"><p class="sim-kpi__label">' + esc(tr('kpiGain')) + '</p><p class="sim-kpi__value" id="sim-kpi-gain">0</p><p class="sim-kpi__sub" id="sim-kpi-gain-sub"></p></div>' +
+        '</div>' +
+
+        // The one memorable element: how the end value is built.
+        '<figure class="sim-build" id="sim-build">' +
+          '<figcaption class="sim-h" id="sim-build-title"></figcaption>' +
+          '<div class="sim-build__row">' +
+            '<span class="sim-build__label">' + esc(tr('buildNominal')) + '</span>' +
+            '<div class="sim-build__bar" id="sim-build-top"><span class="seg-paid"></span><span class="seg-growth"></span></div>' +
+          '</div>' +
+          '<div class="sim-build__row">' +
+            '<span class="sim-build__label">' + esc(tr('buildReal')) + '</span>' +
+            '<div class="sim-build__bar" id="sim-build-bottom"><span class="seg-real"></span><span class="seg-infl"></span></div>' +
+          '</div>' +
+          '<ul class="sim-build__legend" id="sim-build-legend"></ul>' +
+        '</figure>' +
+
+        '<section class="sim-insights" aria-labelledby="sim-insights-title">' +
+          '<h4 class="sim-h" id="sim-insights-title">' + esc(tr('insightsTitle')) + '</h4>' +
+          '<ul class="sim-insights__list" id="sim-insights" aria-live="polite"></ul>' +
+        '</section>' +
       '</div>' +
 
       '<div class="sim-chart">' +
         '<canvas id="sim-chart" role="img"></canvas>' +
         '<p class="sim-chart__empty" id="sim-chart-empty" hidden>' + esc(tr('empty')) + '</p>' +
-      '</div>';
+      '</div>' +
+
+      '<section class="sim-table" aria-labelledby="sim-table-title">' +
+        '<h4 class="sim-h" id="sim-table-title">' + esc(tr('tableTitle')) + '</h4>' +
+        '<p class="sim-hint">' + esc(tr('tableHint')) + '</p>' +
+        '<div class="sim-table__head" aria-hidden="true"><span></span><span>' + esc(tr('colAsset')) + '</span><span id="sim-col-value"></span><span>' + esc(tr('colVsCash')) + '</span><span>' + esc(tr('colSwing')) + '</span></div>' +
+        '<ul class="sim-table__rows">' + ASSETS.map(assetRow).join('') + '</ul>' +
+        '<p class="sim-about" id="sim-about" aria-live="polite"></p>' +
+      '</section>';
 
     if (notesEl) notesEl.innerHTML = '<p id="sim-note-assume"></p><p id="sim-note-crisis" hidden></p><p>' + esc(tr('noteHistory')) + '</p>';
 
-    ['head-chip', 'about', 'monthly-num', 'monthly-range', 'years', 'years-out', 'more', 'more-count', 'initial-num', 'initial-range',
-      'inflation', 'inflation-out', 'crisis', 'plan-note', 'reset', 'kpi-paid', 'kpi-paid-sub', 'kpi-focus-box', 'kpi-focus-label',
-      'kpi-focus', 'kpi-focus-sub', 'kpi-win', 'kpi-gain', 'kpi-gain-sub', 'chart', 'chart-empty', 'note-assume', 'note-crisis']
+    ['head-chip', 'notice', 'notice-text', 'monthly-num', 'monthly-range', 'years', 'years-out', 'more', 'more-count', 'initial-num', 'initial-range',
+      'inflation', 'inflation-out', 'crisis', 'plan-note', 'reset', 'kpi-paid', 'kpi-focus-box', 'kpi-focus-label',
+      'kpi-focus', 'kpi-focus-sub', 'kpi-win', 'kpi-gain', 'kpi-gain-sub', 'build', 'build-title', 'build-top', 'build-bottom', 'build-legend',
+      'insights', 'chart', 'chart-empty', 'col-value', 'about', 'note-assume', 'note-crisis']
       .forEach((k) => { el[k] = document.getElementById('sim-' + k); });
 
     if (chart) { chart.destroy(); chart = null; }
@@ -396,20 +549,15 @@
     const p = max > min ? ((Number(input.value) - min) / (max - min)) * 100 : 0;
     input.style.setProperty('--fill', clamp(p, 0, 100) + '%');
   }
-  function syncControls(skip) {
-    const f = focusId();
-    root.querySelectorAll('.sim-asset').forEach((li) => {
-      const id = li.dataset.asset;
-      const on = st.enabled.has(id);
-      li.classList.toggle('is-on', on);
-      li.classList.toggle('is-focus', id === f);
-      li.querySelector('[data-sim-toggle]').setAttribute('aria-pressed', String(on));
-      const fb = li.querySelector('[data-sim-focus]');
-      if (fb) fb.setAttribute('aria-pressed', String(id === f));
-    });
-    const aboutId = f || (st.enabled.has('cash') ? 'cash' : 'etf');
-    el.about.textContent = tr('about.' + aboutId, { rate: pct(rateOf(aboutId) * 100) });
+  // Plain text that also stops a count-up still running on the node (app.js animateNumber).
+  function setText(node, text) {
+    if (node._fqRaf) { cancelAnimationFrame(node._fqRaf); node._fqRaf = null; }
+    clearTimeout(node._fqTimer);
+    node.textContent = text;
+  }
 
+  function syncControls(skip) {
+    root.querySelectorAll('[data-sim-lesson]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.simLesson === st.lesson)));
     if (skip !== 'monthly-num') el['monthly-num'].value = String(st.monthly);
     if (skip !== 'monthly-range') el['monthly-range'].value = String(nearestIndex(el.monthlyGrid, st.monthly));
     if (skip !== 'initial-num') el['initial-num'].value = String(st.initial);
@@ -419,17 +567,14 @@
     [el['monthly-range'], el['initial-range'], el.years, el.inflation].forEach(fill);
     el['years-out'].textContent = H.years(st.years);
     el['inflation-out'].textContent = pct(st.inflation);
-
     root.querySelectorAll('[data-sim-mode]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.simMode === 'real') === st.real)));
     el.crisis.setAttribute('aria-checked', String(st.crisis));
     const n = advancedChanged();
     el['more-count'].textContent = n ? tr('changed', { n }) : '';
-
     const planned = isPlan();
     el.reset.disabled = planned;
     el['plan-note'].textContent = tr(planned ? 'planNote' : 'whatIfNote', { plan: H.money(plan.monthly), years: H.years(plan.years) });
     el['head-chip'].textContent = tr('headChip', { amount: H.money(st.monthly), years: H.years(st.years) });
-
     el['note-assume'].textContent = tr('noteAssume', {
       etf: pct(st.etfRate * 100), inf: pct(st.inflation), sp: pct(assetById('sp500').rate * 100),
       bonds: pct(assetById('bonds').rate * 100), gold: pct(assetById('gold').rate * 100),
@@ -438,29 +583,49 @@
     el['note-crisis'].textContent = tr('noteCrisis');
   }
 
-  function renderKpis(all, animate) {
+  // Everything derived from the current settings, computed once per render.
+  function derive() {
+    const all = computeAll(st);
     const y = st.years;
-    const cash = all.cash[y - 1];
     const f = focusId();
+    const fa = f ? assetById(f) : null;
+    const cash = all.cash[y - 1];
     const fp = f ? all[f][y - 1] : null;
+    const cross = fa ? crossoverYear(fa, st) : null;
+    const canDelay = !!fa && y > DELAY_YEARS + 2;
+    const delayed = canDelay ? series(fa, st, DELAY_YEARS) : null;
+    const gap = canDelay ? fp.real - delayed[y - 1].real : 0;
+    return { all, y, f, fa, cash, fp, cross, canDelay, delayed, gap };
+  }
+
+  function renderLessonNotice(v) {
+    const id = st.lesson;
+    el.notice.hidden = !id;
+    if (!id) return;
+    let text = '';
+    if (id === 'delay') text = v.canDelay ? tr('notice.delay', { d: DELAY_YEARS, gap: H.money(v.gap) }) : tr('insight.noCross', { years: H.years(v.y) });
+    else if (id === 'inflation') text = tr('notice.inflation', { inf: pct(st.inflation), paid: H.money(v.cash.paid), cash: H.money(v.cash.real) });
+    else text = tr('notice.' + id);
+    el['notice-text'].textContent = text;
+  }
+
+  function renderKpis(v, animate) {
     const k = {
-      paid: cash.paid,
-      focus: fp ? (st.real ? fp.real : fp.nominal) : cash[st.real ? 'real' : 'nominal'],
-      gain: fp ? fp.real - cash.real : 0,
+      paid: v.cash.paid,
+      focus: v.fp ? (st.real ? v.fp.real : v.fp.nominal) : v.cash[st.real ? 'real' : 'nominal'],
+      gain: v.fp ? v.fp.real - v.cash.real : 0,
     };
     const put = (node, key, fmt) => {
       if (animate && lastKpi && H.animateNumber) H.animateNumber(node, lastKpi[key], k[key], { duration: 420, format: fmt });
-      else node.textContent = fmt(k[key]);
+      else setText(node, fmt(k[key]));
     };
-    const signed = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + H.money(Math.abs(v));
     put(el['kpi-paid'], 'paid', H.money);
-    el['kpi-paid-sub'].textContent = tr('kpiPaidSub', { cash: H.money(cash.real) });
 
-    const shownId = f || 'cash';
-    const hasFocus = !!f || st.enabled.has('cash');
+    const shownId = v.f || 'cash';
+    const hasFocus = !!v.f || st.enabled.has('cash');
     el['kpi-focus-box'].style.setProperty('--asset', hasFocus ? assetById(shownId).color : 'var(--rule)');
-    el['kpi-focus-label'].textContent = hasFocus ? tr('kpiFocus', { asset: assetName(shownId), years: H.years(y) }) : tr('kpiNone');
-    const other = fp || cash;
+    el['kpi-focus-label'].textContent = hasFocus ? tr('kpiFocus', { asset: assetName(shownId), years: H.years(v.y) }) : tr('kpiNone');
+    const other = v.fp || v.cash;
     if (hasFocus) {
       put(el['kpi-focus'], 'focus', H.money);
       el['kpi-focus-sub'].textContent = st.real ? tr('kpiFocusNominal', { amount: H.money(other.nominal) }) : tr('kpiFocusReal', { amount: H.money(other.real) });
@@ -468,10 +633,10 @@
       setText(el['kpi-focus'], '—');
       el['kpi-focus-sub'].textContent = tr('empty');
     }
-    el['kpi-win'].hidden = f !== 'etf';
-    el['kpi-win'].textContent = f === 'etf' ? tr('kpiWin', { p: winRate(y) }) : '';
+    el['kpi-win'].hidden = v.f !== 'etf';
+    el['kpi-win'].textContent = v.f === 'etf' ? tr('kpiWin', { p: winRate(v.y) }) : '';
 
-    if (fp) {
+    if (v.fp) {
       put(el['kpi-gain'], 'gain', signed);
       el['kpi-gain'].dataset.sign = k.gain >= 0 ? 'up' : 'down';
       el['kpi-gain-sub'].textContent = tr('kpiGainSub');
@@ -483,16 +648,68 @@
     lastKpi = k;
   }
 
-  // Plain text that also stops a count-up still running on the node (app.js animateNumber).
-  function setText(node, text) {
-    if (node._fqRaf) { cancelAnimationFrame(node._fqRaf); node._fqRaf = null; }
-    clearTimeout(node._fqTimer);
-    node.textContent = text;
+  // Two bars on one scale: nominal = paid + growth; today's money = nominal − inflation.
+  function renderBuild(v) {
+    const id = v.f || (st.enabled.has('cash') ? 'cash' : null);
+    el.build.hidden = !id;
+    if (!id) return;
+    const p = id === 'cash' ? v.cash : v.fp;
+    const growth = p.nominal - p.paid;
+    const infl = p.nominal - p.real;
+    const scale = Math.max(p.paid, p.nominal, 1);
+    const w = (x) => clamp((x / scale) * 100, 0, 100).toFixed(2) + '%';
+    el.build.style.setProperty('--asset', assetById(id).color);
+    el['build-title'].textContent = tr('buildTitle', { asset: assetName(id), amount: H.money(st.real ? p.real : p.nominal) });
+    const top = el['build-top'].children;
+    top[0].style.width = w(Math.min(p.paid, p.nominal));
+    top[1].style.width = w(Math.abs(growth));
+    top[1].classList.toggle('is-drop', growth < 0);
+    const bottom = el['build-bottom'].children;
+    bottom[0].style.width = w(p.real);
+    bottom[1].style.width = w(infl);
+    const item = (cls, label, amount) => '<li><i class="' + cls + '"></i><span>' + esc(label) + '</span><strong>' + esc(amount) + '</strong></li>';
+    el['build-legend'].innerHTML =
+      item('seg-paid', tr('buildPaid'), H.money(p.paid)) +
+      (growth < 0 ? item('seg-growth is-drop', tr('buildDrop'), signed(growth)) : item('seg-growth', tr('buildGrowth'), signed(growth))) +
+      item('seg-infl', tr('buildInflation'), '−' + H.money(infl)) +
+      item('seg-real', tr('buildReal'), H.money(p.real));
   }
 
-  // Shaded band on "Year 3" while the crisis switch is on.
-  const crisisBand = {
-    id: 'simCrisisBand',
+  function renderInsights(v) {
+    const items = [tr('insight.cash', { paid: H.money(v.cash.paid), cash: H.money(v.cash.real) })];
+    if (v.fa) {
+      items.push(v.cross ? tr('insight.cross', { y: v.cross, asset: assetName(v.f) }) : tr('insight.noCross', { years: H.years(v.y) }));
+      if (v.canDelay) items.push(tr('insight.delay', { d: DELAY_YEARS, gap: H.money(v.gap) }));
+      if (st.crisis && v.fa.shock && v.y >= 7) items.push(tr('insight.crash'));
+    }
+    el.insights.innerHTML = items.map((s) => '<li>' + esc(s) + '</li>').join('');
+  }
+
+  function renderTable(v) {
+    const key = st.real ? 'real' : 'nominal';
+    el['col-value'].textContent = tr('colValue', { years: H.years(v.y) });
+    root.querySelectorAll('.sim-row').forEach((li) => {
+      const id = li.dataset.asset;
+      const on = st.enabled.has(id);
+      const p = v.all[id][v.y - 1];
+      li.classList.toggle('is-on', on);
+      li.classList.toggle('is-focus', id === v.f);
+      li.querySelector('[data-sim-toggle]').setAttribute('aria-pressed', String(on));
+      const fb = li.querySelector('[data-sim-focus]');
+      if (fb) fb.setAttribute('aria-pressed', String(id === v.f));
+      li.querySelector('[data-col="value"]').textContent = H.money(p[key]);
+      const vs = li.querySelector('[data-col="vs"]');
+      const d = p.real - v.cash.real;
+      vs.textContent = id === 'cash' ? '—' : signed(d);
+      vs.dataset.sign = id === 'cash' ? '' : (d >= 0 ? 'up' : 'down');
+    });
+    const aboutId = v.f || (st.enabled.has('cash') ? 'cash' : 'etf');
+    el.about.textContent = tr('about.' + aboutId, { rate: pct(rateOf(aboutId) * 100) });
+  }
+
+  // Chart overlays: a shaded crisis year and a dot where growth overtakes payments.
+  const overlays = {
+    id: 'simOverlays',
     beforeDatasetsDraw(c) {
       if (!st || !st.crisis || st.years < 3) return;
       const x = c.scales.x;
@@ -510,24 +727,48 @@
       ctx.fillText(tr('crisisMark'), x3, area.top + 12);
       ctx.restore();
     },
+    afterDatasetsDraw(c) {
+      if (!view || !view.cross || !view.f) return;
+      const idx = c.data.datasets.findIndex((d) => d.simId === view.f);
+      if (idx < 0 || !c.isDatasetVisible(idx)) return;
+      const pt = c.getDatasetMeta(idx).data[view.cross];
+      if (!pt) return;
+      const ctx = c.ctx;
+      const color = assetById(view.f).color;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+      ctx.font = '700 11px ' + getComputedStyle(document.body).fontFamily;
+      const label = tr('crossMark');
+      const tw = ctx.measureText(label).width;
+      const right = pt.x + 10 + tw < c.chartArea.right;
+      ctx.textAlign = right ? 'left' : 'right';
+      ctx.fillStyle = '#1C3745';
+      ctx.fillText(label, right ? pt.x + 9 : pt.x - 9, pt.y - 8);
+      ctx.restore();
+    },
   };
 
-  function renderChart(all) {
+  function renderChart(v) {
     const empty = st.enabled.size === 0;
     el['chart-empty'].hidden = !empty;
     el.chart.setAttribute('aria-label', tr('chartAria', { years: H.years(st.years), mode: st.real ? tr('real') : tr('nominal') }));
     if (!window.Chart) return;
-    const f = focusId();
     const key = st.real ? 'real' : 'nominal';
     const labels = [tr('year', { n: 0 })];
     for (let y = 1; y <= st.years; y++) labels.push(tr('year', { n: y }));
-    const paid = [st.initial].concat(all.cash.map((p) => p.paid));
+    const paid = [st.initial].concat(v.all.cash.map((p) => p.paid));
     const datasets = ASSETS.filter((a) => st.enabled.has(a.id)).map((a) => {
-      const isFocus = a.id === f;
+      const isFocus = a.id === v.f;
       return {
         simId: a.id,
         label: assetName(a.id),
-        data: [st.initial].concat(all[a.id].map((p) => p[key])),
+        data: [st.initial].concat(v.all[a.id].map((p) => p[key])),
         borderColor: a.color,
         borderDash: a.dash,
         borderWidth: isFocus ? 3 : 1.75,
@@ -542,6 +783,16 @@
         order: isFocus ? 0 : 1,
       };
     });
+    if (st.lesson === 'delay' && v.canDelay) {
+      datasets.push({
+        simId: 'delay',
+        label: tr('delayLabel', { asset: assetName(v.f), d: DELAY_YEARS }),
+        // Nothing is drawn before the late start; the line begins at 0 in year DELAY_YEARS.
+        data: [null].concat(v.delayed.map((p) => (p.year < DELAY_YEARS ? null : p[key]))),
+        borderColor: v.fa.color, borderDash: [3, 4], borderWidth: 2, fill: false, tension: 0.3,
+        pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: '#FFFFFF', pointHoverBorderColor: v.fa.color, order: 2,
+      });
+    }
     const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (chart) {
       chart.data.labels = labels;
@@ -555,7 +806,7 @@
     chart = new window.Chart(el.chart, {
       type: 'line',
       data: { labels, datasets },
-      plugins: [crisisBand],
+      plugins: [overlays],
       options: {
         responsive: true, maintainAspectRatio: false,
         animation: { duration: reduced ? 0 : 300 },
@@ -582,7 +833,7 @@
           y: {
             beginAtZero: true, grid: { color: 'rgba(28,55,69,0.06)' }, border: { display: false },
             title: { display: true, text: st.real ? tr('yReal') : tr('yNominal'), font: { size: 11, weight: '600' } },
-            ticks: { callback: (v) => H.compactMoney(v), maxTicksLimit: 6 },
+            ticks: { callback: (val) => H.compactMoney(val), maxTicksLimit: 6 },
           },
         },
       },
@@ -610,30 +861,35 @@
     if (!root || !st) return;
     if (lang() !== builtLang) build();
     syncControls(o.skip);
-    const all = computeAll(st);
-    renderKpis(all, o.animate !== false);
-    renderChart(all);
+    view = derive();
+    renderLessonNotice(view);
+    renderKpis(view, o.animate !== false);
+    renderBuild(view);
+    renderInsights(view);
+    renderChart(view);
+    renderTable(view);
     if (H.onChange) H.onChange({ monthly: st.monthly, years: st.years, isPlanMonthly: st.monthly === plan.monthly });
   }
 
   // ------------------------------------------------------------------------
-  // 7. Events (delegated on #sim-root, so rebuilding the DOM never leaks listeners)
+  // 7. Events (delegated on #sim-root, so rebuilding the DOM never leaks listeners).
+  //    Lesson notices are computed live, so a lesson stays on while the person keeps exploring.
   // ------------------------------------------------------------------------
   function onInput(e) {
     const id = e.target && e.target.id;
     if (!id || id.indexOf('sim-') !== 0) return;
     const v = Number(e.target.value);
-    if (id === 'sim-monthly-range') { st.monthly = el.monthlyGrid[clamp(Math.round(v), 0, el.monthlyGrid.length - 1)]; render({ skip: id }); }
-    else if (id === 'sim-initial-range') { st.initial = INITIAL_GRID[clamp(Math.round(v), 0, INITIAL_GRID.length - 1)]; render({ skip: id }); }
-    else if (id === 'sim-years') { st.years = clamp(Math.round(v), LIMITS.years[0], LIMITS.years[1]); render(); }
-    else if (id === 'sim-inflation') { st.inflation = clamp(Math.round(v * 10) / 10, LIMITS.inflation[0], LIMITS.inflation[1]); render(); }
+    if (id === 'sim-monthly-range') { st.monthly = el.monthlyGrid[clamp(Math.round(v), 0, el.monthlyGrid.length - 1)]; }
+    else if (id === 'sim-initial-range') { st.initial = INITIAL_GRID[clamp(Math.round(v), 0, INITIAL_GRID.length - 1)]; }
+    else if (id === 'sim-years') { st.years = clamp(Math.round(v), LIMITS.years[0], LIMITS.years[1]); }
+    else if (id === 'sim-inflation') { st.inflation = clamp(Math.round(v * 10) / 10, LIMITS.inflation[0], LIMITS.inflation[1]); }
     else if (id === 'sim-monthly-num' || id === 'sim-initial-num') {
       // Typing: apply only values already inside the range; the field is clamped on commit.
       const lim = id === 'sim-monthly-num' ? LIMITS.monthly : LIMITS.initial;
       if (e.target.value === '' || !Number.isFinite(v) || v < lim[0] || v > lim[1]) return;
       if (id === 'sim-monthly-num') st.monthly = Math.round(v); else st.initial = Math.round(v);
-      render({ skip: id });
-    }
+    } else return;
+    render({ skip: id });
   }
   function onChange(e) {
     const id = e.target && e.target.id;
@@ -645,8 +901,13 @@
     render();
   }
   function onClick(e) {
-    const t = e.target.closest ? e.target.closest('[data-sim-toggle],[data-sim-focus],[data-sim-mode],[data-sim-reset],#sim-crisis') : null;
+    const t = e.target.closest ? e.target.closest('[data-sim-lesson],[data-sim-toggle],[data-sim-focus],[data-sim-mode],[data-sim-reset],#sim-crisis') : null;
     if (!t || !root.contains(t)) return;
+    if (t.dataset.simLesson) {
+      if (st.lesson === t.dataset.simLesson) { st = defaults(); } else applyLesson(t.dataset.simLesson);
+      render();
+      return;
+    }
     if (t.dataset.simToggle) {
       const id = t.dataset.simToggle;
       if (st.enabled.has(id)) st.enabled.delete(id); else st.enabled.add(id);
@@ -657,6 +918,7 @@
       st.real = t.dataset.simMode === 'real';
     } else if (t.id === 'sim-crisis') {
       st.crisis = !st.crisis;
+      if (st.lesson === 'crash' && !st.crisis) st.lesson = null;   // its notice would be untrue
     } else if (t.hasAttribute('data-sim-reset')) {
       st = defaults();
       el.moreOpen = false;
