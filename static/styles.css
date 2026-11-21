@@ -1312,7 +1312,6 @@ body.is-senior-friendly .lessons { gap: 16px; }
 body.is-senior-friendly .scene__msg { line-height: 1.65; }
 body.is-senior-friendly .ready { flex-basis: 280px; }
 @media (min-width: 900px) { body.is-senior-friendly .hub { grid-template-columns: 300px minmax(0, 1fr); } }
-@media (max-width: 639px) { body.is-senior-friendly .hud__stats .stat--day { display: none; } }
 
 /* --------------------------------------------------------------------------
    19. Large screens & reduced motion
