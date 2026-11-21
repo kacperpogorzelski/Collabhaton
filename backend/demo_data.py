@@ -9,6 +9,7 @@ szablony zawierają placeholdery uzupełniane przez ``.format(**session_facts)``
 from __future__ import annotations
 
 import random
+import re
 from typing import Literal
 
 from backend.schemas import (
@@ -72,6 +73,9 @@ __all__ = [
     "CHECKPOINT_1_QUESTIONS_EN",
     "CHECKPOINT_1_PASS_PCT",
     "CHECKPOINT_1_REWARD_XP",
+    "EXPLAIN_FALLBACKS",
+    "EXPLAIN_FALLBACKS_EN",
+    "EXPLAIN_TOPIC_KEYWORDS",
     "POST_14_PATHS",
     "POST_14_PATHS_EN",
     "PLAN_SENTENCE",
@@ -99,6 +103,7 @@ __all__ = [
     "get_checkpoint_questions",
     "grade_checkpoint",
     "get_post_14_paths",
+    "get_explain_fallback",
     "build_leaderboard",
 ]
 
@@ -1505,6 +1510,403 @@ POST_14_PATHS: list[dict] = [dict(path) for path in _POST_14_PATHS_BY_LANG["pl"]
 POST_14_PATHS_EN: list[dict] = [dict(path) for path in _POST_14_PATHS_BY_LANG["en"]]
 
 # --------------------------------------------------------------------------- #
+# Bank wyjaśnień offline „Explain with real-life example + mini-drill” (§11)
+# --------------------------------------------------------------------------- #
+
+EXPLAIN_FALLBACKS: dict[str, dict] = {
+    "inflation": {
+        "simple_explanation": (
+            "Inflacja to wzrost cen — te same pieniądze kupują z roku na rok coraz mniej. "
+            "Gotówka na koncie 0% nie chroni przed tym zjawiskiem."
+        ),
+        "real_life_example": (
+            "Twój koszyk zakupów kosztuje dziś 200 zł, a przy inflacji 3,5% za rok te same "
+            "produkty to około 207 zł. Przy niezmienionej pensji kupujesz po prostu mniej."
+        ),
+        "drill_question": (
+            "Co dzieje się z siłą nabywczą 1 000 zł leżących rok na koncie 0%, gdy inflacja "
+            "wynosi 3,5%?"
+        ),
+        "drill_options": [
+            "Kupuje mniej — realnie traci około 35 zł",
+            "Kupuje dokładnie tyle samo",
+            "Kupuje więcej, bo bank dolicza odsetki",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Dokładnie — przy inflacji 3,5% tysiąc złotych kupuje po roku mniej. Właśnie "
+            "dlatego gotówka na koncie 0% traci realnie."
+        ),
+        "is_fallback": True,
+    },
+    "etf": {
+        "simple_explanation": (
+            "Szeroki ETF to jeden koszyk z setkami firm z całego świata. Kupuje się go jak "
+            "każdy instrument, a roczny koszt (TER) bywa niski."
+        ),
+        "real_life_example": (
+            "Zamiast stawiać wszystko na jedną restaurację z okolicy, kupujesz udział w całej "
+            "galerii. Jeśli jedna restauracja podupadnie, reszta nadal działa."
+        ),
+        "drill_question": "Co oznacza niski wskaźnik TER w szerokim ETF?",
+        "drill_options": [
+            "Niższy roczny koszt, który mniej obniża wynik",
+            "Gwarancję zysku w każdym roku",
+            "Brak jakiegokolwiek ryzyka rynkowego",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Tak — TER to roczny koszt funduszu. Im niższy, tym mniej odbiera wynikowi, ale "
+            "nie usuwa ryzyka rynkowego."
+        ),
+        "is_fallback": True,
+    },
+    "emergency_fund": {
+        "simple_explanation": (
+            "Poduszka finansowa to osobne pieniądze na nagłe wydatki. Dzięki niej nie musisz "
+            "sprzedawać inwestycji w złym momencie."
+        ),
+        "real_life_example": (
+            "To jak koło zapasowe w samochodzie: nie używasz go codziennie, ale gdy złapiesz "
+            "gumę, podróż trwa dalej. Poduszka leży osobno od długoterminowego ETF."
+        ),
+        "drill_question": "Gdzie powinna być poduszka finansowa?",
+        "drill_options": [
+            "Na osobnym, łatwo dostępnym koncie oszczędnościowym",
+            "Wyłącznie w szerokim ETF na wiele lat",
+            "W jednej spółce, żeby szybciej rosła",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Właśnie tak — poduszka ma być szybko dostępna i oddzielona od inwestycji. ETF "
+            "też nie jest zamrożony, ale wypłata zajmuje zwykle kilka dni roboczych."
+        ),
+        "is_fallback": True,
+    },
+    "volatility": {
+        "simple_explanation": (
+            "Wahania to normalna część inwestowania. Spadek na papierze nie jest stratą, "
+            "dopóki nie sprzedasz jednostek w panice."
+        ),
+        "real_life_example": (
+            "To jak chwilowa przecena mieszkania: jeśli nie sprzedajesz w tym momencie, cena "
+            "na papierze nie zmienia tego, co masz."
+        ),
+        "drill_question": (
+            "Portfel jest -20% na papierze, a Twój horyzont to wiele lat. Co jest rozsądne?"
+        ),
+        "drill_options": [
+            "Trzymać plan i dalej regularnie wpłacać",
+            "Sprzedać wszystko, żeby uniknąć dalszych spadków",
+            "Przenieść całość do jednej spółki, żeby szybciej odrobić",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Dokładnie — spadek na papierze to wahanie aż do momentu sprzedaży. Historia nie "
+            "gwarantuje przyszłości, dlatego liczy się plan i poduszka osobno."
+        ),
+        "is_fallback": True,
+    },
+    "diversification": {
+        "simple_explanation": (
+            "Dywersyfikacja to rozłożenie pieniędzy na wiele firm zamiast stawiania "
+            "wszystkiego na jedną. Zmniejsza wpływ wpadki pojedynczej spółki, ale nie usuwa "
+            "ryzyka rynku."
+        ),
+        "real_life_example": (
+            "Nie wkładasz wszystkich jajek do jednego koszyka — jeśli jeden się przewróci, "
+            "reszta zostaje. Szeroki ETF działa podobnie."
+        ),
+        "drill_question": "Co daje rozłożenie pieniędzy na setki firm?",
+        "drill_options": [
+            "Ogranicza wpływ wpadki jednej spółki",
+            "Całkowicie usuwa ryzyko rynku",
+            "Gwarantuje wyższy zysk niż jedna spółka",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Tak — dywersyfikacja łagodzi ryzyko, ale go nie eliminuje. Dlatego mówimy "
+            "o „ograniczaniu”, a nie o gwarancji."
+        ),
+        "is_fallback": True,
+    },
+    "general": {
+        "simple_explanation": (
+            "Finance Quest opiera się na trzech filarach: inflacja realnie zjada gotówkę, "
+            "poduszka chroni codzienny budżet, a szeroki ETF w długim horyzoncie pomaga "
+            "pieniądzom pracować."
+        ),
+        "real_life_example": (
+            "To jak plan podróży: gotówka w kieszeni na nagłe wydatki, mapa wiedzy w ręku "
+            "i spokojny, regularny krok do celu — bez zgadywania idealnego momentu."
+        ),
+        "drill_question": "Który zestaw najlepiej opisuje trzy filary Finance Quest?",
+        "drill_options": [
+            "Inflacja, poduszka i szeroki ETF",
+            "Kredyt, dźwignia i jedna spółka",
+            "Konto 0% i trzymanie gotówki bez planu",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Właśnie tak — te trzy elementy tworzą spokojny, powtarzalny plan bez obietnic "
+            "zysku."
+        ),
+        "is_fallback": True,
+    },
+}
+
+EXPLAIN_FALLBACKS_EN: dict[str, dict] = {
+    "inflation": {
+        "simple_explanation": (
+            "Inflation means rising prices — the same money buys less every year. Cash in a "
+            "0% account does not protect you from that."
+        ),
+        "real_life_example": (
+            "Your shopping basket costs 200 PLN today, and with 3.5% inflation the same "
+            "products cost about 207 PLN a year later. With an unchanged salary you simply "
+            "buy less."
+        ),
+        "drill_question": (
+            "What happens to the purchasing power of 1,000 PLN left for a year in a 0% "
+            "account when inflation is 3.5%?"
+        ),
+        "drill_options": [
+            "It buys less — a real loss of about 35 PLN",
+            "It buys exactly the same",
+            "It buys more, because the bank adds interest",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Exactly — at 3.5% inflation, a thousand zloty buys less after a year. That is "
+            "why cash in a 0% account loses in real terms."
+        ),
+        "is_fallback": True,
+    },
+    "etf": {
+        "simple_explanation": (
+            "A broad ETF is one basket holding hundreds of companies from around the world. "
+            "You buy it like any instrument, and its yearly cost (TER) is often low."
+        ),
+        "real_life_example": (
+            "Instead of betting everything on one local restaurant, you buy a share of the "
+            "whole shopping mall. If one restaurant struggles, the rest still works."
+        ),
+        "drill_question": "What does a low TER in a broad ETF mean?",
+        "drill_options": [
+            "A lower yearly cost that trims the result less",
+            "A guarantee of profit every year",
+            "No market risk at all",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Yes — TER is the fund's yearly cost. The lower it is, the less it takes from "
+            "the result, but it does not remove market risk."
+        ),
+        "is_fallback": True,
+    },
+    "emergency_fund": {
+        "simple_explanation": (
+            "A financial buffer is separate money for unexpected expenses. It means you never "
+            "have to sell an investment at a bad moment."
+        ),
+        "real_life_example": (
+            "It is like the spare wheel in a car: you do not use it daily, but when you get a "
+            "flat tyre the journey continues. The buffer sits apart from the long-term ETF."
+        ),
+        "drill_question": "Where should the financial buffer sit?",
+        "drill_options": [
+            "In a separate, easily accessible savings account",
+            "Only in a broad ETF for many years",
+            "In one company, so it grows faster",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Exactly — the buffer must be quickly accessible and kept apart from investments. "
+            "An ETF is not frozen either, but a payout usually takes a few business days."
+        ),
+        "is_fallback": True,
+    },
+    "volatility": {
+        "simple_explanation": (
+            "Volatility is a normal part of investing. A drop on paper is not a loss as long "
+            "as you do not sell units in a panic."
+        ),
+        "real_life_example": (
+            "It is like a temporary price cut on a flat you own: if you do not sell at that "
+            "moment, the paper price does not change what you actually have."
+        ),
+        "drill_question": (
+            "Your portfolio is -20% on paper and your horizon is many years. What is sensible?"
+        ),
+        "drill_options": [
+            "Keep the plan and keep contributing regularly",
+            "Sell everything to avoid further drops",
+            "Move everything into one company to recover faster",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Exactly — an on-paper drop is volatility until you sell. History does not "
+            "guarantee the future, which is why the plan and a separate buffer matter."
+        ),
+        "is_fallback": True,
+    },
+    "diversification": {
+        "simple_explanation": (
+            "Diversification means spreading money across many companies instead of betting "
+            "everything on one. It reduces the impact of a single company stumbling, but it "
+            "does not remove market risk."
+        ),
+        "real_life_example": (
+            "You do not put all your eggs in one basket — if one basket tips over, the rest "
+            "stays. A broad ETF works the same way."
+        ),
+        "drill_question": "What does spreading money across hundreds of companies give you?",
+        "drill_options": [
+            "It limits the impact of one company stumbling",
+            "It removes market risk completely",
+            "It guarantees a higher profit than one company",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Yes — diversification softens risk but does not eliminate it. That is why we say "
+            "it limits it rather than guaranteeing anything."
+        ),
+        "is_fallback": True,
+    },
+    "general": {
+        "simple_explanation": (
+            "Finance Quest rests on three pillars: inflation really eats cash, a buffer "
+            "protects your everyday budget, and a broad ETF over a long horizon helps money "
+            "work."
+        ),
+        "real_life_example": (
+            "It is like planning a trip: cash in your pocket for surprises, a map of knowledge "
+            "in hand, and a calm, regular step towards the goal — without guessing the perfect "
+            "moment."
+        ),
+        "drill_question": "Which set best describes the three pillars of Finance Quest?",
+        "drill_options": [
+            "Inflation, buffer and broad ETF",
+            "Credit, leverage and one company",
+            "A 0% account and cash without a plan",
+        ],
+        "correct_option_index": 0,
+        "drill_feedback": (
+            "Exactly — these three elements make a calm, repeatable plan without any promise "
+            "of profit."
+        ),
+        "is_fallback": True,
+    },
+}
+
+EXPLAIN_TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "inflation": (
+        "inflac",
+        "inflation",
+        "purchasing",
+        "sila nabywcza",
+        "cash",
+        "gotowk",
+    ),
+    "emergency_fund": (
+        "buffer",
+        "cushion",
+        "emergency",
+        "poduszk",
+        "awari",
+        "freeze",
+        "zamroz",
+        "liquid",
+        "plynnos",
+        "laptop",
+    ),
+    "etf": (
+        "etf",
+        "fund",
+        "fundusz",
+        "index",
+        "indeks",
+        "oplat",
+        "prowizj",
+        "broker",
+        "makler",
+    ),
+    "volatility": (
+        "crash",
+        "drop",
+        "volatil",
+        "spad",
+        "wahani",
+        "krach",
+        "panic",
+        "panik",
+        "risk",
+        "ryzyk",
+        "loss",
+    ),
+    "diversification": (
+        "diversif",
+        "dywersyfik",
+        "single stock",
+        "jedna spolk",
+        "spolk",
+        "spolek",
+        "spolka",
+        "spolki",
+        "concentrat",
+        "koncentrac",
+        "eggs",
+        "jajk",
+    ),
+}
+
+_PL_DIACRITICS: dict[int, int] = str.maketrans("ąćęłńóśźż", "acelnoszz")
+
+# Wzorce wymagające granicy słowa (żeby „ter” nie łapało „after”, a „strat”
+# nie łapało „strategii”, „dip” nie łapało „diploma”, „0%” nie łapało „-20%”).
+_TOPIC_PATTERNS: dict[str, re.Pattern[str]] = {
+    "inflation": re.compile(r"(?<![\d-])0\s?%"),
+    "etf": re.compile(r"(?<![a-z])(?:ter|fees?)(?![a-z])"),
+    "volatility": re.compile(r"(?<![a-z])dip(?![a-z])|(?<![a-z])strat(?!eg)|-\s?\d+\s?%"),
+}
+
+
+def _fold_text(text: str) -> str:
+    """Lowercase + usunięcie polskich znaków (spójne dopasowanie EN/PL)."""
+    return (text or "").lower().translate(_PL_DIACRITICS)
+
+
+def _match_explain_topic(question: str, topic_hint: str | None = None) -> str:
+    """Pierwszy pasujący temat po słowach kluczowych; inaczej ``general``."""
+    haystack = _fold_text(f"{topic_hint or ''} {question or ''}")
+    for topic, keywords in EXPLAIN_TOPIC_KEYWORDS.items():
+        if any(keyword in haystack for keyword in keywords):
+            return topic
+        pattern = _TOPIC_PATTERNS.get(topic)
+        if pattern is not None and pattern.search(haystack):
+            return topic
+    return "general"
+
+
+def get_explain_fallback(
+    question: str, topic_hint: str | None = None, lang: Language = "en"
+) -> dict:
+    """Deterministyczne wyjaśnienie + 3-opcyjny mini-drill (kopia słownika)."""
+    active = _normalize_lang(lang)
+    topic = _match_explain_topic(question, topic_hint)
+    table = EXPLAIN_FALLBACKS_EN if active == "en" else EXPLAIN_FALLBACKS
+    entry = table[topic]
+    return {
+        "simple_explanation": entry["simple_explanation"],
+        "real_life_example": entry["real_life_example"],
+        "drill_question": entry["drill_question"],
+        "drill_options": list(entry["drill_options"]),
+        "correct_option_index": int(entry["correct_option_index"]),
+        "drill_feedback": entry["drill_feedback"],
+        "is_fallback": True,
+    }
+
+# --------------------------------------------------------------------------- #
 # Wersja angielska (docs/03 §10) — te same id i wartości liczbowe, kwoty w PLN
 # --------------------------------------------------------------------------- #
 
@@ -2664,10 +3066,12 @@ def total_steps_for_day(day: int = 1) -> int:
 
 
 def _select_step_one(facts: dict, lang: Language) -> dict:
-    """Krok 1 Dnia 1: plan ``savings_first`` > samoocena >= 4 > grupa wiekowa."""
+    """Krok 1 Dnia 1: plan ``savings_first`` > pewność siebie > grupa wiekowa."""
     if str(facts.get("plan_type", "")) == "savings_first":
         return STEP1_SAVINGS_FIRST_EN if lang == "en" else STEP1_SAVINGS_FIRST
-    if _as_int(facts.get("self_confidence_start"), 0) >= 4:
+    if _as_int(facts.get("self_confidence_start"), 0) >= 4 or _as_int(
+        facts.get("confidence_start"), 0
+    ) >= 20:
         return STEP1_CONFIDENT_EN if lang == "en" else STEP1_CONFIDENT
     table = STEP1_BY_AGE_GROUP_EN if lang == "en" else STEP1_BY_AGE_GROUP
     age_group = str(facts.get("age_group", "20+"))
