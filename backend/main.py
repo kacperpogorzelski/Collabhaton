@@ -24,6 +24,7 @@ from backend.schemas import (
     ChallengeAcceptRequest,
     ChallengeAcceptResponse,
     DemoPersona,
+    Language,
     MissionTurnRequest,
     MissionTurnResponse,
     OnboardingRequest,
@@ -74,7 +75,8 @@ _COLUMNS = [
     "id", "age", "age_group", "main_concern", "has_emergency_fund", "free_cash", "plan_type",
     "recommended_monthly", "emergency_savings_monthly", "horizon_years", "confidence_start",
     "confidence_score", "xp", "current_step", "mission_completed", "current_options",
-    "challenge_accepted", "history",
+    "challenge_accepted", "history", "lang", "current_day", "completed_days",
+    "completed_challenges", "checkpoint_passed",
 ]
 
 
@@ -82,6 +84,8 @@ def _columns(s: MissionSession) -> dict:
     cols = {c: getattr(s, c) for c in _COLUMNS}
     cols["history"] = list(s.history or [])
     cols["current_options"] = list(s.current_options or [])
+    cols["completed_days"] = list(s.completed_days or [])
+    cols["completed_challenges"] = list(s.completed_challenges or [])
     # kolumny nie przechowywane w bazie, potrzebne w szablonach
     cols["training_etf_monthly"] = 0 if s.plan_type == "savings_first" else s.recommended_monthly
     return cols
@@ -106,19 +110,19 @@ def _get_session_or_404(db: Session, session_id: str) -> MissionSession:
 # Endpointy
 # ---------------------------------------------------------------------------
 @app.get("/api/demo-personas", response_model=list[DemoPersona])
-def demo_personas():
+def demo_personas(lang: Language = "en"):
     from backend import demo_data
 
-    return demo_data.DEMO_PERSONAS
+    return demo_data.get_demo_personas(lang)
 
 
 @app.post("/api/onboarding/analyze", response_model=OnboardingResponse)
 def analyze(req: OnboardingRequest, db: Session = Depends(get_db)):
     from backend import demo_data
 
-    age_group, horizon, persona_label = finance_math.get_age_group(req.age)
+    age_group, horizon, persona_label = finance_math.get_age_group(req.age, req.lang)
     advice = finance_math.calculate_safe_investment(
-        req.age, req.net_income, req.free_cash, req.has_emergency_fund
+        req.age, req.net_income, req.free_cash, req.has_emergency_fund, req.lang
     )
     confidence_start = finance_math.CONFIDENCE_START[req.self_confidence_start]
     session_id = uuid.uuid4().hex
@@ -142,33 +146,40 @@ def analyze(req: OnboardingRequest, db: Session = Depends(get_db)):
         current_options=[],
         challenge_accepted=False,
         history=[],
+        lang=req.lang,
+        current_day=1,
+        completed_days=[],
+        completed_challenges=[],
+        checkpoint_passed=False,
     )
     facts = finance_math.build_session_facts(_columns(session))
     facts["xp"] = 20
-    turn, options = demo_data.get_initial_mission_turn(facts)
+    turn, options = demo_data.get_initial_mission_turn(facts, req.lang)
     session.current_options = list(options)
     session.history = [{"role": "assistant", "content": turn.luna_message}]
     db.add(session)
     db.commit()
 
+    content = demo_data.get_age_group_content(age_group, req.lang)
     assumptions = Assumptions(
         etf_gross_nominal_pct=finance_math.R_GROSS * 100,
         costs_pct=round(finance_math.R_COSTS * 100, 1),
         etf_net_nominal_pct=round(finance_math.R_ETF * 100, 1),
         inflation_pct=round(finance_math.R_INF * 100, 1),
-        text=demo_data.ASSUMPTIONS_TEXT,
+        text=demo_data.get_assumptions_text(req.lang),
     )
     return OnboardingResponse(
         session_id=session_id,
+        lang=req.lang,
         age_group=age_group,
         persona_label=persona_label,
         default_horizon_years=horizon,
         main_concern=req.main_concern,
         safe_investment=advice,
-        speakly_filter=demo_data.SPEAKLY_FILTER_BY_GROUP[age_group],
+        speakly_filter=content["speakly_filter"],
         assumptions=assumptions,
-        roadmap_milestones=demo_data.ROADMAP_BY_GROUP[age_group],
-        micro_lessons=demo_data.MICRO_LESSONS_BY_GROUP[age_group],
+        roadmap_milestones=content["roadmap"],
+        micro_lessons=content["micro_lessons"],
         projection_series=finance_math.generate_projection_series(advice.recommended_monthly),
         initial_mission_turn=turn,
     )
@@ -179,6 +190,8 @@ def mission_turn(req: MissionTurnRequest, db: Session = Depends(get_db)):
     from backend import luna_service
 
     session = _get_session_or_404(db, req.session_id)
+    if req.lang is not None:
+        session.lang = req.lang
     cols = _columns(session)
     session_data = {**cols, **finance_math.build_session_facts(cols)}
     session_data["session_id"] = session.id
@@ -206,14 +219,16 @@ def challenge_accept(req: ChallengeAcceptRequest, db: Session = Depends(get_db))
     from backend import demo_data
 
     session = _get_session_or_404(db, req.session_id)
+    if req.lang is not None:
+        session.lang = req.lang
     reward = 0
     if not session.challenge_accepted:
         session.challenge_accepted = True
         session.xp += 50
         reward = 50
-        db.commit()
-    _, level_title, _ = demo_data.get_level_state(session.xp)
+    db.commit()
+    _, level_title, _ = demo_data.get_level_state(session.xp, session.lang)
     leaderboard = demo_data.build_leaderboard(
-        _leaderboard_rows(db), session.xp, level_title, session.xp >= 100
+        _leaderboard_rows(db), session.xp, level_title, session.xp >= 100, session.lang
     )
     return ChallengeAcceptResponse(xp=session.xp, reward_xp=reward, leaderboard=leaderboard)
